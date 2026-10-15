@@ -1,0 +1,6856 @@
+{
+  "version": 4,
+  "owner": "SmartGaráž",
+  "market": "SK",
+  "title": "SmartGaráž Independent Vehicle Taxonomy",
+  "license": "Proprietary independent compilation owned by SmartGaráž. Not a copy of TecDoc/TecAlliance, LKQ, Szekop, Inter Cars, Autodoc or any similar commercial vehicle database. No third-party vehicle IDs.",
+  "provenance": {
+    "method": "independent_public_facts_curation",
+    "compiled_on": "2026-08-03",
+    "policy": "bot/data/VEHICLE_TAXONOMY_POLICY.md",
+    "allowed_inputs": [
+      "public manufacturer model naming",
+      "common market engine labels (e.g. 1.6 TDI)",
+      "SmartGaráž editorial curation for SK market",
+      "free-text make/model from suppliers mapped onto THIS tree only"
+    ],
+    "forbidden_inputs": [
+      "TecDoc / TecAlliance kType / linkage / vehicle keys",
+      "LKQ / Szekop / Inter Cars / Autodoc vehicle taxonomy dumps or IDs",
+      "wholesale scrape of any commercial fitment catalogue",
+      "retail competitor catalogue scrape without TecAlliance licence (see CATALOG_LICENSING.md)"
+    ],
+    "note": "Hierarchy stores SmartGaráž sgv-* IDs only. Supplier feeds may suggest free-text make/model; ingest must map to sgv-* and drop foreign vehicle identifiers. See bot/data/CATALOG_LICENSING.md.",
+    "notes": [
+      "generations: public market roman/B-series labels under selected models (UI filter)",
+      "Audi S5 + RS4 models (public market gens B7/B8/B9) for SK fitment UI",
+      "Phase 1 expansion 2026-08: Toyota Prius XW30/50/60; Kia Sportage QL/NQ5 + Ceed; Hyundai Tucson TL/NX4 + i30; BMW 3/5 F/G gens; fleet/B2C SK aliases; no TecDoc IDs",
+      "Phase1 merge: Corolla E150/E160/E180/E210 + Yaris XP* + Camry XV80 + Sportage/Ceed/Tucson/BMW3 gens; Prius XW* from parallel PR",
+      "Additive Phase 1 gaps: Yaris Cross, XCeed, Karoq I, RAV4 XA*, Corolla E150 (factory gens preserved)",
+      "Stellantis SK 2026-08: Fiat gens (312/332/356/X250/X290) + Alfa Romeo + Jeep; public factory type labels only; no TecDoc/LinkEntry dump",
+      "SK coverage expand 2026-08: Cupra/Suzuki/Subaru/Mitsubishi/MINI/Porsche/Lexus/Land Rover/Tesla/Chevrolet/Smart/Jaguar/SsangYong + gens for Ford/Opel/MB/BMW X/Audi A6 Q3 Q7/VW Caddy T-Roc… — public facts, sgv-* only"
+    ]
+  },
+  "make_index": {
+    "Volkswagen": {
+      "sg_id": "sgv-make-volkswagen",
+      "aliases": [
+        "VW",
+        "vw",
+        "volkswagen"
+      ]
+    },
+    "Škoda": {
+      "sg_id": "sgv-make-skoda",
+      "aliases": [
+        "Skoda"
+      ]
+    },
+    "Audi": {
+      "sg_id": "sgv-make-audi",
+      "aliases": []
+    },
+    "BMW": {
+      "sg_id": "sgv-make-bmw",
+      "aliases": [
+        "bmw",
+        "Bmw"
+      ]
+    },
+    "Mercedes-Benz": {
+      "sg_id": "sgv-make-mercedes-benz",
+      "aliases": [
+        "Mercedes",
+        "MB"
+      ]
+    },
+    "Ford": {
+      "sg_id": "sgv-make-ford",
+      "aliases": []
+    },
+    "Opel": {
+      "sg_id": "sgv-make-opel",
+      "aliases": []
+    },
+    "Peugeot": {
+      "sg_id": "sgv-make-peugeot",
+      "aliases": []
+    },
+    "Renault": {
+      "sg_id": "sgv-make-renault",
+      "aliases": []
+    },
+    "Hyundai": {
+      "sg_id": "sgv-make-hyundai",
+      "aliases": [
+        "hyundai",
+        "HYUNDAI"
+      ]
+    },
+    "Kia": {
+      "sg_id": "sgv-make-kia",
+      "aliases": [
+        "kia",
+        "KIA"
+      ]
+    },
+    "Toyota": {
+      "sg_id": "sgv-make-toyota",
+      "aliases": [
+        "toyota",
+        "TOYOTA"
+      ]
+    },
+    "Seat": {
+      "sg_id": "sgv-make-seat",
+      "aliases": []
+    },
+    "Fiat": {
+      "sg_id": "sgv-make-fiat",
+      "aliases": [
+        "FIAT",
+        "fiat"
+      ]
+    },
+    "Honda": {
+      "sg_id": "sgv-make-honda",
+      "aliases": []
+    },
+    "Dacia": {
+      "sg_id": "sgv-make-dacia",
+      "aliases": []
+    },
+    "Citroën": {
+      "sg_id": "sgv-make-citroen",
+      "aliases": [
+        "Citroen"
+      ]
+    },
+    "Mazda": {
+      "sg_id": "sgv-make-mazda",
+      "aliases": []
+    },
+    "Nissan": {
+      "sg_id": "sgv-make-nissan",
+      "aliases": []
+    },
+    "Volvo": {
+      "sg_id": "sgv-make-volvo",
+      "aliases": []
+    },
+    "Alfa Romeo": {
+      "sg_id": "sgv-make-alfa-romeo",
+      "aliases": [
+        "Alfa",
+        "ALFA",
+        "alfa romeo",
+        "AlfaRomeo"
+      ]
+    },
+    "Jeep": {
+      "sg_id": "sgv-make-jeep",
+      "aliases": [
+        "JEEP",
+        "jeep"
+      ]
+    },
+    "Cupra": {
+      "sg_id": "sgv-make-cupra",
+      "aliases": [
+        "CUPRA",
+        "cupra"
+      ]
+    },
+    "Suzuki": {
+      "sg_id": "sgv-make-suzuki",
+      "aliases": [
+        "SUZUKI",
+        "suzuki"
+      ]
+    },
+    "Subaru": {
+      "sg_id": "sgv-make-subaru",
+      "aliases": [
+        "SUBARU",
+        "subaru"
+      ]
+    },
+    "Mitsubishi": {
+      "sg_id": "sgv-make-mitsubishi",
+      "aliases": [
+        "MITSUBISHI",
+        "mitsubishi"
+      ]
+    },
+    "MINI": {
+      "sg_id": "sgv-make-mini",
+      "aliases": [
+        "Mini",
+        "mini"
+      ]
+    },
+    "Porsche": {
+      "sg_id": "sgv-make-porsche",
+      "aliases": [
+        "PORSCHE",
+        "porsche"
+      ]
+    },
+    "Lexus": {
+      "sg_id": "sgv-make-lexus",
+      "aliases": [
+        "LEXUS",
+        "lexus"
+      ]
+    },
+    "Land Rover": {
+      "sg_id": "sgv-make-land-rover",
+      "aliases": [
+        "LandRover",
+        "LAND ROVER",
+        "Range Rover"
+      ]
+    },
+    "Tesla": {
+      "sg_id": "sgv-make-tesla",
+      "aliases": [
+        "TESLA",
+        "tesla"
+      ]
+    },
+    "Chevrolet": {
+      "sg_id": "sgv-make-chevrolet",
+      "aliases": [
+        "Chevy",
+        "CHEVROLET"
+      ]
+    },
+    "Smart": {
+      "sg_id": "sgv-make-smart",
+      "aliases": [
+        "SMART",
+        "smart"
+      ]
+    },
+    "Jaguar": {
+      "sg_id": "sgv-make-jaguar",
+      "aliases": [
+        "JAGUAR",
+        "jaguar"
+      ]
+    },
+    "SsangYong": {
+      "sg_id": "sgv-make-ssangyong",
+      "aliases": [
+        "KG Mobility",
+        "SSANGYONG",
+        "ssangyong"
+      ]
+    }
+  },
+  "makes": {
+    "Volkswagen": {
+      "Golf": {
+        "sg_id": "sgv-model-volkswagen-golf",
+        "engines": [
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 TSI",
+          "1.5 TSI",
+          "1.6 TDI",
+          "1.9 TDI",
+          "2.0 TDI",
+          "2.0 TSI",
+          "eHybrid"
+        ],
+        "year_from": 1997,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-volkswagen-golf-iv",
+            "year_from": 1997,
+            "year_to": 2006,
+            "engines": [
+              "1.4 MPI",
+              "1.6 MPI",
+              "1.8 T",
+              "1.9 TDI",
+              "2.0 MPI"
+            ],
+            "notes": "K-Line / VAG KKL primary (s Bora)"
+          },
+          {
+            "label": "V",
+            "sg_id": "sgv-gen-volkswagen-golf-v",
+            "year_from": 2004,
+            "year_to": 2009,
+            "engines": [
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "VI",
+            "sg_id": "sgv-gen-volkswagen-golf-vi",
+            "year_from": 2008,
+            "year_to": 2013,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "VII",
+            "sg_id": "sgv-gen-volkswagen-golf-vii",
+            "year_from": 2012,
+            "year_to": 2020,
+            "engines": [
+              "1.0 TSI",
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "VIII",
+            "sg_id": "sgv-gen-volkswagen-golf-viii",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI",
+              "eHybrid"
+            ]
+          }
+        ]
+      },
+      "Passat": {
+        "sg_id": "sgv-model-volkswagen-passat",
+        "engines": [
+          "1.4 TSI",
+          "1.5 TSI",
+          "1.6 TDI",
+          "2.0 TDI",
+          "2.0 TSI",
+          "eHybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "B6",
+            "sg_id": "sgv-gen-volkswagen-passat-b6",
+            "year_from": 2005,
+            "year_to": 2010,
+            "engines": [
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "B7",
+            "sg_id": "sgv-gen-volkswagen-passat-b7",
+            "year_from": 2010,
+            "year_to": 2014,
+            "engines": [
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "B8",
+            "sg_id": "sgv-gen-volkswagen-passat-b8",
+            "year_from": 2014,
+            "year_to": 2023,
+            "engines": [
+              "1.4 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI",
+              "eHybrid"
+            ]
+          },
+          {
+            "label": "B9",
+            "sg_id": "sgv-gen-volkswagen-passat-b9",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI",
+              "eHybrid"
+            ]
+          }
+        ]
+      },
+      "Polo": {
+        "sg_id": "sgv-model-volkswagen-polo",
+        "engines": [
+          "1.0 MPI",
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 TDI",
+          "1.6 TDI"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-volkswagen-polo-iv",
+            "year_from": 2005,
+            "year_to": 2009,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TDI",
+              "1.6 TDI"
+            ]
+          },
+          {
+            "label": "V",
+            "sg_id": "sgv-gen-volkswagen-polo-v",
+            "year_from": 2009,
+            "year_to": 2017,
+            "engines": [
+              "1.0 MPI",
+              "1.0 TSI",
+              "1.2 TSI",
+              "1.4 TDI",
+              "1.6 TDI"
+            ]
+          },
+          {
+            "label": "VI",
+            "sg_id": "sgv-gen-volkswagen-polo-vi",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 MPI",
+              "1.0 TSI"
+            ]
+          }
+        ]
+      },
+      "Tiguan": {
+        "sg_id": "sgv-model-volkswagen-tiguan",
+        "engines": [
+          "1.4 TSI",
+          "1.5 TSI",
+          "2.0 TDI",
+          "2.0 TSI"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volkswagen-tiguan-i",
+            "year_from": 2008,
+            "year_to": 2016,
+            "engines": [
+              "1.4 TSI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-volkswagen-tiguan-ii",
+            "year_from": 2016,
+            "year_to": 2024,
+            "engines": [
+              "1.4 TSI",
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-volkswagen-tiguan-iii",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          }
+        ]
+      },
+      "Touran": {
+        "sg_id": "sgv-model-volkswagen-touran",
+        "engines": [
+          "1.2 TSI",
+          "1.4 TSI",
+          "1.6 TDI",
+          "2.0 TDI"
+        ],
+        "year_from": 2005,
+        "year_to": 2024,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volkswagen-touran-i",
+            "year_from": 2005,
+            "year_to": 2015,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-volkswagen-touran-ii",
+            "year_from": 2015,
+            "year_to": 2024,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Transporter": {
+        "sg_id": "sgv-model-volkswagen-transporter",
+        "engines": [
+          "2.0 TDI",
+          "2.0 TSI",
+          "1.9 TDI",
+          "2.5 TDI"
+        ],
+        "year_from": 2003,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "T5",
+            "sg_id": "sgv-gen-volkswagen-transporter-t5",
+            "year_from": 2003,
+            "year_to": 2015,
+            "engines": [
+              "1.9 TDI",
+              "2.0 TDI",
+              "2.5 TDI"
+            ]
+          },
+          {
+            "label": "T6",
+            "sg_id": "sgv-gen-volkswagen-transporter-t6",
+            "year_from": 2015,
+            "year_to": 2019,
+            "engines": [
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "T6.1",
+            "sg_id": "sgv-gen-volkswagen-transporter-t6-1",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Caddy": {
+        "sg_id": "sgv-model-volkswagen-caddy",
+        "engines": [
+          "1.2 TSI",
+          "1.4 TSI",
+          "1.6 TDI",
+          "2.0 TDI",
+          "1.9 TDI",
+          "1.5 TSI"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "2K",
+            "sg_id": "sgv-gen-volkswagen-caddy-2k",
+            "year_from": 2004,
+            "year_to": 2015,
+            "engines": [
+              "1.6 TDI",
+              "1.9 TDI",
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "SA",
+            "sg_id": "sgv-gen-volkswagen-caddy-sa",
+            "year_from": 2015,
+            "year_to": 2020,
+            "engines": [
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "SB",
+            "sg_id": "sgv-gen-volkswagen-caddy-sb",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Touareg": {
+        "sg_id": "sgv-model-volkswagen-touareg",
+        "engines": [
+          "2.0 TDI",
+          "3.0 TDI",
+          "3.0 TSI",
+          "2.5 TDI",
+          "4.2 V8",
+          "3.6 V6",
+          "eHybrid"
+        ],
+        "year_from": 2002,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "7L",
+            "sg_id": "sgv-gen-volkswagen-touareg-7l",
+            "year_from": 2002,
+            "year_to": 2010,
+            "engines": [
+              "2.5 TDI",
+              "3.0 TDI",
+              "4.2 V8"
+            ]
+          },
+          {
+            "label": "7P",
+            "sg_id": "sgv-gen-volkswagen-touareg-7p",
+            "year_from": 2010,
+            "year_to": 2018,
+            "engines": [
+              "3.0 TDI",
+              "3.6 V6"
+            ]
+          },
+          {
+            "label": "CR",
+            "sg_id": "sgv-gen-volkswagen-touareg-cr",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "3.0 TDI",
+              "eHybrid"
+            ]
+          }
+        ]
+      },
+      "Arteon": {
+        "sg_id": "sgv-model-volkswagen-arteon",
+        "engines": [
+          "1.5 TSI",
+          "2.0 TSI",
+          "2.0 TDI",
+          "eHybrid"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volkswagen-arteon-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TSI",
+              "2.0 TDI",
+              "eHybrid"
+            ]
+          }
+        ]
+      },
+      "Taigo": {
+        "sg_id": "sgv-model-volkswagen-taigo",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI"
+        ],
+        "year_from": 2021,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volkswagen-taigo-i",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI"
+            ]
+          }
+        ]
+      },
+      "T-Roc": {
+        "sg_id": "sgv-model-volkswagen-t-roc",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI",
+          "2.0 TDI",
+          "2.0 TSI"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volkswagen-t-roc-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          }
+        ]
+      },
+      "T-Cross": {
+        "sg_id": "sgv-model-volkswagen-t-cross",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volkswagen-t-cross-i",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI"
+            ]
+          }
+        ]
+      }
+    },
+    "Škoda": {
+      "Octavia": {
+        "sg_id": "sgv-model-skoda-octavia",
+        "engines": [
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 MPI",
+          "1.4 TSI",
+          "1.5 TSI",
+          "1.6 MPI",
+          "1.6 TDI",
+          "1.8 T",
+          "1.9 TDI",
+          "2.0 MPI",
+          "2.0 TDI",
+          "2.0 TSI",
+          "iV Hybrid"
+        ],
+        "year_from": 1996,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-octavia-i",
+            "year_from": 1996,
+            "year_to": 2004,
+            "engines": [
+              "1.4 MPI",
+              "1.6 MPI",
+              "1.8 T",
+              "1.9 TDI",
+              "2.0 MPI"
+            ],
+            "notes": "K-Line / VAG KKL primary lab car"
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-skoda-octavia-ii",
+            "year_from": 2004,
+            "year_to": 2013,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-skoda-octavia-iii",
+            "year_from": 2013,
+            "year_to": 2020,
+            "engines": [
+              "1.0 TSI",
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-skoda-octavia-iv",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI",
+              "iV Hybrid"
+            ]
+          }
+        ]
+      },
+      "Fabia": {
+        "sg_id": "sgv-model-skoda-fabia",
+        "engines": [
+          "1.0 MPI",
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 TDI",
+          "1.6 TDI"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-skoda-fabia-ii",
+            "year_from": 2007,
+            "year_to": 2014,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TDI",
+              "1.6 TDI"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-skoda-fabia-iii",
+            "year_from": 2014,
+            "year_to": 2021,
+            "engines": [
+              "1.0 MPI",
+              "1.0 TSI",
+              "1.2 TSI",
+              "1.4 TDI"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-skoda-fabia-iv",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.0 MPI",
+              "1.0 TSI"
+            ]
+          }
+        ]
+      },
+      "Superb": {
+        "sg_id": "sgv-model-skoda-superb",
+        "engines": [
+          "1.4 TSI",
+          "1.5 TSI",
+          "1.6 TDI",
+          "2.0 TDI",
+          "2.0 TSI",
+          "iV Hybrid"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-skoda-superb-ii",
+            "year_from": 2008,
+            "year_to": 2015,
+            "engines": [
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-skoda-superb-iii",
+            "year_from": 2015,
+            "year_to": 2024,
+            "engines": [
+              "1.4 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TSI",
+              "iV Hybrid"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-skoda-superb-iv",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI",
+              "iV Hybrid"
+            ]
+          }
+        ]
+      },
+      "Kodiaq": {
+        "sg_id": "sgv-model-skoda-kodiaq",
+        "engines": [
+          "1.5 TSI",
+          "2.0 TDI",
+          "2.0 TSI"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-kodiaq-i",
+            "year_from": 2017,
+            "year_to": 2024,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-skoda-kodiaq-ii",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TDI",
+              "2.0 TSI"
+            ]
+          }
+        ]
+      },
+      "Karoq": {
+        "sg_id": "sgv-model-skoda-karoq",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI",
+          "1.6 TDI",
+          "2.0 TDI"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-karoq-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Kamiq": {
+        "sg_id": "sgv-model-skoda-kamiq",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI",
+          "1.6 TDI"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-kamiq-i",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "1.6 TDI"
+            ]
+          }
+        ]
+      },
+      "Rapid": {
+        "sg_id": "sgv-model-skoda-rapid",
+        "engines": [
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 TDI",
+          "1.6 TDI"
+        ],
+        "year_from": 2012,
+        "year_to": 2020,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-rapid-i",
+            "year_from": 2012,
+            "year_to": 2020,
+            "engines": [
+              "1.0 TSI",
+              "1.2 TSI",
+              "1.4 TDI",
+              "1.6 TDI"
+            ]
+          }
+        ]
+      },
+      "Scala": {
+        "sg_id": "sgv-model-skoda-scala",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI",
+          "1.6 TDI"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-scala-i",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "1.6 TDI"
+            ]
+          }
+        ]
+      },
+      "Enyaq": {
+        "sg_id": "sgv-model-skoda-enyaq",
+        "engines": [
+          "Electric"
+        ],
+        "year_from": 2020,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-skoda-enyaq-i",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "Electric"
+            ]
+          }
+        ]
+      }
+    },
+    "Audi": {
+      "A3": {
+        "sg_id": "sgv-model-audi-a3",
+        "engines": [
+          "1.0 TFSI",
+          "1.4 TFSI",
+          "1.5 TFSI",
+          "1.6 TDI",
+          "2.0 TDI",
+          "2.0 TFSI"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "8P",
+            "sg_id": "sgv-gen-audi-a3-8p",
+            "year_from": 2004,
+            "year_to": 2012,
+            "engines": [
+              "1.4 TFSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TFSI"
+            ]
+          },
+          {
+            "label": "8V",
+            "sg_id": "sgv-gen-audi-a3-8v",
+            "year_from": 2012,
+            "year_to": 2020,
+            "engines": [
+              "1.0 TFSI",
+              "1.4 TFSI",
+              "1.5 TFSI",
+              "1.6 TDI",
+              "2.0 TDI",
+              "2.0 TFSI"
+            ]
+          },
+          {
+            "label": "8Y",
+            "sg_id": "sgv-gen-audi-a3-8y",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TFSI",
+              "1.5 TFSI",
+              "2.0 TDI",
+              "2.0 TFSI"
+            ]
+          }
+        ]
+      },
+      "A4": {
+        "sg_id": "sgv-model-audi-a4",
+        "engines": [
+          "1.4 TFSI",
+          "1.8 TFSI",
+          "2.0 TFSI",
+          "2.0 TDI",
+          "3.0 TDI"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "B7",
+            "sg_id": "sgv-gen-audi-a4-b7",
+            "year_from": 2005,
+            "year_to": 2008,
+            "engines": [
+              "1.8 TFSI",
+              "2.0 TFSI",
+              "2.0 TDI",
+              "3.0 TDI"
+            ]
+          },
+          {
+            "label": "B8",
+            "sg_id": "sgv-gen-audi-a4-b8",
+            "year_from": 2008,
+            "year_to": 2015,
+            "engines": [
+              "1.8 TFSI",
+              "2.0 TFSI",
+              "2.0 TDI",
+              "3.0 TDI"
+            ]
+          },
+          {
+            "label": "B9",
+            "sg_id": "sgv-gen-audi-a4-b9",
+            "year_from": 2015,
+            "year_to": 2026,
+            "engines": [
+              "1.4 TFSI",
+              "2.0 TFSI",
+              "2.0 TDI",
+              "3.0 TDI"
+            ]
+          }
+        ]
+      },
+      "A6": {
+        "sg_id": "sgv-model-audi-a6",
+        "engines": [
+          "2.0 TFSI",
+          "2.0 TDI",
+          "3.0 TDI",
+          "3.0 TFSI",
+          "2.7 TDI",
+          "45 TFSI"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "C6",
+            "sg_id": "sgv-gen-audi-a6-c6",
+            "year_from": 2004,
+            "year_to": 2011,
+            "engines": [
+              "2.0 TDI",
+              "2.7 TDI",
+              "3.0 TDI",
+              "2.0 TFSI"
+            ]
+          },
+          {
+            "label": "C7",
+            "sg_id": "sgv-gen-audi-a6-c7",
+            "year_from": 2011,
+            "year_to": 2018,
+            "engines": [
+              "2.0 TDI",
+              "3.0 TDI",
+              "2.0 TFSI",
+              "3.0 TFSI"
+            ]
+          },
+          {
+            "label": "C8",
+            "sg_id": "sgv-gen-audi-a6-c8",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "2.0 TDI",
+              "3.0 TDI",
+              "2.0 TFSI",
+              "45 TFSI"
+            ]
+          }
+        ]
+      },
+      "Q3": {
+        "sg_id": "sgv-model-audi-q3",
+        "engines": [
+          "1.4 TFSI",
+          "1.5 TFSI",
+          "2.0 TFSI",
+          "2.0 TDI"
+        ],
+        "year_from": 2011,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "8U",
+            "sg_id": "sgv-gen-audi-q3-8u",
+            "year_from": 2011,
+            "year_to": 2018,
+            "engines": [
+              "1.4 TFSI",
+              "2.0 TFSI",
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "F3",
+            "sg_id": "sgv-gen-audi-q3-f3",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TFSI",
+              "2.0 TFSI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Q5": {
+        "sg_id": "sgv-model-audi-q5",
+        "engines": [
+          "2.0 TFSI",
+          "2.0 TDI",
+          "3.0 TDI"
+        ],
+        "year_from": 2009,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-audi-q5-i",
+            "year_from": 2009,
+            "year_to": 2017,
+            "engines": [
+              "2.0 TFSI",
+              "2.0 TDI",
+              "3.0 TDI"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-audi-q5-ii",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.0 TFSI",
+              "2.0 TDI",
+              "3.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Q7": {
+        "sg_id": "sgv-model-audi-q7",
+        "engines": [
+          "3.0 TDI",
+          "3.0 TFSI",
+          "4.2 TDI",
+          "45 TDI",
+          "55 TFSI",
+          "e-tron"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "4L",
+            "sg_id": "sgv-gen-audi-q7-4l",
+            "year_from": 2005,
+            "year_to": 2015,
+            "engines": [
+              "3.0 TDI",
+              "4.2 TDI"
+            ]
+          },
+          {
+            "label": "4M",
+            "sg_id": "sgv-gen-audi-q7-4m",
+            "year_from": 2015,
+            "year_to": 2026,
+            "engines": [
+              "3.0 TDI",
+              "45 TDI",
+              "55 TFSI",
+              "e-tron"
+            ]
+          }
+        ]
+      },
+      "S5": {
+        "sg_id": "sgv-model-audi-s5",
+        "engines": [
+          "3.0 TFSI",
+          "4.2 FSI"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "B8",
+            "sg_id": "sgv-gen-audi-s5-b8",
+            "year_from": 2007,
+            "year_to": 2016,
+            "engines": [
+              "3.0 TFSI",
+              "4.2 FSI"
+            ]
+          },
+          {
+            "label": "B9",
+            "sg_id": "sgv-gen-audi-s5-b9",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "3.0 TFSI"
+            ]
+          }
+        ]
+      },
+      "RS4": {
+        "sg_id": "sgv-model-audi-rs4",
+        "engines": [
+          "4.2 FSI",
+          "2.9 TFSI"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "B7",
+            "sg_id": "sgv-gen-audi-rs4-b7",
+            "year_from": 2006,
+            "year_to": 2008,
+            "engines": [
+              "4.2 FSI"
+            ]
+          },
+          {
+            "label": "B8",
+            "sg_id": "sgv-gen-audi-rs4-b8",
+            "year_from": 2012,
+            "year_to": 2015,
+            "engines": [
+              "4.2 FSI"
+            ]
+          },
+          {
+            "label": "B9",
+            "sg_id": "sgv-gen-audi-rs4-b9",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.9 TFSI"
+            ]
+          }
+        ]
+      },
+      "A1": {
+        "sg_id": "sgv-model-audi-a1",
+        "engines": [
+          "1.0 TFSI",
+          "1.4 TFSI",
+          "1.5 TFSI",
+          "1.6 TDI"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "8X",
+            "sg_id": "sgv-gen-audi-a1-8x",
+            "year_from": 2010,
+            "year_to": 2018,
+            "engines": [
+              "1.0 TFSI",
+              "1.4 TFSI",
+              "1.6 TDI"
+            ]
+          },
+          {
+            "label": "GB",
+            "sg_id": "sgv-gen-audi-a1-gb",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TFSI",
+              "1.5 TFSI"
+            ]
+          }
+        ]
+      },
+      "Q2": {
+        "sg_id": "sgv-model-audi-q2",
+        "engines": [
+          "1.0 TFSI",
+          "1.5 TFSI",
+          "2.0 TDI"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GA",
+            "sg_id": "sgv-gen-audi-q2-ga",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TFSI",
+              "1.5 TFSI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      }
+    },
+    "BMW": {
+      "1 Series": {
+        "sg_id": "sgv-model-bmw-1-series",
+        "engines": [
+          "116i",
+          "118i",
+          "120i",
+          "116d",
+          "118d",
+          "120d"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "E87",
+            "sg_id": "sgv-gen-bmw-1-series-e87",
+            "year_from": 2004,
+            "year_to": 2011,
+            "engines": [
+              "116i",
+              "118i",
+              "118d",
+              "120d"
+            ]
+          },
+          {
+            "label": "F20",
+            "sg_id": "sgv-gen-bmw-1-series-f20",
+            "year_from": 2011,
+            "year_to": 2019,
+            "engines": [
+              "116i",
+              "118i",
+              "118d",
+              "120d"
+            ]
+          },
+          {
+            "label": "F40",
+            "sg_id": "sgv-gen-bmw-1-series-f40",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "118i",
+              "120i",
+              "116d",
+              "118d"
+            ]
+          }
+        ]
+      },
+      "3 Series": {
+        "sg_id": "sgv-model-bmw-3-series",
+        "engines": [
+          "318i",
+          "320i",
+          "330i",
+          "318d",
+          "320d",
+          "330d"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "E90",
+            "sg_id": "sgv-gen-bmw-3-series-e90",
+            "year_from": 2005,
+            "year_to": 2011,
+            "engines": [
+              "318i",
+              "320i",
+              "320d",
+              "330d"
+            ]
+          },
+          {
+            "label": "F30",
+            "sg_id": "sgv-gen-bmw-3-series-f30",
+            "year_from": 2011,
+            "year_to": 2019,
+            "engines": [
+              "318i",
+              "320i",
+              "330i",
+              "318d",
+              "320d",
+              "330d"
+            ]
+          },
+          {
+            "label": "G20",
+            "sg_id": "sgv-gen-bmw-3-series-g20",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "318i",
+              "320i",
+              "330i",
+              "318d",
+              "320d",
+              "330d"
+            ]
+          }
+        ]
+      },
+      "5 Series": {
+        "sg_id": "sgv-model-bmw-5-series",
+        "engines": [
+          "520i",
+          "530i",
+          "520d",
+          "530d"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "F10",
+            "sg_id": "sgv-gen-bmw-5-series-f10",
+            "year_from": 2010,
+            "year_to": 2017,
+            "engines": [
+              "520i",
+              "530i",
+              "520d",
+              "530d"
+            ]
+          },
+          {
+            "label": "G30",
+            "sg_id": "sgv-gen-bmw-5-series-g30",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "520i",
+              "530i",
+              "520d",
+              "530d"
+            ]
+          }
+        ]
+      },
+      "X1": {
+        "sg_id": "sgv-model-bmw-x1",
+        "engines": [
+          "sDrive18i",
+          "xDrive20i",
+          "sDrive18d",
+          "xDrive20d",
+          "xDrive18d",
+          "xDrive25e",
+          "xDrive30e"
+        ],
+        "year_from": 2009,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "E84",
+            "sg_id": "sgv-gen-bmw-x1-e84",
+            "year_from": 2009,
+            "year_to": 2015,
+            "engines": [
+              "xDrive18d",
+              "xDrive20d",
+              "sDrive18i"
+            ]
+          },
+          {
+            "label": "F48",
+            "sg_id": "sgv-gen-bmw-x1-f48",
+            "year_from": 2015,
+            "year_to": 2022,
+            "engines": [
+              "sDrive18i",
+              "xDrive20d",
+              "xDrive25e"
+            ]
+          },
+          {
+            "label": "U11",
+            "sg_id": "sgv-gen-bmw-x1-u11",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "sDrive18i",
+              "xDrive20d",
+              "xDrive30e"
+            ]
+          }
+        ]
+      },
+      "X3": {
+        "sg_id": "sgv-model-bmw-x3",
+        "engines": [
+          "xDrive20i",
+          "xDrive30i",
+          "xDrive20d",
+          "xDrive30d",
+          "xDrive30e"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "F25",
+            "sg_id": "sgv-gen-bmw-x3-f25",
+            "year_from": 2010,
+            "year_to": 2017,
+            "engines": [
+              "xDrive20d",
+              "xDrive30d",
+              "xDrive20i"
+            ]
+          },
+          {
+            "label": "G01",
+            "sg_id": "sgv-gen-bmw-x3-g01",
+            "year_from": 2017,
+            "year_to": 2024,
+            "engines": [
+              "xDrive20d",
+              "xDrive30d",
+              "xDrive30e"
+            ]
+          },
+          {
+            "label": "G45",
+            "sg_id": "sgv-gen-bmw-x3-g45",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "xDrive20d",
+              "xDrive30e"
+            ]
+          }
+        ]
+      },
+      "X5": {
+        "sg_id": "sgv-model-bmw-x5",
+        "engines": [
+          "xDrive40i",
+          "xDrive30d",
+          "xDrive40d",
+          "xDrive25d",
+          "xDrive45e"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "E70",
+            "sg_id": "sgv-gen-bmw-x5-e70",
+            "year_from": 2006,
+            "year_to": 2013,
+            "engines": [
+              "xDrive30d",
+              "xDrive40d"
+            ]
+          },
+          {
+            "label": "F15",
+            "sg_id": "sgv-gen-bmw-x5-f15",
+            "year_from": 2013,
+            "year_to": 2018,
+            "engines": [
+              "xDrive25d",
+              "xDrive30d",
+              "xDrive40d"
+            ]
+          },
+          {
+            "label": "G05",
+            "sg_id": "sgv-gen-bmw-x5-g05",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "xDrive30d",
+              "xDrive40d",
+              "xDrive45e"
+            ]
+          }
+        ]
+      },
+      "2 Series": {
+        "sg_id": "sgv-model-bmw-2-series",
+        "engines": [
+          "218i",
+          "220i",
+          "218d",
+          "220d"
+        ],
+        "year_from": 2014,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "F22",
+            "sg_id": "sgv-gen-bmw-2-series-f22",
+            "year_from": 2014,
+            "year_to": 2021,
+            "engines": [
+              "218i",
+              "220i",
+              "218d",
+              "220d"
+            ]
+          },
+          {
+            "label": "G42",
+            "sg_id": "sgv-gen-bmw-2-series-g42",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "220i",
+              "220d"
+            ]
+          }
+        ]
+      }
+    },
+    "Mercedes-Benz": {
+      "A-Class": {
+        "sg_id": "sgv-model-mercedes-benz-a-class",
+        "engines": [
+          "A180",
+          "A200",
+          "A180d",
+          "A200d"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "W176",
+            "sg_id": "sgv-gen-mercedes-benz-a-class-w176",
+            "year_from": 2012,
+            "year_to": 2018,
+            "engines": [
+              "A180",
+              "A200",
+              "A180d",
+              "A200d"
+            ]
+          },
+          {
+            "label": "W177",
+            "sg_id": "sgv-gen-mercedes-benz-a-class-w177",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "A180",
+              "A200",
+              "A180d",
+              "A200d"
+            ]
+          }
+        ]
+      },
+      "C-Class": {
+        "sg_id": "sgv-model-mercedes-benz-c-class",
+        "engines": [
+          "C180",
+          "C200",
+          "C220d",
+          "C300",
+          "C250d"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "W204",
+            "sg_id": "sgv-gen-mercedes-benz-c-class-w204",
+            "year_from": 2007,
+            "year_to": 2014,
+            "engines": [
+              "C180",
+              "C200",
+              "C220d",
+              "C250d"
+            ]
+          },
+          {
+            "label": "W205",
+            "sg_id": "sgv-gen-mercedes-benz-c-class-w205",
+            "year_from": 2014,
+            "year_to": 2021,
+            "engines": [
+              "C180",
+              "C200",
+              "C220d",
+              "C300"
+            ]
+          },
+          {
+            "label": "W206",
+            "sg_id": "sgv-gen-mercedes-benz-c-class-w206",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "C180",
+              "C200",
+              "C220d",
+              "C300"
+            ]
+          }
+        ]
+      },
+      "E-Class": {
+        "sg_id": "sgv-model-mercedes-benz-e-class",
+        "engines": [
+          "E200",
+          "E220d",
+          "E300",
+          "E350d",
+          "E250",
+          "E300de",
+          "E300e"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "W212",
+            "sg_id": "sgv-gen-mercedes-benz-e-class-w212",
+            "year_from": 2009,
+            "year_to": 2016,
+            "engines": [
+              "E200",
+              "E220d",
+              "E250",
+              "E350d"
+            ]
+          },
+          {
+            "label": "W213",
+            "sg_id": "sgv-gen-mercedes-benz-e-class-w213",
+            "year_from": 2016,
+            "year_to": 2023,
+            "engines": [
+              "E200",
+              "E220d",
+              "E300",
+              "E300de"
+            ]
+          },
+          {
+            "label": "W214",
+            "sg_id": "sgv-gen-mercedes-benz-e-class-w214",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "E200",
+              "E220d",
+              "E300e"
+            ]
+          }
+        ]
+      },
+      "GLA": {
+        "sg_id": "sgv-model-mercedes-benz-gla",
+        "engines": [
+          "GLA180",
+          "GLA200",
+          "GLA200d"
+        ],
+        "year_from": 2013,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X156",
+            "sg_id": "sgv-gen-mercedes-benz-gla-x156",
+            "year_from": 2013,
+            "year_to": 2019,
+            "engines": [
+              "GLA180",
+              "GLA200",
+              "GLA200d"
+            ]
+          },
+          {
+            "label": "H247",
+            "sg_id": "sgv-gen-mercedes-benz-gla-h247",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "GLA180",
+              "GLA200",
+              "GLA200d"
+            ]
+          }
+        ]
+      },
+      "GLC": {
+        "sg_id": "sgv-model-mercedes-benz-glc",
+        "engines": [
+          "GLC200",
+          "GLC220d",
+          "GLC300",
+          "GLC300e"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X253",
+            "sg_id": "sgv-gen-mercedes-benz-glc-x253",
+            "year_from": 2015,
+            "year_to": 2022,
+            "engines": [
+              "GLC200",
+              "GLC220d",
+              "GLC300"
+            ]
+          },
+          {
+            "label": "X254",
+            "sg_id": "sgv-gen-mercedes-benz-glc-x254",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "GLC200",
+              "GLC220d",
+              "GLC300e"
+            ]
+          }
+        ]
+      },
+      "Vito": {
+        "sg_id": "sgv-model-mercedes-benz-vito",
+        "engines": [
+          "110 CDI",
+          "114 CDI",
+          "116 CDI",
+          "119 CDI",
+          "115 CDI",
+          "120 CDI"
+        ],
+        "year_from": 2003,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "W639",
+            "sg_id": "sgv-gen-mercedes-benz-vito-w639",
+            "year_from": 2003,
+            "year_to": 2014,
+            "engines": [
+              "110 CDI",
+              "115 CDI",
+              "120 CDI"
+            ]
+          },
+          {
+            "label": "W447",
+            "sg_id": "sgv-gen-mercedes-benz-vito-w447",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "110 CDI",
+              "114 CDI",
+              "116 CDI"
+            ]
+          }
+        ]
+      },
+      "GLB": {
+        "sg_id": "sgv-model-mercedes-benz-glb",
+        "engines": [
+          "GLB180",
+          "GLB200",
+          "GLB200d"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X247",
+            "sg_id": "sgv-gen-mercedes-benz-glb-x247",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "GLB180",
+              "GLB200",
+              "GLB200d"
+            ]
+          }
+        ]
+      }
+    },
+    "Ford": {
+      "Fiesta": {
+        "sg_id": "sgv-model-ford-fiesta",
+        "engines": [
+          "1.0 EcoBoost",
+          "1.25",
+          "1.4",
+          "1.5 TDCi",
+          "1.6 TDCi",
+          "1.4 TDCi",
+          "1.1"
+        ],
+        "year_from": 2005,
+        "year_to": 2023,
+        "generations": [
+          {
+            "label": "MK6",
+            "sg_id": "sgv-gen-ford-fiesta-mk6",
+            "year_from": 2008,
+            "year_to": 2017,
+            "engines": [
+              "1.0 EcoBoost",
+              "1.25",
+              "1.4 TDCi",
+              "1.6 TDCi"
+            ]
+          },
+          {
+            "label": "MK7",
+            "sg_id": "sgv-gen-ford-fiesta-mk7",
+            "year_from": 2017,
+            "year_to": 2023,
+            "engines": [
+              "1.0 EcoBoost",
+              "1.1",
+              "1.5 TDCi"
+            ]
+          }
+        ]
+      },
+      "Focus": {
+        "sg_id": "sgv-model-ford-focus",
+        "engines": [
+          "1.0 EcoBoost",
+          "1.5 EcoBoost",
+          "1.5 TDCi",
+          "1.6 TDCi",
+          "2.0 TDCi",
+          "1.4",
+          "1.6",
+          "1.5 EcoBlue",
+          "2.0 EcoBlue"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "MK2",
+            "sg_id": "sgv-gen-ford-focus-mk2",
+            "year_from": 2004,
+            "year_to": 2011,
+            "engines": [
+              "1.4",
+              "1.6",
+              "1.6 TDCi",
+              "2.0 TDCi"
+            ]
+          },
+          {
+            "label": "MK3",
+            "sg_id": "sgv-gen-ford-focus-mk3",
+            "year_from": 2011,
+            "year_to": 2018,
+            "engines": [
+              "1.0 EcoBoost",
+              "1.6 TDCi",
+              "2.0 TDCi"
+            ]
+          },
+          {
+            "label": "MK4",
+            "sg_id": "sgv-gen-ford-focus-mk4",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.0 EcoBoost",
+              "1.5 EcoBoost",
+              "1.5 EcoBlue",
+              "2.0 EcoBlue"
+            ]
+          }
+        ]
+      },
+      "Mondeo": {
+        "sg_id": "sgv-model-ford-mondeo",
+        "engines": [
+          "1.5 EcoBoost",
+          "2.0 EcoBoost",
+          "1.5 TDCi",
+          "2.0 TDCi",
+          "1.6",
+          "2.0",
+          "Hybrid"
+        ],
+        "year_from": 2007,
+        "year_to": 2022,
+        "generations": [
+          {
+            "label": "MK4",
+            "sg_id": "sgv-gen-ford-mondeo-mk4",
+            "year_from": 2007,
+            "year_to": 2014,
+            "engines": [
+              "1.6",
+              "2.0 TDCi",
+              "2.0"
+            ]
+          },
+          {
+            "label": "MK5",
+            "sg_id": "sgv-gen-ford-mondeo-mk5",
+            "year_from": 2014,
+            "year_to": 2022,
+            "engines": [
+              "1.5 EcoBoost",
+              "2.0 TDCi",
+              "Hybrid"
+            ]
+          }
+        ]
+      },
+      "Kuga": {
+        "sg_id": "sgv-model-ford-kuga",
+        "engines": [
+          "1.5 EcoBoost",
+          "2.0 EcoBoost",
+          "1.5 EcoBlue",
+          "2.0 EcoBlue",
+          "2.0 TDCi",
+          "PHEV"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-ford-kuga-i",
+            "year_from": 2008,
+            "year_to": 2012,
+            "engines": [
+              "2.0 TDCi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-ford-kuga-ii",
+            "year_from": 2012,
+            "year_to": 2019,
+            "engines": [
+              "1.5 EcoBoost",
+              "2.0 TDCi"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-ford-kuga-iii",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.5 EcoBoost",
+              "1.5 EcoBlue",
+              "2.0 EcoBlue",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Transit": {
+        "sg_id": "sgv-model-ford-transit",
+        "engines": [
+          "2.0 EcoBlue",
+          "2.2 TDCi",
+          "2.4 TDCi"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "V363",
+            "sg_id": "sgv-gen-ford-transit-v363",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "2.0 EcoBlue",
+              "2.2 TDCi"
+            ]
+          }
+        ]
+      },
+      "Puma": {
+        "sg_id": "sgv-model-ford-puma",
+        "engines": [
+          "1.0 EcoBoost",
+          "1.0 EcoBoost Hybrid",
+          "1.0 Hybrid"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-ford-puma-ii",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 EcoBoost",
+              "1.0 Hybrid"
+            ]
+          }
+        ]
+      }
+    },
+    "Opel": {
+      "Corsa": {
+        "sg_id": "sgv-model-opel-corsa",
+        "engines": [
+          "1.0",
+          "1.2",
+          "1.4",
+          "1.3 CDTI",
+          "1.5 Diesel",
+          "1.0 Turbo",
+          "1.2 Turbo",
+          "Electric"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "D",
+            "sg_id": "sgv-gen-opel-corsa-d",
+            "year_from": 2006,
+            "year_to": 2014,
+            "engines": [
+              "1.0",
+              "1.2",
+              "1.3 CDTI",
+              "1.4"
+            ]
+          },
+          {
+            "label": "E",
+            "sg_id": "sgv-gen-opel-corsa-e",
+            "year_from": 2014,
+            "year_to": 2019,
+            "engines": [
+              "1.0 Turbo",
+              "1.2",
+              "1.3 CDTI",
+              "1.4"
+            ]
+          },
+          {
+            "label": "F",
+            "sg_id": "sgv-gen-opel-corsa-f",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.2 Turbo",
+              "1.5 Diesel",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "Astra": {
+        "sg_id": "sgv-model-opel-astra",
+        "engines": [
+          "1.0 Turbo",
+          "1.2 Turbo",
+          "1.4 Turbo",
+          "1.6 CDTI",
+          "1.5 Diesel",
+          "1.6",
+          "1.7 CDTI",
+          "2.0 CDTI",
+          "PHEV"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "J",
+            "sg_id": "sgv-gen-opel-astra-j",
+            "year_from": 2009,
+            "year_to": 2015,
+            "engines": [
+              "1.4 Turbo",
+              "1.6",
+              "1.7 CDTI",
+              "2.0 CDTI"
+            ]
+          },
+          {
+            "label": "K",
+            "sg_id": "sgv-gen-opel-astra-k",
+            "year_from": 2015,
+            "year_to": 2021,
+            "engines": [
+              "1.0 Turbo",
+              "1.4 Turbo",
+              "1.6 CDTI"
+            ]
+          },
+          {
+            "label": "L",
+            "sg_id": "sgv-gen-opel-astra-l",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.2 Turbo",
+              "1.5 Diesel",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Insignia": {
+        "sg_id": "sgv-model-opel-insignia",
+        "engines": [
+          "1.5 Turbo",
+          "1.6 Turbo",
+          "1.6 CDTI",
+          "2.0 CDTI",
+          "1.8",
+          "2.0 Diesel"
+        ],
+        "year_from": 2008,
+        "year_to": 2022,
+        "generations": [
+          {
+            "label": "A",
+            "sg_id": "sgv-gen-opel-insignia-a",
+            "year_from": 2008,
+            "year_to": 2017,
+            "engines": [
+              "1.6 Turbo",
+              "1.8",
+              "2.0 CDTI"
+            ]
+          },
+          {
+            "label": "B",
+            "sg_id": "sgv-gen-opel-insignia-b",
+            "year_from": 2017,
+            "year_to": 2022,
+            "engines": [
+              "1.5 Turbo",
+              "1.6 Turbo",
+              "2.0 Diesel"
+            ]
+          }
+        ]
+      },
+      "Mokka": {
+        "sg_id": "sgv-model-opel-mokka",
+        "engines": [
+          "1.2 Turbo",
+          "1.4 Turbo",
+          "1.5 Diesel",
+          "1.6 CDTI",
+          "Electric"
+        ],
+        "year_from": 2012,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-opel-mokka-i",
+            "year_from": 2012,
+            "year_to": 2019,
+            "engines": [
+              "1.4 Turbo",
+              "1.6 CDTI"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-opel-mokka-ii",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.2 Turbo",
+              "1.5 Diesel",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "Zafira": {
+        "sg_id": "sgv-model-opel-zafira",
+        "engines": [
+          "1.4 Turbo",
+          "1.6 Turbo",
+          "1.6 CDTI",
+          "2.0 CDTI",
+          "1.6",
+          "1.7 CDTI",
+          "1.9 CDTI"
+        ],
+        "year_from": 2005,
+        "year_to": 2019,
+        "generations": [
+          {
+            "label": "B",
+            "sg_id": "sgv-gen-opel-zafira-b",
+            "year_from": 2005,
+            "year_to": 2014,
+            "engines": [
+              "1.6",
+              "1.7 CDTI",
+              "1.9 CDTI"
+            ]
+          },
+          {
+            "label": "C",
+            "sg_id": "sgv-gen-opel-zafira-c",
+            "year_from": 2011,
+            "year_to": 2019,
+            "engines": [
+              "1.4 Turbo",
+              "1.6 CDTI",
+              "2.0 CDTI"
+            ]
+          }
+        ]
+      },
+      "Vivaro": {
+        "sg_id": "sgv-model-opel-vivaro",
+        "engines": [
+          "1.6 CDTI",
+          "2.0 CDTI",
+          "2.0 Diesel",
+          "1.9 CDTI",
+          "1.5 Diesel"
+        ],
+        "year_from": 2001,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "A",
+            "sg_id": "sgv-gen-opel-vivaro-a",
+            "year_from": 2001,
+            "year_to": 2014,
+            "engines": [
+              "1.9 CDTI",
+              "2.0 CDTI"
+            ]
+          },
+          {
+            "label": "B",
+            "sg_id": "sgv-gen-opel-vivaro-b",
+            "year_from": 2014,
+            "year_to": 2019,
+            "engines": [
+              "1.6 CDTI"
+            ]
+          },
+          {
+            "label": "C",
+            "sg_id": "sgv-gen-opel-vivaro-c",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Diesel",
+              "2.0 Diesel"
+            ]
+          }
+        ]
+      }
+    },
+    "Peugeot": {
+      "208": {
+        "sg_id": "sgv-model-peugeot-208",
+        "engines": [
+          "1.0 PureTech",
+          "1.2 PureTech",
+          "1.4 HDi",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "1.0",
+          "Electric"
+        ],
+        "year_from": 2012,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-peugeot-208-i",
+            "year_from": 2012,
+            "year_to": 2019,
+            "engines": [
+              "1.0",
+              "1.2 PureTech",
+              "1.4 HDi",
+              "1.6 HDi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-peugeot-208-ii",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "308": {
+        "sg_id": "sgv-model-peugeot-308",
+        "engines": [
+          "1.2 PureTech",
+          "1.6 THP",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "2.0 BlueHDi",
+          "1.4",
+          "1.6",
+          "2.0 HDi",
+          "1.6 BlueHDi",
+          "PHEV"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "T7",
+            "sg_id": "sgv-gen-peugeot-308-t7",
+            "year_from": 2007,
+            "year_to": 2013,
+            "engines": [
+              "1.4",
+              "1.6",
+              "1.6 HDi",
+              "2.0 HDi"
+            ]
+          },
+          {
+            "label": "T9",
+            "sg_id": "sgv-gen-peugeot-308-t9",
+            "year_from": 2013,
+            "year_to": 2021,
+            "engines": [
+              "1.2 PureTech",
+              "1.6 BlueHDi",
+              "1.6 THP"
+            ]
+          },
+          {
+            "label": "P5",
+            "sg_id": "sgv-gen-peugeot-308-p5",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "2008": {
+        "sg_id": "sgv-model-peugeot-2008",
+        "engines": [
+          "1.2 PureTech",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "1.6 BlueHDi",
+          "Electric"
+        ],
+        "year_from": 2013,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-peugeot-2008-i",
+            "year_from": 2013,
+            "year_to": 2019,
+            "engines": [
+              "1.2 PureTech",
+              "1.6 BlueHDi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-peugeot-2008-ii",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "3008": {
+        "sg_id": "sgv-model-peugeot-3008",
+        "engines": [
+          "1.2 PureTech",
+          "1.6 THP",
+          "1.5 BlueHDi",
+          "2.0 BlueHDi",
+          "Hybrid",
+          "1.6 HDi",
+          "2.0 HDi",
+          "PHEV"
+        ],
+        "year_from": 2009,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-peugeot-3008-i",
+            "year_from": 2009,
+            "year_to": 2016,
+            "engines": [
+              "1.6 HDi",
+              "1.6 THP",
+              "2.0 HDi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-peugeot-3008-ii",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "1.6 THP",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Partner": {
+        "sg_id": "sgv-model-peugeot-partner",
+        "engines": [
+          "1.2 PureTech",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "1.6"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-peugeot-partner-ii",
+            "year_from": 2008,
+            "year_to": 2018,
+            "engines": [
+              "1.6 HDi",
+              "1.6"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-peugeot-partner-iii",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi"
+            ]
+          }
+        ]
+      },
+      "508": {
+        "sg_id": "sgv-model-peugeot-508",
+        "engines": [
+          "1.6 THP",
+          "1.5 BlueHDi",
+          "2.0 BlueHDi",
+          "Hybrid",
+          "1.6 HDi",
+          "2.0 HDi",
+          "1.2 PureTech",
+          "PHEV"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-peugeot-508-i",
+            "year_from": 2010,
+            "year_to": 2018,
+            "engines": [
+              "1.6 THP",
+              "1.6 HDi",
+              "2.0 HDi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-peugeot-508-ii",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "PHEV"
+            ]
+          }
+        ]
+      }
+    },
+    "Renault": {
+      "Clio": {
+        "sg_id": "sgv-model-renault-clio",
+        "engines": [
+          "0.9 TCe",
+          "1.0 TCe",
+          "1.2 TCe",
+          "1.5 dCi",
+          "1.2",
+          "1.6",
+          "1.5 Blue dCi",
+          "E-Tech Hybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-renault-clio-iii",
+            "year_from": 2005,
+            "year_to": 2012,
+            "engines": [
+              "1.2",
+              "1.5 dCi",
+              "1.6"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-renault-clio-iv",
+            "year_from": 2012,
+            "year_to": 2019,
+            "engines": [
+              "0.9 TCe",
+              "1.2",
+              "1.5 dCi"
+            ]
+          },
+          {
+            "label": "V",
+            "sg_id": "sgv-gen-renault-clio-v",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TCe",
+              "1.5 Blue dCi",
+              "E-Tech Hybrid"
+            ]
+          }
+        ]
+      },
+      "Megane": {
+        "sg_id": "sgv-model-renault-megane",
+        "engines": [
+          "1.2 TCe",
+          "1.3 TCe",
+          "1.5 dCi",
+          "1.6 dCi",
+          "1.6",
+          "2.0 dCi",
+          "E-Tech"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-renault-megane-iii",
+            "year_from": 2008,
+            "year_to": 2016,
+            "engines": [
+              "1.2 TCe",
+              "1.5 dCi",
+              "1.6",
+              "2.0 dCi"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-renault-megane-iv",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.3 TCe",
+              "1.5 dCi",
+              "E-Tech"
+            ]
+          }
+        ]
+      },
+      "Captur": {
+        "sg_id": "sgv-model-renault-captur",
+        "engines": [
+          "0.9 TCe",
+          "1.0 TCe",
+          "1.3 TCe",
+          "1.5 dCi",
+          "1.2 TCe",
+          "1.5 Blue dCi",
+          "E-Tech"
+        ],
+        "year_from": 2013,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-renault-captur-i",
+            "year_from": 2013,
+            "year_to": 2019,
+            "engines": [
+              "0.9 TCe",
+              "1.2 TCe",
+              "1.5 dCi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-renault-captur-ii",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TCe",
+              "1.3 TCe",
+              "1.5 Blue dCi",
+              "E-Tech"
+            ]
+          }
+        ]
+      },
+      "Kadjar": {
+        "sg_id": "sgv-model-renault-kadjar",
+        "engines": [
+          "1.2 TCe",
+          "1.3 TCe",
+          "1.5 dCi",
+          "1.6 dCi"
+        ],
+        "year_from": 2015,
+        "year_to": 2022,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-renault-kadjar-i",
+            "year_from": 2015,
+            "year_to": 2022,
+            "engines": [
+              "1.2 TCe",
+              "1.5 dCi",
+              "1.6 dCi"
+            ]
+          }
+        ]
+      },
+      "Scenic": {
+        "sg_id": "sgv-model-renault-scenic",
+        "engines": [
+          "1.2 TCe",
+          "1.3 TCe",
+          "1.5 dCi",
+          "1.6 dCi",
+          "1.7 Blue dCi"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-renault-scenic-iii",
+            "year_from": 2009,
+            "year_to": 2016,
+            "engines": [
+              "1.2 TCe",
+              "1.5 dCi",
+              "1.6 dCi"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-renault-scenic-iv",
+            "year_from": 2016,
+            "year_to": 2022,
+            "engines": [
+              "1.3 TCe",
+              "1.5 dCi",
+              "1.7 Blue dCi"
+            ]
+          }
+        ]
+      },
+      "Trafic": {
+        "sg_id": "sgv-model-renault-trafic",
+        "engines": [
+          "1.6 dCi",
+          "2.0 dCi"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-renault-trafic-iii",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "1.6 dCi",
+              "2.0 dCi"
+            ]
+          }
+        ]
+      }
+    },
+    "Hyundai": {
+      "i20": {
+        "sg_id": "sgv-model-hyundai-i20",
+        "engines": [
+          "1.0 T-GDI",
+          "1.2",
+          "1.4",
+          "1.1 CRDi",
+          "1.4 CRDi"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "PB",
+            "sg_id": "sgv-gen-hyundai-i20-pb",
+            "year_from": 2008,
+            "year_to": 2014,
+            "engines": [
+              "1.2",
+              "1.4",
+              "1.4 CRDi"
+            ]
+          },
+          {
+            "label": "GB",
+            "sg_id": "sgv-gen-hyundai-i20-gb",
+            "year_from": 2014,
+            "year_to": 2020,
+            "engines": [
+              "1.0 T-GDI",
+              "1.2",
+              "1.4 CRDi"
+            ]
+          },
+          {
+            "label": "BC3",
+            "sg_id": "sgv-gen-hyundai-i20-bc3",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "1.2"
+            ]
+          }
+        ]
+      },
+      "i30": {
+        "sg_id": "sgv-model-hyundai-i30",
+        "engines": [
+          "1.0 T-GDI",
+          "1.4 T-GDI",
+          "1.5 T-GDI",
+          "1.6 CRDi"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GD",
+            "sg_id": "sgv-gen-hyundai-i30-gd",
+            "year_from": 2011,
+            "year_to": 2017,
+            "engines": [
+              "1.4",
+              "1.6",
+              "1.6 CRDi"
+            ]
+          },
+          {
+            "label": "PD",
+            "sg_id": "sgv-gen-hyundai-i30-pd",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "1.4 T-GDI",
+              "1.5 T-GDI",
+              "1.6 CRDi"
+            ]
+          }
+        ]
+      },
+      "Tucson": {
+        "sg_id": "sgv-model-hyundai-tucson",
+        "engines": [
+          "1.6 T-GDI",
+          "1.6 CRDi",
+          "2.0 CRDi",
+          "Hybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "LM",
+            "sg_id": "sgv-gen-hyundai-tucson-lm",
+            "year_from": 2009,
+            "year_to": 2015,
+            "engines": [
+              "2.0",
+              "2.0 CRDi"
+            ]
+          },
+          {
+            "label": "TL",
+            "sg_id": "sgv-gen-hyundai-tucson-tl",
+            "year_from": 2015,
+            "year_to": 2020,
+            "engines": [
+              "1.6 T-GDI",
+              "1.7 CRDi",
+              "2.0 CRDi"
+            ]
+          },
+          {
+            "label": "NX4",
+            "sg_id": "sgv-gen-hyundai-tucson-nx4",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.6 T-GDI",
+              "1.6 CRDi",
+              "Hybrid"
+            ]
+          }
+        ]
+      },
+      "Santa Fe": {
+        "sg_id": "sgv-model-hyundai-santa-fe",
+        "engines": [
+          "2.2 CRDi",
+          "2.4 GDI",
+          "Hybrid",
+          "2.0 CRDi",
+          "2.4",
+          "PHEV"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "DM",
+            "sg_id": "sgv-gen-hyundai-santa-fe-dm",
+            "year_from": 2012,
+            "year_to": 2018,
+            "engines": [
+              "2.0 CRDi",
+              "2.2 CRDi",
+              "2.4"
+            ]
+          },
+          {
+            "label": "TM",
+            "sg_id": "sgv-gen-hyundai-santa-fe-tm",
+            "year_from": 2018,
+            "year_to": 2023,
+            "engines": [
+              "2.2 CRDi",
+              "Hybrid",
+              "PHEV"
+            ]
+          },
+          {
+            "label": "MX5",
+            "sg_id": "sgv-gen-hyundai-santa-fe-mx5",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "Hybrid",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "ix35": {
+        "sg_id": "sgv-model-hyundai-ix35",
+        "engines": [
+          "1.6 GDI",
+          "2.0 CRDi",
+          "1.7 CRDi",
+          "2.0"
+        ],
+        "year_from": 2010,
+        "year_to": 2015,
+        "generations": [
+          {
+            "label": "LM",
+            "sg_id": "sgv-gen-hyundai-ix35-lm",
+            "year_from": 2010,
+            "year_to": 2015,
+            "engines": [
+              "1.7 CRDi",
+              "2.0 CRDi",
+              "2.0"
+            ]
+          }
+        ]
+      },
+      "Kona": {
+        "sg_id": "sgv-model-hyundai-kona",
+        "engines": [
+          "1.0 T-GDI",
+          "1.6 T-GDI",
+          "1.6 CRDi",
+          "Electric",
+          "Hybrid"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "OS",
+            "sg_id": "sgv-gen-hyundai-kona-os",
+            "year_from": 2017,
+            "year_to": 2023,
+            "engines": [
+              "1.0 T-GDI",
+              "1.6 T-GDI",
+              "1.6 CRDi",
+              "Electric"
+            ]
+          },
+          {
+            "label": "SX2",
+            "sg_id": "sgv-gen-hyundai-kona-sx2",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "Hybrid",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "Coupe": {
+        "sg_id": "sgv-model-hyundai-coupe",
+        "engines": [
+          "1.6",
+          "2.0",
+          "2.7"
+        ],
+        "year_from": 1996,
+        "year_to": 2009,
+        "generations": [
+          {
+            "label": "GK",
+            "sg_id": "sgv-gen-hyundai-coupe-gk",
+            "year_from": 2002,
+            "year_to": 2009,
+            "engines": [
+              "1.6",
+              "2.0",
+              "2.7"
+            ]
+          }
+        ]
+      }
+    },
+    "Kia": {
+      "Ceed": {
+        "sg_id": "sgv-model-kia-ceed",
+        "engines": [
+          "1.0 T-GDI",
+          "1.4 T-GDI",
+          "1.5 T-GDI",
+          "1.6 CRDi"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "ED",
+            "sg_id": "sgv-gen-kia-ceed-ed",
+            "year_from": 2007,
+            "year_to": 2012,
+            "engines": [
+              "1.4",
+              "1.6",
+              "1.6 CRDi"
+            ]
+          },
+          {
+            "label": "JD",
+            "sg_id": "sgv-gen-kia-ceed-jd",
+            "year_from": 2012,
+            "year_to": 2018,
+            "engines": [
+              "1.0 T-GDI",
+              "1.4",
+              "1.6 CRDi"
+            ]
+          },
+          {
+            "label": "CD",
+            "sg_id": "sgv-gen-kia-ceed-cd",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "1.4 T-GDI",
+              "1.5 T-GDI",
+              "1.6 CRDi"
+            ]
+          }
+        ]
+      },
+      "Sportage": {
+        "sg_id": "sgv-model-kia-sportage",
+        "engines": [
+          "1.6 T-GDI",
+          "1.6 CRDi",
+          "2.0 CRDi",
+          "Hybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "SL",
+            "sg_id": "sgv-gen-kia-sportage-sl",
+            "year_from": 2010,
+            "year_to": 2015,
+            "engines": [
+              "1.6 GDI",
+              "1.7 CRDi",
+              "2.0 CRDi"
+            ]
+          },
+          {
+            "label": "QL",
+            "sg_id": "sgv-gen-kia-sportage-ql",
+            "year_from": 2015,
+            "year_to": 2021,
+            "engines": [
+              "1.6 T-GDI",
+              "1.6 CRDi",
+              "2.0 CRDi"
+            ]
+          },
+          {
+            "label": "NQ5",
+            "sg_id": "sgv-gen-kia-sportage-nq5",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.6 T-GDI",
+              "1.6 CRDi",
+              "Hybrid"
+            ]
+          }
+        ]
+      },
+      "Rio": {
+        "sg_id": "sgv-model-kia-rio",
+        "engines": [
+          "1.0 T-GDI",
+          "1.2",
+          "1.4",
+          "1.1 CRDi",
+          "1.4 CRDi"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "UB",
+            "sg_id": "sgv-gen-kia-rio-ub",
+            "year_from": 2011,
+            "year_to": 2017,
+            "engines": [
+              "1.1 CRDi",
+              "1.2",
+              "1.4"
+            ]
+          },
+          {
+            "label": "YB",
+            "sg_id": "sgv-gen-kia-rio-yb",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "1.2",
+              "1.4"
+            ]
+          }
+        ]
+      },
+      "Sorento": {
+        "sg_id": "sgv-model-kia-sorento",
+        "engines": [
+          "2.2 CRDi",
+          "2.5 GDI",
+          "Hybrid",
+          "2.4",
+          "PHEV"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "XM",
+            "sg_id": "sgv-gen-kia-sorento-xm",
+            "year_from": 2009,
+            "year_to": 2014,
+            "engines": [
+              "2.2 CRDi",
+              "2.4"
+            ]
+          },
+          {
+            "label": "UM",
+            "sg_id": "sgv-gen-kia-sorento-um",
+            "year_from": 2014,
+            "year_to": 2020,
+            "engines": [
+              "2.2 CRDi",
+              "2.4"
+            ]
+          },
+          {
+            "label": "MQ4",
+            "sg_id": "sgv-gen-kia-sorento-mq4",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "2.2 CRDi",
+              "Hybrid",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Stonic": {
+        "sg_id": "sgv-model-kia-stonic",
+        "engines": [
+          "1.0 T-GDI",
+          "1.2",
+          "1.4",
+          "1.6 CRDi"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-kia-stonic-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "1.2",
+              "1.4",
+              "1.6 CRDi"
+            ]
+          }
+        ]
+      },
+      "Niro": {
+        "sg_id": "sgv-model-kia-niro",
+        "engines": [
+          "Hybrid",
+          "PHEV",
+          "Electric",
+          "1.6 Hybrid",
+          "1.6 PHEV"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "DE",
+            "sg_id": "sgv-gen-kia-niro-de",
+            "year_from": 2016,
+            "year_to": 2022,
+            "engines": [
+              "1.6 Hybrid",
+              "1.6 PHEV",
+              "Electric"
+            ]
+          },
+          {
+            "label": "SG2",
+            "sg_id": "sgv-gen-kia-niro-sg2",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "1.6 Hybrid",
+              "1.6 PHEV",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "XCeed": {
+        "sg_id": "sgv-model-kia-xceed",
+        "engines": [
+          "1.0 T-GDI",
+          "1.4 T-GDI",
+          "1.6 CRDi",
+          "1.6 Hybrid"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-kia-xceed-i",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 T-GDI",
+              "1.4 T-GDI",
+              "1.6 CRDi",
+              "1.6 Hybrid"
+            ]
+          }
+        ]
+      }
+    },
+    "Toyota": {
+      "Corolla": {
+        "sg_id": "sgv-model-toyota-corolla",
+        "engines": [
+          "1.2 Turbo",
+          "1.6",
+          "1.8 Hybrid",
+          "2.0 Hybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "E150",
+            "sg_id": "sgv-gen-toyota-corolla-e150",
+            "year_from": 2007,
+            "year_to": 2013,
+            "engines": [
+              "1.6",
+              "2.0 D-4D"
+            ]
+          },
+          {
+            "label": "E180",
+            "sg_id": "sgv-gen-toyota-corolla-e180",
+            "year_from": 2013,
+            "year_to": 2019,
+            "engines": [
+              "1.6",
+              "1.8 Hybrid",
+              "1.4 D-4D"
+            ]
+          },
+          {
+            "label": "E160",
+            "sg_id": "sgv-gen-toyota-corolla-e160",
+            "year_from": 2013,
+            "year_to": 2018,
+            "engines": [
+              "1.6",
+              "1.8 Hybrid",
+              "1.4 D-4D"
+            ]
+          },
+          {
+            "label": "E210",
+            "sg_id": "sgv-gen-toyota-corolla-e210",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.2 Turbo",
+              "1.8 Hybrid",
+              "2.0 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Yaris": {
+        "sg_id": "sgv-model-toyota-yaris",
+        "engines": [
+          "1.0",
+          "1.5",
+          "1.5 Hybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "XP90",
+            "sg_id": "sgv-gen-toyota-yaris-xp90",
+            "year_from": 2005,
+            "year_to": 2011,
+            "engines": [
+              "1.0",
+              "1.3"
+            ]
+          },
+          {
+            "label": "XP130",
+            "sg_id": "sgv-gen-toyota-yaris-xp130",
+            "year_from": 2011,
+            "year_to": 2020,
+            "engines": [
+              "1.0",
+              "1.5",
+              "1.5 Hybrid"
+            ]
+          },
+          {
+            "label": "XP210",
+            "sg_id": "sgv-gen-toyota-yaris-xp210",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.5",
+              "1.5 Hybrid"
+            ]
+          }
+        ]
+      },
+      "RAV4": {
+        "sg_id": "sgv-model-toyota-rav4",
+        "engines": [
+          "2.0",
+          "2.5",
+          "2.5 Hybrid",
+          "2.2 D-4D"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "XA30",
+            "sg_id": "sgv-gen-toyota-rav4-xa30",
+            "year_from": 2006,
+            "year_to": 2012,
+            "engines": [
+              "2.0",
+              "2.2 D-4D"
+            ]
+          },
+          {
+            "label": "XA40",
+            "sg_id": "sgv-gen-toyota-rav4-xa40",
+            "year_from": 2013,
+            "year_to": 2018,
+            "engines": [
+              "2.0",
+              "2.2 D-4D",
+              "2.5 Hybrid"
+            ]
+          },
+          {
+            "label": "XA50",
+            "sg_id": "sgv-gen-toyota-rav4-xa50",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "2.5",
+              "2.5 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Auris": {
+        "sg_id": "sgv-model-toyota-auris",
+        "engines": [
+          "1.2 Turbo",
+          "1.6",
+          "1.8 Hybrid",
+          "1.4 D-4D",
+          "1.33"
+        ],
+        "year_from": 2007,
+        "year_to": 2019,
+        "generations": [
+          {
+            "label": "E150",
+            "sg_id": "sgv-gen-toyota-auris-e150",
+            "year_from": 2007,
+            "year_to": 2012,
+            "engines": [
+              "1.33",
+              "1.4 D-4D",
+              "1.6",
+              "1.8 Hybrid"
+            ]
+          },
+          {
+            "label": "E180",
+            "sg_id": "sgv-gen-toyota-auris-e180",
+            "year_from": 2012,
+            "year_to": 2018,
+            "engines": [
+              "1.2 Turbo",
+              "1.33",
+              "1.4 D-4D",
+              "1.6",
+              "1.8 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Avensis": {
+        "sg_id": "sgv-model-toyota-avensis",
+        "engines": [
+          "1.8",
+          "2.0",
+          "2.0 D-4D",
+          "2.2 D-4D",
+          "1.6"
+        ],
+        "year_from": 2003,
+        "year_to": 2018,
+        "generations": [
+          {
+            "label": "T25",
+            "sg_id": "sgv-gen-toyota-avensis-t25",
+            "year_from": 2003,
+            "year_to": 2008,
+            "engines": [
+              "1.8",
+              "2.0",
+              "2.0 D-4D"
+            ]
+          },
+          {
+            "label": "T27",
+            "sg_id": "sgv-gen-toyota-avensis-t27",
+            "year_from": 2008,
+            "year_to": 2018,
+            "engines": [
+              "1.6",
+              "1.8",
+              "2.0 D-4D",
+              "2.2 D-4D"
+            ]
+          }
+        ]
+      },
+      "C-HR": {
+        "sg_id": "sgv-model-toyota-c-hr",
+        "engines": [
+          "1.2 Turbo",
+          "1.8 Hybrid",
+          "2.0 Hybrid",
+          "PHEV"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-toyota-c-hr-i",
+            "year_from": 2016,
+            "year_to": 2023,
+            "engines": [
+              "1.2 Turbo",
+              "1.8 Hybrid",
+              "2.0 Hybrid"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-toyota-c-hr-ii",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "1.8 Hybrid",
+              "2.0 Hybrid",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Camry": {
+        "sg_id": "sgv-model-toyota-camry",
+        "engines": [
+          "2.5 Hybrid",
+          "2.5"
+        ],
+        "year_from": 2018,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "XV70",
+            "sg_id": "sgv-gen-toyota-camry",
+            "year_from": 2018,
+            "year_to": 2024,
+            "engines": [
+              "2.5 Hybrid",
+              "2.5"
+            ]
+          },
+          {
+            "label": "XV80",
+            "sg_id": "sgv-gen-toyota-camry-xv80",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "2.5 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Prius": {
+        "sg_id": "sgv-model-toyota-prius",
+        "engines": [
+          "1.8 Hybrid",
+          "2.0 Hybrid",
+          "1.5 Hybrid"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "XW30",
+            "sg_id": "sgv-gen-toyota-prius-xw30",
+            "year_from": 2009,
+            "year_to": 2015,
+            "engines": [
+              "1.8 Hybrid"
+            ]
+          },
+          {
+            "label": "XW50",
+            "sg_id": "sgv-gen-toyota-prius-xw50",
+            "year_from": 2015,
+            "year_to": 2022,
+            "engines": [
+              "1.8 Hybrid"
+            ]
+          },
+          {
+            "label": "XW60",
+            "sg_id": "sgv-gen-toyota-prius-xw60",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Hybrid",
+              "1.8 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Yaris Cross": {
+        "sg_id": "sgv-model-toyota-yaris-cross",
+        "engines": [
+          "1.5 Hybrid",
+          "1.5"
+        ],
+        "year_from": 2021,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-toyota-yaris-cross-i",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Hybrid",
+              "1.5"
+            ]
+          }
+        ]
+      }
+    },
+    "Seat": {
+      "Leon": {
+        "sg_id": "sgv-model-seat-leon",
+        "engines": [
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 TSI",
+          "1.5 TSI",
+          "1.6 TDI",
+          "2.0 TDI"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-seat-leon-ii",
+            "year_from": 2005,
+            "year_to": 2012,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-seat-leon-iii",
+            "year_from": 2012,
+            "year_to": 2020,
+            "engines": [
+              "1.0 TSI",
+              "1.2 TSI",
+              "1.4 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-seat-leon-iv",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Ibiza": {
+        "sg_id": "sgv-model-seat-ibiza",
+        "engines": [
+          "1.0 MPI",
+          "1.0 TSI",
+          "1.2 TSI",
+          "1.4 TDI",
+          "1.6 TDI"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-seat-ibiza-iv",
+            "year_from": 2008,
+            "year_to": 2017,
+            "engines": [
+              "1.0 MPI",
+              "1.2 TSI",
+              "1.4 TDI",
+              "1.6 TDI"
+            ]
+          },
+          {
+            "label": "V",
+            "sg_id": "sgv-gen-seat-ibiza-v",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 MPI",
+              "1.0 TSI"
+            ]
+          }
+        ]
+      },
+      "Ateca": {
+        "sg_id": "sgv-model-seat-ateca",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI",
+          "1.6 TDI",
+          "2.0 TDI"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-seat-ateca-i",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "1.6 TDI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Arona": {
+        "sg_id": "sgv-model-seat-arona",
+        "engines": [
+          "1.0 TSI",
+          "1.5 TSI",
+          "1.6 TDI"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-seat-arona-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TSI",
+              "1.5 TSI",
+              "1.6 TDI"
+            ]
+          }
+        ]
+      },
+      "Toledo": {
+        "sg_id": "sgv-model-seat-toledo",
+        "engines": [
+          "1.2 TSI",
+          "1.4 TSI",
+          "1.6 TDI",
+          "1.4 TDI"
+        ],
+        "year_from": 2012,
+        "year_to": 2019,
+        "generations": [
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-seat-toledo-iv",
+            "year_from": 2012,
+            "year_to": 2019,
+            "engines": [
+              "1.2 TSI",
+              "1.4 TDI",
+              "1.6 TDI"
+            ]
+          }
+        ]
+      },
+      "Alhambra": {
+        "sg_id": "sgv-model-seat-alhambra",
+        "engines": [
+          "1.4 TSI",
+          "2.0 TDI"
+        ],
+        "year_from": 2010,
+        "year_to": 2022,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-seat-alhambra-ii",
+            "year_from": 2010,
+            "year_to": 2020,
+            "engines": [
+              "1.4 TSI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      }
+    },
+    "Fiat": {
+      "500": {
+        "sg_id": "sgv-model-fiat-500",
+        "engines": [
+          "0.9 TwinAir",
+          "1.0",
+          "1.2",
+          "1.3 Multijet",
+          "Electric"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "312",
+            "sg_id": "sgv-gen-fiat-500-312",
+            "year_from": 2007,
+            "year_to": 2020,
+            "engines": [
+              "0.9 TwinAir",
+              "1.2",
+              "1.3 Multijet"
+            ]
+          },
+          {
+            "label": "332",
+            "sg_id": "sgv-gen-fiat-500-332",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "Electric",
+              "1.0"
+            ]
+          }
+        ]
+      },
+      "500X": {
+        "sg_id": "sgv-model-fiat-500x",
+        "engines": [
+          "1.0",
+          "1.3 Multijet",
+          "1.4",
+          "1.6 Multijet",
+          "1.6 E-torq"
+        ],
+        "year_from": 2014,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "334",
+            "sg_id": "sgv-gen-fiat-500x-334",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "1.0",
+              "1.3 Multijet",
+              "1.4",
+              "1.6 Multijet"
+            ]
+          }
+        ]
+      },
+      "500L": {
+        "sg_id": "sgv-model-fiat-500l",
+        "engines": [
+          "0.9 TwinAir",
+          "1.3 Multijet",
+          "1.4",
+          "1.6 Multijet"
+        ],
+        "year_from": 2012,
+        "year_to": 2022,
+        "generations": [
+          {
+            "label": "199",
+            "sg_id": "sgv-gen-fiat-500l-199",
+            "year_from": 2012,
+            "year_to": 2022,
+            "engines": [
+              "0.9 TwinAir",
+              "1.3 Multijet",
+              "1.4",
+              "1.6 Multijet"
+            ]
+          }
+        ]
+      },
+      "Panda": {
+        "sg_id": "sgv-model-fiat-panda",
+        "engines": [
+          "0.9 TwinAir",
+          "1.0",
+          "1.2",
+          "1.3 Multijet"
+        ],
+        "year_from": 2003,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "169",
+            "sg_id": "sgv-gen-fiat-panda-169",
+            "year_from": 2003,
+            "year_to": 2012,
+            "engines": [
+              "1.2",
+              "1.3 Multijet"
+            ]
+          },
+          {
+            "label": "312",
+            "sg_id": "sgv-gen-fiat-panda-312",
+            "year_from": 2011,
+            "year_to": 2026,
+            "engines": [
+              "0.9 TwinAir",
+              "1.0",
+              "1.2",
+              "1.3 Multijet"
+            ]
+          }
+        ]
+      },
+      "Punto": {
+        "sg_id": "sgv-model-fiat-punto",
+        "engines": [
+          "1.2",
+          "1.4",
+          "1.3 Multijet",
+          "1.6 Multijet"
+        ],
+        "year_from": 2005,
+        "year_to": 2018,
+        "generations": [
+          {
+            "label": "199",
+            "sg_id": "sgv-gen-fiat-punto-199",
+            "year_from": 2005,
+            "year_to": 2018,
+            "engines": [
+              "1.2",
+              "1.4",
+              "1.3 Multijet",
+              "1.6 Multijet"
+            ]
+          }
+        ]
+      },
+      "Tipo": {
+        "sg_id": "sgv-model-fiat-tipo",
+        "engines": [
+          "1.0",
+          "1.4",
+          "1.6 Multijet",
+          "1.3 Multijet"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "356",
+            "sg_id": "sgv-gen-fiat-tipo-356",
+            "year_from": 2015,
+            "year_to": 2026,
+            "engines": [
+              "1.0",
+              "1.4",
+              "1.6 Multijet",
+              "1.3 Multijet"
+            ]
+          }
+        ]
+      },
+      "Doblo": {
+        "sg_id": "sgv-model-fiat-doblo",
+        "engines": [
+          "1.2",
+          "1.4",
+          "1.3 Multijet",
+          "1.5 Multijet",
+          "1.6 Multijet"
+        ],
+        "year_from": 2009,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "263",
+            "sg_id": "sgv-gen-fiat-doblo-263",
+            "year_from": 2009,
+            "year_to": 2022,
+            "engines": [
+              "1.3 Multijet",
+              "1.6 Multijet",
+              "1.4"
+            ]
+          },
+          {
+            "label": "K9",
+            "sg_id": "sgv-gen-fiat-doblo-k9",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Multijet",
+              "1.2"
+            ]
+          }
+        ]
+      },
+      "Ducato": {
+        "sg_id": "sgv-model-fiat-ducato",
+        "engines": [
+          "2.0 Multijet",
+          "2.2 Multijet",
+          "2.3 Multijet",
+          "3.0 Multijet"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X250",
+            "sg_id": "sgv-gen-fiat-ducato-x250",
+            "year_from": 2006,
+            "year_to": 2014,
+            "engines": [
+              "2.2 Multijet",
+              "2.3 Multijet",
+              "3.0 Multijet"
+            ]
+          },
+          {
+            "label": "X290",
+            "sg_id": "sgv-gen-fiat-ducato-x290",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Multijet",
+              "2.2 Multijet",
+              "2.3 Multijet"
+            ]
+          }
+        ]
+      }
+    },
+    "Honda": {
+      "Civic": {
+        "sg_id": "sgv-model-honda-civic",
+        "engines": [
+          "1.0 VTEC",
+          "1.5 VTEC",
+          "1.8",
+          "1.6 i-DTEC",
+          "1.4",
+          "2.2 i-CTDi",
+          "1.0 VTEC Turbo",
+          "1.5 VTEC Turbo",
+          "2.0 Hybrid"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "VIII",
+            "sg_id": "sgv-gen-honda-civic-viii",
+            "year_from": 2005,
+            "year_to": 2011,
+            "engines": [
+              "1.4",
+              "1.8",
+              "2.2 i-CTDi"
+            ]
+          },
+          {
+            "label": "IX",
+            "sg_id": "sgv-gen-honda-civic-ix",
+            "year_from": 2011,
+            "year_to": 2017,
+            "engines": [
+              "1.4",
+              "1.6 i-DTEC",
+              "1.8"
+            ]
+          },
+          {
+            "label": "X",
+            "sg_id": "sgv-gen-honda-civic-x",
+            "year_from": 2017,
+            "year_to": 2022,
+            "engines": [
+              "1.0 VTEC Turbo",
+              "1.5 VTEC Turbo",
+              "1.6 i-DTEC"
+            ]
+          },
+          {
+            "label": "XI",
+            "sg_id": "sgv-gen-honda-civic-xi",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Jazz": {
+        "sg_id": "sgv-model-honda-jazz",
+        "engines": [
+          "1.2",
+          "1.3",
+          "1.5 Hybrid",
+          "1.4",
+          "1.5"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-honda-jazz-ii",
+            "year_from": 2008,
+            "year_to": 2015,
+            "engines": [
+              "1.2",
+              "1.4"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-honda-jazz-iii",
+            "year_from": 2015,
+            "year_to": 2020,
+            "engines": [
+              "1.3",
+              "1.5"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-honda-jazz-iv",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Hybrid"
+            ]
+          }
+        ]
+      },
+      "CR-V": {
+        "sg_id": "sgv-model-honda-cr-v",
+        "engines": [
+          "1.5 VTEC",
+          "2.0 Hybrid",
+          "1.6 i-DTEC",
+          "2.2 i-DTEC",
+          "2.0",
+          "2.2 i-CTDi",
+          "1.5 Turbo"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-honda-cr-v-iii",
+            "year_from": 2006,
+            "year_to": 2012,
+            "engines": [
+              "2.0",
+              "2.2 i-CTDi"
+            ]
+          },
+          {
+            "label": "IV",
+            "sg_id": "sgv-gen-honda-cr-v-iv",
+            "year_from": 2012,
+            "year_to": 2018,
+            "engines": [
+              "1.6 i-DTEC",
+              "2.0"
+            ]
+          },
+          {
+            "label": "V",
+            "sg_id": "sgv-gen-honda-cr-v-v",
+            "year_from": 2018,
+            "year_to": 2023,
+            "engines": [
+              "1.5 Turbo",
+              "2.0 Hybrid"
+            ]
+          },
+          {
+            "label": "VI",
+            "sg_id": "sgv-gen-honda-cr-v-vi",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Hybrid"
+            ]
+          }
+        ]
+      },
+      "HR-V": {
+        "sg_id": "sgv-model-honda-hr-v",
+        "engines": [
+          "1.5 VTEC",
+          "1.5 Hybrid",
+          "1.6 i-DTEC",
+          "1.5"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-honda-hr-v-ii",
+            "year_from": 2015,
+            "year_to": 2021,
+            "engines": [
+              "1.5",
+              "1.6 i-DTEC"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-honda-hr-v-iii",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Hybrid"
+            ]
+          }
+        ]
+      }
+    },
+    "Dacia": {
+      "Duster": {
+        "sg_id": "sgv-model-dacia-duster",
+        "engines": [
+          "1.0 TCe",
+          "1.2 TCe",
+          "1.5 dCi",
+          "1.5 Blue dCi",
+          "1.6",
+          "1.3 TCe",
+          "1.2 TCe Hybrid",
+          "1.6 Hybrid"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-dacia-duster-i",
+            "year_from": 2010,
+            "year_to": 2017,
+            "engines": [
+              "1.2 TCe",
+              "1.5 dCi",
+              "1.6"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-dacia-duster-ii",
+            "year_from": 2017,
+            "year_to": 2024,
+            "engines": [
+              "1.0 TCe",
+              "1.3 TCe",
+              "1.5 Blue dCi"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-dacia-duster-iii",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "1.2 TCe Hybrid",
+              "1.6 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Sandero": {
+        "sg_id": "sgv-model-dacia-sandero",
+        "engines": [
+          "1.0 SCe",
+          "1.0 TCe",
+          "1.5 dCi",
+          "1.2",
+          "1.4",
+          "0.9 TCe",
+          "1.0 ECO-G"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-dacia-sandero-i",
+            "year_from": 2008,
+            "year_to": 2012,
+            "engines": [
+              "1.2",
+              "1.4",
+              "1.5 dCi"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-dacia-sandero-ii",
+            "year_from": 2012,
+            "year_to": 2020,
+            "engines": [
+              "0.9 TCe",
+              "1.0 SCe",
+              "1.5 dCi"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-dacia-sandero-iii",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TCe",
+              "1.0 ECO-G"
+            ]
+          }
+        ]
+      },
+      "Logan": {
+        "sg_id": "sgv-model-dacia-logan",
+        "engines": [
+          "1.0 SCe",
+          "1.0 TCe",
+          "1.5 dCi",
+          "1.4",
+          "1.6",
+          "0.9 TCe",
+          "1.0 ECO-G"
+        ],
+        "year_from": 2004,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-dacia-logan-i",
+            "year_from": 2004,
+            "year_to": 2012,
+            "engines": [
+              "1.4",
+              "1.5 dCi",
+              "1.6"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-dacia-logan-ii",
+            "year_from": 2012,
+            "year_to": 2020,
+            "engines": [
+              "0.9 TCe",
+              "1.0 SCe",
+              "1.5 dCi"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-dacia-logan-iii",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TCe",
+              "1.0 ECO-G"
+            ]
+          }
+        ]
+      },
+      "Jogger": {
+        "sg_id": "sgv-model-dacia-jogger",
+        "engines": [
+          "1.0 TCe",
+          "Hybrid 140"
+        ],
+        "year_from": 2021,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-dacia-jogger-i",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.0 TCe",
+              "Hybrid 140"
+            ]
+          }
+        ]
+      }
+    },
+    "Citroën": {
+      "C3": {
+        "sg_id": "sgv-model-citroen-c3",
+        "engines": [
+          "1.2 PureTech",
+          "1.4 HDi",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "1.0",
+          "1.2"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-citro-n-c3-ii",
+            "year_from": 2009,
+            "year_to": 2016,
+            "engines": [
+              "1.0",
+              "1.2",
+              "1.4 HDi",
+              "1.6 HDi"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-citro-n-c3-iii",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi"
+            ]
+          }
+        ]
+      },
+      "C4": {
+        "sg_id": "sgv-model-citroen-c4",
+        "engines": [
+          "1.2 PureTech",
+          "1.6 THP",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "Electric"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-citro-n-c4-ii",
+            "year_from": 2010,
+            "year_to": 2018,
+            "engines": [
+              "1.2 PureTech",
+              "1.6 HDi",
+              "1.6 THP"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-citro-n-c4-iii",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "Berlingo": {
+        "sg_id": "sgv-model-citroen-berlingo",
+        "engines": [
+          "1.2 PureTech",
+          "1.5 BlueHDi",
+          "1.6 HDi",
+          "1.6"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-citro-n-berlingo-ii",
+            "year_from": 2008,
+            "year_to": 2018,
+            "engines": [
+              "1.6 HDi",
+              "1.6"
+            ]
+          },
+          {
+            "label": "III",
+            "sg_id": "sgv-gen-citro-n-berlingo-iii",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi"
+            ]
+          }
+        ]
+      },
+      "C5 Aircross": {
+        "sg_id": "sgv-model-citroen-c5-aircross",
+        "engines": [
+          "1.2 PureTech",
+          "1.5 BlueHDi",
+          "1.6 PureTech Hybrid",
+          "1.6 PureTech",
+          "PHEV"
+        ],
+        "year_from": 2018,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-citro-n-c5-aircross-i",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.2 PureTech",
+              "1.5 BlueHDi",
+              "1.6 PureTech",
+              "PHEV"
+            ]
+          }
+        ]
+      }
+    },
+    "Mazda": {
+      "3": {
+        "sg_id": "sgv-model-mazda-3",
+        "engines": [
+          "1.5",
+          "2.0",
+          "2.0 Skyactiv-G",
+          "2.2 Skyactiv-D",
+          "1.6",
+          "1.6 Diesel",
+          "2.2 Diesel",
+          "1.5 Diesel",
+          "2.0 Mild Hybrid",
+          "e-Skyactiv X"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "BL",
+            "sg_id": "sgv-gen-mazda-3-bl",
+            "year_from": 2009,
+            "year_to": 2013,
+            "engines": [
+              "1.6",
+              "2.0",
+              "1.6 Diesel",
+              "2.2 Diesel"
+            ]
+          },
+          {
+            "label": "BM",
+            "sg_id": "sgv-gen-mazda-3-bm",
+            "year_from": 2013,
+            "year_to": 2019,
+            "engines": [
+              "1.5",
+              "2.0",
+              "1.5 Diesel",
+              "2.2 Diesel"
+            ]
+          },
+          {
+            "label": "BP",
+            "sg_id": "sgv-gen-mazda-3-bp",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.0 Mild Hybrid",
+              "e-Skyactiv X"
+            ]
+          }
+        ]
+      },
+      "6": {
+        "sg_id": "sgv-model-mazda-6",
+        "engines": [
+          "2.0",
+          "2.2 Skyactiv-D",
+          "2.5",
+          "1.8",
+          "2.2 Diesel"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GH",
+            "sg_id": "sgv-gen-mazda-6-gh",
+            "year_from": 2007,
+            "year_to": 2012,
+            "engines": [
+              "1.8",
+              "2.0",
+              "2.2 Diesel"
+            ]
+          },
+          {
+            "label": "GJ",
+            "sg_id": "sgv-gen-mazda-6-gj",
+            "year_from": 2012,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.5",
+              "2.2 Diesel"
+            ]
+          }
+        ]
+      },
+      "CX-5": {
+        "sg_id": "sgv-model-mazda-cx-5",
+        "engines": [
+          "2.0",
+          "2.2 Skyactiv-D",
+          "2.5",
+          "2.2 Diesel"
+        ],
+        "year_from": 2012,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "KE",
+            "sg_id": "sgv-gen-mazda-cx-5-ke",
+            "year_from": 2012,
+            "year_to": 2017,
+            "engines": [
+              "2.0",
+              "2.2 Diesel",
+              "2.5"
+            ]
+          },
+          {
+            "label": "KF",
+            "sg_id": "sgv-gen-mazda-cx-5-kf",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.2 Diesel",
+              "2.5"
+            ]
+          }
+        ]
+      },
+      "CX-30": {
+        "sg_id": "sgv-model-mazda-cx-30",
+        "engines": [
+          "2.0",
+          "2.0 Mild Hybrid",
+          "e-Skyactiv X"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-mazda-cx-30-i",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.0 Mild Hybrid",
+              "e-Skyactiv X"
+            ]
+          }
+        ]
+      }
+    },
+    "Nissan": {
+      "Qashqai": {
+        "sg_id": "sgv-model-nissan-qashqai",
+        "engines": [
+          "1.2 DIG-T",
+          "1.3 DIG-T",
+          "1.5 dCi",
+          "1.6 dCi",
+          "1.6",
+          "2.0",
+          "e-Power",
+          "e-Power Hybrid"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "J10",
+            "sg_id": "sgv-gen-nissan-qashqai-j10",
+            "year_from": 2007,
+            "year_to": 2013,
+            "engines": [
+              "1.5 dCi",
+              "1.6",
+              "2.0"
+            ]
+          },
+          {
+            "label": "J11",
+            "sg_id": "sgv-gen-nissan-qashqai-j11",
+            "year_from": 2013,
+            "year_to": 2021,
+            "engines": [
+              "1.2 DIG-T",
+              "1.5 dCi",
+              "1.6 dCi"
+            ]
+          },
+          {
+            "label": "J12",
+            "sg_id": "sgv-gen-nissan-qashqai-j12",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.3 DIG-T",
+              "e-Power",
+              "e-Power Hybrid"
+            ]
+          }
+        ]
+      },
+      "Juke": {
+        "sg_id": "sgv-model-nissan-juke",
+        "engines": [
+          "1.0 DIG-T",
+          "1.2 DIG-T",
+          "1.5 dCi",
+          "1.6",
+          "Hybrid"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "F15",
+            "sg_id": "sgv-gen-nissan-juke-f15",
+            "year_from": 2010,
+            "year_to": 2019,
+            "engines": [
+              "1.2 DIG-T",
+              "1.5 dCi",
+              "1.6"
+            ]
+          },
+          {
+            "label": "F16",
+            "sg_id": "sgv-gen-nissan-juke-f16",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.0 DIG-T",
+              "Hybrid"
+            ]
+          }
+        ]
+      },
+      "X-Trail": {
+        "sg_id": "sgv-model-nissan-x-trail",
+        "engines": [
+          "1.3 DIG-T",
+          "1.6 dCi",
+          "2.0 dCi",
+          "2.0",
+          "1.7 dCi",
+          "e-Power",
+          "e-4ORCE"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "T31",
+            "sg_id": "sgv-gen-nissan-x-trail-t31",
+            "year_from": 2007,
+            "year_to": 2013,
+            "engines": [
+              "2.0",
+              "2.0 dCi"
+            ]
+          },
+          {
+            "label": "T32",
+            "sg_id": "sgv-gen-nissan-x-trail-t32",
+            "year_from": 2013,
+            "year_to": 2021,
+            "engines": [
+              "1.6 dCi",
+              "1.7 dCi",
+              "2.0"
+            ]
+          },
+          {
+            "label": "T33",
+            "sg_id": "sgv-gen-nissan-x-trail-t33",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "e-Power",
+              "e-4ORCE"
+            ]
+          }
+        ]
+      }
+    },
+    "Volvo": {
+      "V40": {
+        "sg_id": "sgv-model-volvo-v40",
+        "engines": [
+          "T2",
+          "T3",
+          "T4",
+          "D2",
+          "D3",
+          "1.5 T3",
+          "2.0 D2",
+          "2.0 D3",
+          "2.0 T4"
+        ],
+        "year_from": 2012,
+        "year_to": 2020,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volvo-v40-i",
+            "year_from": 2012,
+            "year_to": 2019,
+            "engines": [
+              "1.5 T3",
+              "2.0 D2",
+              "2.0 D3",
+              "2.0 T4"
+            ]
+          }
+        ]
+      },
+      "XC60": {
+        "sg_id": "sgv-model-volvo-xc60",
+        "engines": [
+          "T5",
+          "T6",
+          "D4",
+          "D5",
+          "2.0 D3",
+          "2.0 D4",
+          "2.4 D5",
+          "B4",
+          "B5",
+          "T6 Recharge",
+          "T8 Recharge"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volvo-xc60-i",
+            "year_from": 2008,
+            "year_to": 2017,
+            "engines": [
+              "2.0 D3",
+              "2.0 D4",
+              "2.4 D5",
+              "T5"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-volvo-xc60-ii",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "B4",
+              "B5",
+              "T6 Recharge",
+              "T8 Recharge"
+            ]
+          }
+        ]
+      },
+      "V60": {
+        "sg_id": "sgv-model-volvo-v60",
+        "engines": [
+          "T5",
+          "T6",
+          "D3",
+          "D4",
+          "1.6 D2",
+          "2.0 D3",
+          "2.0 D4",
+          "2.0 T5",
+          "B4",
+          "B5",
+          "B6",
+          "T6 Recharge"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volvo-v60-i",
+            "year_from": 2010,
+            "year_to": 2018,
+            "engines": [
+              "1.6 D2",
+              "2.0 D3",
+              "2.0 D4",
+              "2.0 T5"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-volvo-v60-ii",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "B4",
+              "B5",
+              "B6",
+              "T6 Recharge"
+            ]
+          }
+        ]
+      },
+      "XC40": {
+        "sg_id": "sgv-model-volvo-xc40",
+        "engines": [
+          "T2",
+          "T3",
+          "T4",
+          "D3",
+          "Recharge",
+          "Electric"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-volvo-xc40-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "T2",
+              "T3",
+              "T4",
+              "D3",
+              "Recharge",
+              "Electric"
+            ]
+          }
+        ]
+      }
+    },
+    "Alfa Romeo": {
+      "Giulietta": {
+        "sg_id": "sgv-model-alfa-romeo-giulietta",
+        "engines": [
+          "1.4 TB",
+          "1.6 JTDM",
+          "2.0 JTDM"
+        ],
+        "year_from": 2010,
+        "year_to": 2020,
+        "generations": [
+          {
+            "label": "940",
+            "sg_id": "sgv-gen-alfa-romeo-giulietta-940",
+            "year_from": 2010,
+            "year_to": 2020,
+            "engines": [
+              "1.4 TB",
+              "1.6 JTDM",
+              "2.0 JTDM"
+            ]
+          }
+        ]
+      },
+      "Giulia": {
+        "sg_id": "sgv-model-alfa-romeo-giulia",
+        "engines": [
+          "2.0 Turbo",
+          "2.2 JTDM",
+          "2.9 V6"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "952",
+            "sg_id": "sgv-gen-alfa-romeo-giulia-952",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Turbo",
+              "2.2 JTDM",
+              "2.9 V6"
+            ]
+          }
+        ]
+      },
+      "Stelvio": {
+        "sg_id": "sgv-model-alfa-romeo-stelvio",
+        "engines": [
+          "2.0 Turbo",
+          "2.2 JTDM",
+          "2.9 V6"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "949",
+            "sg_id": "sgv-gen-alfa-romeo-stelvio-949",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Turbo",
+              "2.2 JTDM",
+              "2.9 V6"
+            ]
+          }
+        ]
+      },
+      "MiTo": {
+        "sg_id": "sgv-model-alfa-romeo-mito",
+        "engines": [
+          "0.9 TwinAir",
+          "1.4",
+          "1.3 JTDM"
+        ],
+        "year_from": 2008,
+        "year_to": 2018,
+        "generations": [
+          {
+            "label": "955",
+            "sg_id": "sgv-gen-alfa-romeo-mito-955",
+            "year_from": 2008,
+            "year_to": 2018,
+            "engines": [
+              "0.9 TwinAir",
+              "1.4",
+              "1.3 JTDM"
+            ]
+          }
+        ]
+      }
+    },
+    "Jeep": {
+      "Renegade": {
+        "sg_id": "sgv-model-jeep-renegade",
+        "engines": [
+          "1.0",
+          "1.3",
+          "1.6 Multijet",
+          "2.0 Multijet"
+        ],
+        "year_from": 2014,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "BU",
+            "sg_id": "sgv-gen-jeep-renegade-bu",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "1.0",
+              "1.3",
+              "1.6 Multijet",
+              "2.0 Multijet"
+            ]
+          }
+        ]
+      },
+      "Compass": {
+        "sg_id": "sgv-model-jeep-compass",
+        "engines": [
+          "1.3",
+          "1.6 Multijet",
+          "2.0 Multijet"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "MP",
+            "sg_id": "sgv-gen-jeep-compass-mp",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.3",
+              "1.6 Multijet",
+              "2.0 Multijet"
+            ]
+          }
+        ]
+      },
+      "Cherokee": {
+        "sg_id": "sgv-model-jeep-cherokee",
+        "engines": [
+          "2.0 Multijet",
+          "2.2 Multijet",
+          "3.2"
+        ],
+        "year_from": 2014,
+        "year_to": 2023,
+        "generations": [
+          {
+            "label": "KL",
+            "sg_id": "sgv-gen-jeep-cherokee-kl",
+            "year_from": 2014,
+            "year_to": 2023,
+            "engines": [
+              "2.0 Multijet",
+              "2.2 Multijet",
+              "3.2"
+            ]
+          }
+        ]
+      },
+      "Wrangler": {
+        "sg_id": "sgv-model-jeep-wrangler",
+        "engines": [
+          "2.0 Turbo",
+          "2.2 Multijet",
+          "2.8 CRD",
+          "3.6"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "JK",
+            "sg_id": "sgv-gen-jeep-wrangler-jk",
+            "year_from": 2007,
+            "year_to": 2018,
+            "engines": [
+              "2.8 CRD",
+              "3.6"
+            ]
+          },
+          {
+            "label": "JL",
+            "sg_id": "sgv-gen-jeep-wrangler-jl",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Turbo",
+              "2.2 Multijet",
+              "3.6"
+            ]
+          }
+        ]
+      }
+    },
+    "Cupra": {
+      "Formentor": {
+        "sg_id": "sgv-model-cupra-formentor",
+        "engines": [
+          "1.5 TSI",
+          "2.0 TSI",
+          "2.0 TDI",
+          "eHybrid"
+        ],
+        "year_from": 2020,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-cupra-formentor-i",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TSI",
+              "2.0 TDI",
+              "eHybrid"
+            ]
+          }
+        ]
+      },
+      "Leon": {
+        "sg_id": "sgv-model-cupra-leon",
+        "engines": [
+          "1.5 TSI",
+          "2.0 TSI",
+          "2.0 TDI",
+          "eHybrid"
+        ],
+        "year_from": 2020,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-cupra-leon-i",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TSI",
+              "2.0 TDI",
+              "eHybrid"
+            ]
+          }
+        ]
+      },
+      "Ateca": {
+        "sg_id": "sgv-model-cupra-ateca",
+        "engines": [
+          "1.5 TSI",
+          "2.0 TSI",
+          "2.0 TDI"
+        ],
+        "year_from": 2018,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-cupra-ateca-i",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.5 TSI",
+              "2.0 TSI",
+              "2.0 TDI"
+            ]
+          }
+        ]
+      },
+      "Born": {
+        "sg_id": "sgv-model-cupra-born",
+        "engines": [
+          "Electric"
+        ],
+        "year_from": 2021,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-cupra-born-i",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "Electric"
+            ]
+          }
+        ]
+      }
+    },
+    "Suzuki": {
+      "Swift": {
+        "sg_id": "sgv-model-suzuki-swift",
+        "engines": [
+          "1.0 Boosterjet",
+          "1.2 Dualjet",
+          "1.2 Hybrid",
+          "1.3 DDiS"
+        ],
+        "year_from": 2005,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "MZ",
+            "sg_id": "sgv-gen-suzuki-swift-mz",
+            "year_from": 2005,
+            "year_to": 2010,
+            "engines": [
+              "1.0 Boosterjet",
+              "1.2 Dualjet",
+              "1.2 Hybrid",
+              "1.3 DDiS"
+            ]
+          },
+          {
+            "label": "AZ",
+            "sg_id": "sgv-gen-suzuki-swift-az",
+            "year_from": 2010,
+            "year_to": 2017,
+            "engines": [
+              "1.0 Boosterjet",
+              "1.2 Dualjet",
+              "1.2 Hybrid",
+              "1.3 DDiS"
+            ]
+          },
+          {
+            "label": "ZC",
+            "sg_id": "sgv-gen-suzuki-swift-zc",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.0 Boosterjet",
+              "1.2 Dualjet",
+              "1.2 Hybrid",
+              "1.3 DDiS"
+            ]
+          }
+        ]
+      },
+      "Vitara": {
+        "sg_id": "sgv-model-suzuki-vitara",
+        "engines": [
+          "1.4 Boosterjet",
+          "1.6",
+          "1.6 DDiS"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "LY",
+            "sg_id": "sgv-gen-suzuki-vitara-ly",
+            "year_from": 2015,
+            "year_to": 2026,
+            "engines": [
+              "1.4 Boosterjet",
+              "1.6",
+              "1.6 DDiS"
+            ]
+          }
+        ]
+      },
+      "S-Cross": {
+        "sg_id": "sgv-model-suzuki-s-cross",
+        "engines": [
+          "1.0 Boosterjet",
+          "1.4 Boosterjet",
+          "1.6 DDiS"
+        ],
+        "year_from": 2013,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-suzuki-s-cross-i",
+            "year_from": 2013,
+            "year_to": 2021,
+            "engines": [
+              "1.0 Boosterjet",
+              "1.4 Boosterjet",
+              "1.6 DDiS"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-suzuki-s-cross-ii",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "1.0 Boosterjet",
+              "1.4 Boosterjet",
+              "1.6 DDiS"
+            ]
+          }
+        ]
+      },
+      "Ignis": {
+        "sg_id": "sgv-model-suzuki-ignis",
+        "engines": [
+          "1.2 Dualjet",
+          "1.2 Hybrid"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "MF",
+            "sg_id": "sgv-gen-suzuki-ignis-mf",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.2 Dualjet",
+              "1.2 Hybrid"
+            ]
+          }
+        ]
+      },
+      "Jimny": {
+        "sg_id": "sgv-model-suzuki-jimny",
+        "engines": [
+          "1.5"
+        ],
+        "year_from": 2018,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GJ",
+            "sg_id": "sgv-gen-suzuki-jimny-gj",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "1.5"
+            ]
+          }
+        ]
+      }
+    },
+    "Subaru": {
+      "XV": {
+        "sg_id": "sgv-model-subaru-xv",
+        "engines": [
+          "1.6",
+          "2.0",
+          "2.0 e-Boxer"
+        ],
+        "year_from": 2012,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GP",
+            "sg_id": "sgv-gen-subaru-xv-gp",
+            "year_from": 2012,
+            "year_to": 2017,
+            "engines": [
+              "1.6",
+              "2.0",
+              "2.0 e-Boxer"
+            ]
+          },
+          {
+            "label": "GT",
+            "sg_id": "sgv-gen-subaru-xv-gt",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.6",
+              "2.0",
+              "2.0 e-Boxer"
+            ]
+          }
+        ]
+      },
+      "Forester": {
+        "sg_id": "sgv-model-subaru-forester",
+        "engines": [
+          "2.0",
+          "2.0 Diesel",
+          "2.0 e-Boxer"
+        ],
+        "year_from": 2008,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "SH",
+            "sg_id": "sgv-gen-subaru-forester-sh",
+            "year_from": 2008,
+            "year_to": 2012,
+            "engines": [
+              "2.0",
+              "2.0 Diesel",
+              "2.0 e-Boxer"
+            ]
+          },
+          {
+            "label": "SJ",
+            "sg_id": "sgv-gen-subaru-forester-sj",
+            "year_from": 2012,
+            "year_to": 2018,
+            "engines": [
+              "2.0",
+              "2.0 Diesel",
+              "2.0 e-Boxer"
+            ]
+          },
+          {
+            "label": "SK",
+            "sg_id": "sgv-gen-subaru-forester-sk",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.0 Diesel",
+              "2.0 e-Boxer"
+            ]
+          }
+        ]
+      },
+      "Outback": {
+        "sg_id": "sgv-model-subaru-outback",
+        "engines": [
+          "2.5",
+          "2.0 Diesel"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "BS",
+            "sg_id": "sgv-gen-subaru-outback-bs",
+            "year_from": 2015,
+            "year_to": 2020,
+            "engines": [
+              "2.5",
+              "2.0 Diesel"
+            ]
+          },
+          {
+            "label": "BT",
+            "sg_id": "sgv-gen-subaru-outback-bt",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "2.5",
+              "2.0 Diesel"
+            ]
+          }
+        ]
+      },
+      "Impreza": {
+        "sg_id": "sgv-model-subaru-impreza",
+        "engines": [
+          "1.6",
+          "2.0"
+        ],
+        "year_from": 2012,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GJ",
+            "sg_id": "sgv-gen-subaru-impreza-gj",
+            "year_from": 2012,
+            "year_to": 2016,
+            "engines": [
+              "1.6",
+              "2.0"
+            ]
+          },
+          {
+            "label": "GK",
+            "sg_id": "sgv-gen-subaru-impreza-gk",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "1.6",
+              "2.0"
+            ]
+          }
+        ]
+      }
+    },
+    "Mitsubishi": {
+      "ASX": {
+        "sg_id": "sgv-model-mitsubishi-asx",
+        "engines": [
+          "1.6",
+          "1.8 DI-D",
+          "2.0",
+          "1.3 Turbo"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GA",
+            "sg_id": "sgv-gen-mitsubishi-asx-ga",
+            "year_from": 2010,
+            "year_to": 2022,
+            "engines": [
+              "1.6",
+              "1.8 DI-D",
+              "2.0",
+              "1.3 Turbo"
+            ]
+          },
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-mitsubishi-asx-ii",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "1.6",
+              "1.8 DI-D",
+              "2.0",
+              "1.3 Turbo"
+            ]
+          }
+        ]
+      },
+      "Outlander": {
+        "sg_id": "sgv-model-mitsubishi-outlander",
+        "engines": [
+          "2.0",
+          "2.2 DI-D",
+          "2.4 PHEV"
+        ],
+        "year_from": 2012,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "GF",
+            "sg_id": "sgv-gen-mitsubishi-outlander-gf",
+            "year_from": 2012,
+            "year_to": 2021,
+            "engines": [
+              "2.0",
+              "2.2 DI-D",
+              "2.4 PHEV"
+            ]
+          },
+          {
+            "label": "GM",
+            "sg_id": "sgv-gen-mitsubishi-outlander-gm",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.2 DI-D",
+              "2.4 PHEV"
+            ]
+          }
+        ]
+      },
+      "Eclipse Cross": {
+        "sg_id": "sgv-model-mitsubishi-eclipse-cross",
+        "engines": [
+          "1.5 Turbo",
+          "2.4 PHEV"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-mitsubishi-eclipse-cross-i",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Turbo",
+              "2.4 PHEV"
+            ]
+          }
+        ]
+      },
+      "L200": {
+        "sg_id": "sgv-model-mitsubishi-l200",
+        "engines": [
+          "2.4 DI-D"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "V",
+            "sg_id": "sgv-gen-mitsubishi-l200-v",
+            "year_from": 2015,
+            "year_to": 2023,
+            "engines": [
+              "2.4 DI-D"
+            ]
+          },
+          {
+            "label": "VI",
+            "sg_id": "sgv-gen-mitsubishi-l200-vi",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "2.4 DI-D"
+            ]
+          }
+        ]
+      },
+      "Space Star": {
+        "sg_id": "sgv-model-mitsubishi-space-star",
+        "engines": [
+          "1.0",
+          "1.2"
+        ],
+        "year_from": 2013,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "II",
+            "sg_id": "sgv-gen-mitsubishi-space-star-ii",
+            "year_from": 2013,
+            "year_to": 2026,
+            "engines": [
+              "1.0",
+              "1.2"
+            ]
+          }
+        ]
+      }
+    },
+    "MINI": {
+      "Cooper": {
+        "sg_id": "sgv-model-mini-cooper",
+        "engines": [
+          "1.5",
+          "1.6",
+          "2.0",
+          "Cooper SE"
+        ],
+        "year_from": 2006,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "R56",
+            "sg_id": "sgv-gen-mini-cooper-r56",
+            "year_from": 2006,
+            "year_to": 2013,
+            "engines": [
+              "1.5",
+              "1.6",
+              "2.0",
+              "Cooper SE"
+            ]
+          },
+          {
+            "label": "F56",
+            "sg_id": "sgv-gen-mini-cooper-f56",
+            "year_from": 2013,
+            "year_to": 2023,
+            "engines": [
+              "1.5",
+              "1.6",
+              "2.0",
+              "Cooper SE"
+            ]
+          },
+          {
+            "label": "J01",
+            "sg_id": "sgv-gen-mini-cooper-j01",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "1.5",
+              "1.6",
+              "2.0",
+              "Cooper SE"
+            ]
+          }
+        ]
+      },
+      "Countryman": {
+        "sg_id": "sgv-model-mini-countryman",
+        "engines": [
+          "1.5",
+          "1.6",
+          "2.0",
+          "Cooper SE ALL4"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "R60",
+            "sg_id": "sgv-gen-mini-countryman-r60",
+            "year_from": 2010,
+            "year_to": 2016,
+            "engines": [
+              "1.5",
+              "1.6",
+              "2.0",
+              "Cooper SE ALL4"
+            ]
+          },
+          {
+            "label": "F60",
+            "sg_id": "sgv-gen-mini-countryman-f60",
+            "year_from": 2016,
+            "year_to": 2023,
+            "engines": [
+              "1.5",
+              "1.6",
+              "2.0",
+              "Cooper SE ALL4"
+            ]
+          },
+          {
+            "label": "U25",
+            "sg_id": "sgv-gen-mini-countryman-u25",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "1.5",
+              "1.6",
+              "2.0",
+              "Cooper SE ALL4"
+            ]
+          }
+        ]
+      },
+      "Clubman": {
+        "sg_id": "sgv-model-mini-clubman",
+        "engines": [
+          "1.5",
+          "2.0"
+        ],
+        "year_from": 2015,
+        "year_to": 2024,
+        "generations": [
+          {
+            "label": "F54",
+            "sg_id": "sgv-gen-mini-clubman-f54",
+            "year_from": 2015,
+            "year_to": 2024,
+            "engines": [
+              "1.5",
+              "2.0"
+            ]
+          }
+        ]
+      }
+    },
+    "Porsche": {
+      "Cayenne": {
+        "sg_id": "sgv-model-porsche-cayenne",
+        "engines": [
+          "3.0 V6",
+          "3.0 Diesel",
+          "4.0 V8",
+          "E-Hybrid"
+        ],
+        "year_from": 2010,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "92A",
+            "sg_id": "sgv-gen-porsche-cayenne-92a",
+            "year_from": 2010,
+            "year_to": 2017,
+            "engines": [
+              "3.0 V6",
+              "3.0 Diesel",
+              "4.0 V8",
+              "E-Hybrid"
+            ]
+          },
+          {
+            "label": "9YA",
+            "sg_id": "sgv-gen-porsche-cayenne-9ya",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "3.0 V6",
+              "3.0 Diesel",
+              "4.0 V8",
+              "E-Hybrid"
+            ]
+          }
+        ]
+      },
+      "Macan": {
+        "sg_id": "sgv-model-porsche-macan",
+        "engines": [
+          "2.0",
+          "3.0 V6",
+          "Electric"
+        ],
+        "year_from": 2014,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "95B",
+            "sg_id": "sgv-gen-porsche-macan-95b",
+            "year_from": 2014,
+            "year_to": 2024,
+            "engines": [
+              "2.0",
+              "3.0 V6",
+              "Electric"
+            ]
+          },
+          {
+            "label": "XAB",
+            "sg_id": "sgv-gen-porsche-macan-xab",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "3.0 V6",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "Panamera": {
+        "sg_id": "sgv-model-porsche-panamera",
+        "engines": [
+          "2.9 V6",
+          "3.0 Diesel",
+          "4.0 V8",
+          "E-Hybrid"
+        ],
+        "year_from": 2009,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "970",
+            "sg_id": "sgv-gen-porsche-panamera-970",
+            "year_from": 2009,
+            "year_to": 2016,
+            "engines": [
+              "2.9 V6",
+              "3.0 Diesel",
+              "4.0 V8",
+              "E-Hybrid"
+            ]
+          },
+          {
+            "label": "971",
+            "sg_id": "sgv-gen-porsche-panamera-971",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "2.9 V6",
+              "3.0 Diesel",
+              "4.0 V8",
+              "E-Hybrid"
+            ]
+          }
+        ]
+      },
+      "911": {
+        "sg_id": "sgv-model-porsche-911",
+        "engines": [
+          "3.0 Turbo",
+          "3.8",
+          "4.0"
+        ],
+        "year_from": 2011,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "991",
+            "sg_id": "sgv-gen-porsche-911-991",
+            "year_from": 2011,
+            "year_to": 2019,
+            "engines": [
+              "3.0 Turbo",
+              "3.8",
+              "4.0"
+            ]
+          },
+          {
+            "label": "992",
+            "sg_id": "sgv-gen-porsche-911-992",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "3.0 Turbo",
+              "3.8",
+              "4.0"
+            ]
+          }
+        ]
+      }
+    },
+    "Lexus": {
+      "NX": {
+        "sg_id": "sgv-model-lexus-nx",
+        "engines": [
+          "2.0 Turbo",
+          "2.5 Hybrid",
+          "450h+"
+        ],
+        "year_from": 2014,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "AZ10",
+            "sg_id": "sgv-gen-lexus-nx-az10",
+            "year_from": 2014,
+            "year_to": 2021,
+            "engines": [
+              "2.0 Turbo",
+              "2.5 Hybrid",
+              "450h+"
+            ]
+          },
+          {
+            "label": "AZ20",
+            "sg_id": "sgv-gen-lexus-nx-az20",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Turbo",
+              "2.5 Hybrid",
+              "450h+"
+            ]
+          }
+        ]
+      },
+      "UX": {
+        "sg_id": "sgv-model-lexus-ux",
+        "engines": [
+          "2.0",
+          "2.0 Hybrid",
+          "300e"
+        ],
+        "year_from": 2018,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "ZA10",
+            "sg_id": "sgv-gen-lexus-ux-za10",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "2.0",
+              "2.0 Hybrid",
+              "300e"
+            ]
+          }
+        ]
+      },
+      "RX": {
+        "sg_id": "sgv-model-lexus-rx",
+        "engines": [
+          "3.5 Hybrid",
+          "2.4 Turbo Hybrid",
+          "450h+"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "AL20",
+            "sg_id": "sgv-gen-lexus-rx-al20",
+            "year_from": 2015,
+            "year_to": 2022,
+            "engines": [
+              "3.5 Hybrid",
+              "2.4 Turbo Hybrid",
+              "450h+"
+            ]
+          },
+          {
+            "label": "AL30",
+            "sg_id": "sgv-gen-lexus-rx-al30",
+            "year_from": 2022,
+            "year_to": 2026,
+            "engines": [
+              "3.5 Hybrid",
+              "2.4 Turbo Hybrid",
+              "450h+"
+            ]
+          }
+        ]
+      },
+      "IS": {
+        "sg_id": "sgv-model-lexus-is",
+        "engines": [
+          "2.0 Turbo",
+          "2.5 Hybrid"
+        ],
+        "year_from": 2013,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "XE30",
+            "sg_id": "sgv-gen-lexus-is-xe30",
+            "year_from": 2013,
+            "year_to": 2020,
+            "engines": [
+              "2.0 Turbo",
+              "2.5 Hybrid"
+            ]
+          },
+          {
+            "label": "XE30F",
+            "sg_id": "sgv-gen-lexus-is-xe30f",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Turbo",
+              "2.5 Hybrid"
+            ]
+          }
+        ]
+      }
+    },
+    "Land Rover": {
+      "Discovery Sport": {
+        "sg_id": "sgv-model-land-rover-discovery-sport",
+        "engines": [
+          "2.0 Si4",
+          "2.0 TD4",
+          "PHEV"
+        ],
+        "year_from": 2014,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "L550",
+            "sg_id": "sgv-gen-land-rover-discovery-sport-l550",
+            "year_from": 2014,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Si4",
+              "2.0 TD4",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Range Rover Evoque": {
+        "sg_id": "sgv-model-land-rover-range-rover-evoque",
+        "engines": [
+          "2.0 Si4",
+          "2.0 TD4",
+          "PHEV"
+        ],
+        "year_from": 2011,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "L538",
+            "sg_id": "sgv-gen-land-rover-range-rover-evoque-l538",
+            "year_from": 2011,
+            "year_to": 2018,
+            "engines": [
+              "2.0 Si4",
+              "2.0 TD4",
+              "PHEV"
+            ]
+          },
+          {
+            "label": "L551",
+            "sg_id": "sgv-gen-land-rover-range-rover-evoque-l551",
+            "year_from": 2018,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Si4",
+              "2.0 TD4",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Defender": {
+        "sg_id": "sgv-model-land-rover-defender",
+        "engines": [
+          "2.0 Si4",
+          "3.0 I6",
+          "PHEV"
+        ],
+        "year_from": 2020,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "L663",
+            "sg_id": "sgv-gen-land-rover-defender-l663",
+            "year_from": 2020,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Si4",
+              "3.0 I6",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "Discovery": {
+        "sg_id": "sgv-model-land-rover-discovery",
+        "engines": [
+          "2.0 Si4",
+          "3.0 TD6",
+          "PHEV"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "L462",
+            "sg_id": "sgv-gen-land-rover-discovery-l462",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Si4",
+              "3.0 TD6",
+              "PHEV"
+            ]
+          }
+        ]
+      }
+    },
+    "Tesla": {
+      "Model 3": {
+        "sg_id": "sgv-model-tesla-model-3",
+        "engines": [
+          "RWD",
+          "Long Range",
+          "Performance"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-tesla-model-3-i",
+            "year_from": 2019,
+            "year_to": 2023,
+            "engines": [
+              "RWD",
+              "Long Range",
+              "Performance"
+            ]
+          },
+          {
+            "label": "Highland",
+            "sg_id": "sgv-gen-tesla-model-3-highland",
+            "year_from": 2023,
+            "year_to": 2026,
+            "engines": [
+              "RWD",
+              "Long Range",
+              "Performance"
+            ]
+          }
+        ]
+      },
+      "Model Y": {
+        "sg_id": "sgv-model-tesla-model-y",
+        "engines": [
+          "RWD",
+          "Long Range",
+          "Performance"
+        ],
+        "year_from": 2021,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-tesla-model-y-i",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "RWD",
+              "Long Range",
+              "Performance"
+            ]
+          }
+        ]
+      },
+      "Model S": {
+        "sg_id": "sgv-model-tesla-model-s",
+        "engines": [
+          "Long Range",
+          "Plaid"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "I",
+            "sg_id": "sgv-gen-tesla-model-s-i",
+            "year_from": 2016,
+            "year_to": 2021,
+            "engines": [
+              "Long Range",
+              "Plaid"
+            ]
+          },
+          {
+            "label": "Plaid",
+            "sg_id": "sgv-gen-tesla-model-s-plaid",
+            "year_from": 2021,
+            "year_to": 2026,
+            "engines": [
+              "Long Range",
+              "Plaid"
+            ]
+          }
+        ]
+      }
+    },
+    "Chevrolet": {
+      "Spark": {
+        "sg_id": "sgv-model-chevrolet-spark",
+        "engines": [
+          "1.0",
+          "1.2"
+        ],
+        "year_from": 2010,
+        "year_to": 2022,
+        "generations": [
+          {
+            "label": "M300",
+            "sg_id": "sgv-gen-chevrolet-spark-m300",
+            "year_from": 2010,
+            "year_to": 2015,
+            "engines": [
+              "1.0",
+              "1.2"
+            ]
+          },
+          {
+            "label": "M400",
+            "sg_id": "sgv-gen-chevrolet-spark-m400",
+            "year_from": 2015,
+            "year_to": 2022,
+            "engines": [
+              "1.0",
+              "1.2"
+            ]
+          }
+        ]
+      },
+      "Cruze": {
+        "sg_id": "sgv-model-chevrolet-cruze",
+        "engines": [
+          "1.4 Turbo",
+          "1.6",
+          "1.7 TD",
+          "2.0 TD"
+        ],
+        "year_from": 2009,
+        "year_to": 2016,
+        "generations": [
+          {
+            "label": "J300",
+            "sg_id": "sgv-gen-chevrolet-cruze-j300",
+            "year_from": 2009,
+            "year_to": 2016,
+            "engines": [
+              "1.4 Turbo",
+              "1.6",
+              "1.7 TD",
+              "2.0 TD"
+            ]
+          }
+        ]
+      },
+      "Captiva": {
+        "sg_id": "sgv-model-chevrolet-captiva",
+        "engines": [
+          "2.0 TD",
+          "2.2 TD",
+          "2.4"
+        ],
+        "year_from": 2006,
+        "year_to": 2018,
+        "generations": [
+          {
+            "label": "C100",
+            "sg_id": "sgv-gen-chevrolet-captiva-c100",
+            "year_from": 2006,
+            "year_to": 2018,
+            "engines": [
+              "2.0 TD",
+              "2.2 TD",
+              "2.4"
+            ]
+          }
+        ]
+      },
+      "Aveo": {
+        "sg_id": "sgv-model-chevrolet-aveo",
+        "engines": [
+          "1.2",
+          "1.4",
+          "1.3 TD"
+        ],
+        "year_from": 2008,
+        "year_to": 2015,
+        "generations": [
+          {
+            "label": "T200",
+            "sg_id": "sgv-gen-chevrolet-aveo-t200",
+            "year_from": 2008,
+            "year_to": 2011,
+            "engines": [
+              "1.2",
+              "1.4",
+              "1.3 TD"
+            ]
+          },
+          {
+            "label": "T300",
+            "sg_id": "sgv-gen-chevrolet-aveo-t300",
+            "year_from": 2011,
+            "year_to": 2015,
+            "engines": [
+              "1.2",
+              "1.4",
+              "1.3 TD"
+            ]
+          }
+        ]
+      }
+    },
+    "Smart": {
+      "Fortwo": {
+        "sg_id": "sgv-model-smart-fortwo",
+        "engines": [
+          "0.9 Turbo",
+          "1.0",
+          "Electric"
+        ],
+        "year_from": 2007,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "451",
+            "sg_id": "sgv-gen-smart-fortwo-451",
+            "year_from": 2007,
+            "year_to": 2014,
+            "engines": [
+              "0.9 Turbo",
+              "1.0",
+              "Electric"
+            ]
+          },
+          {
+            "label": "453",
+            "sg_id": "sgv-gen-smart-fortwo-453",
+            "year_from": 2014,
+            "year_to": 2024,
+            "engines": [
+              "0.9 Turbo",
+              "1.0",
+              "Electric"
+            ]
+          },
+          {
+            "label": "HX11",
+            "sg_id": "sgv-gen-smart-fortwo-hx11",
+            "year_from": 2024,
+            "year_to": 2026,
+            "engines": [
+              "0.9 Turbo",
+              "1.0",
+              "Electric"
+            ]
+          }
+        ]
+      },
+      "Forfour": {
+        "sg_id": "sgv-model-smart-forfour",
+        "engines": [
+          "0.9 Turbo",
+          "1.0"
+        ],
+        "year_from": 2014,
+        "year_to": 2021,
+        "generations": [
+          {
+            "label": "453",
+            "sg_id": "sgv-gen-smart-forfour-453",
+            "year_from": 2014,
+            "year_to": 2021,
+            "engines": [
+              "0.9 Turbo",
+              "1.0"
+            ]
+          }
+        ]
+      }
+    },
+    "Jaguar": {
+      "E-Pace": {
+        "sg_id": "sgv-model-jaguar-e-pace",
+        "engines": [
+          "2.0 Si4",
+          "2.0 D",
+          "PHEV"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X540",
+            "sg_id": "sgv-gen-jaguar-e-pace-x540",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Si4",
+              "2.0 D",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "F-Pace": {
+        "sg_id": "sgv-model-jaguar-f-pace",
+        "engines": [
+          "2.0 Si4",
+          "2.0 D",
+          "3.0",
+          "PHEV"
+        ],
+        "year_from": 2016,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X761",
+            "sg_id": "sgv-gen-jaguar-f-pace-x761",
+            "year_from": 2016,
+            "year_to": 2026,
+            "engines": [
+              "2.0 Si4",
+              "2.0 D",
+              "3.0",
+              "PHEV"
+            ]
+          }
+        ]
+      },
+      "XE": {
+        "sg_id": "sgv-model-jaguar-xe",
+        "engines": [
+          "2.0 Si4",
+          "2.0 D"
+        ],
+        "year_from": 2015,
+        "year_to": 2024,
+        "generations": [
+          {
+            "label": "X760",
+            "sg_id": "sgv-gen-jaguar-xe-x760",
+            "year_from": 2015,
+            "year_to": 2024,
+            "engines": [
+              "2.0 Si4",
+              "2.0 D"
+            ]
+          }
+        ]
+      }
+    },
+    "SsangYong": {
+      "Korando": {
+        "sg_id": "sgv-model-ssangyong-korando",
+        "engines": [
+          "1.5 Turbo",
+          "1.6 Diesel"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "C300",
+            "sg_id": "sgv-gen-ssangyong-korando-c300",
+            "year_from": 2019,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Turbo",
+              "1.6 Diesel"
+            ]
+          }
+        ]
+      },
+      "Tivoli": {
+        "sg_id": "sgv-model-ssangyong-tivoli",
+        "engines": [
+          "1.5 Turbo",
+          "1.6 Diesel"
+        ],
+        "year_from": 2015,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "X100",
+            "sg_id": "sgv-gen-ssangyong-tivoli-x100",
+            "year_from": 2015,
+            "year_to": 2026,
+            "engines": [
+              "1.5 Turbo",
+              "1.6 Diesel"
+            ]
+          }
+        ]
+      },
+      "Rexton": {
+        "sg_id": "sgv-model-ssangyong-rexton",
+        "engines": [
+          "2.2 Diesel"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "generations": [
+          {
+            "label": "Y400",
+            "sg_id": "sgv-gen-ssangyong-rexton-y400",
+            "year_from": 2017,
+            "year_to": 2026,
+            "engines": [
+              "2.2 Diesel"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

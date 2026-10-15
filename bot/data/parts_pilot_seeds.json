@@ -1,0 +1,249 @@
+{
+  "_meta": {
+    "purpose": "Overené seed URL / mapy pre staged LKQ+Szekop parts pilot",
+    "policy": "Path/TecDoc ID len navigácia. Woo kategória = taxonomy.py. Limit ≤50/job.",
+    "updated": "2026-08-04"
+  },
+  "lkq_example_seeds": [
+    {
+      "label": "Škoda Octavia III 1.6 TDI — Filtre",
+      "needle": "filtre",
+      "url": "https://www.lkq.sk/Catalog/skoda-octavia-iii-5e3-nl3-nr3-11-12-03-21-1-6-tdi-1598ccm-66kw-90hp-11-12-10-20-motor-a-prevodovka-filtre/39849642;39850140;7;4855030;2399460;35667564;50398776"
+    },
+    {
+      "label": "Škoda Octavia III 1.6 TDI — Kotúčová brzda",
+      "needle": "kotúčová",
+      "url": "https://www.lkq.sk/Catalog/skoda-octavia-iii-5e3-nl3-nr3-11-12-03-21-1-6-tdi-1598ccm-66kw-90hp-11-12-10-20-brzdovy-system-kotucova-brzda/39849642;39850140;7;4855030;2399460;35657823;50567731"
+    },
+    {
+      "label": "VW Golf VII 1.6 TDI — Stierače",
+      "needle": "stierače",
+      "url": "https://www.lkq.sk/Catalog/volkswagen-golf-vii-5g1-bq1-be1-be2-08-12-10-21-1-6-tdi-1598ccm-66kw-90hp-04-13-07-18-cistenie-a-ostrekovanie-skiel-stierace/39849642;39850140;157670;3967881;2399452;35638365;35594741"
+    }
+  ],
+  "szekop": {
+    "tecdoc_entry": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne",
+    "example_engine": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/106/11195/58760",
+    "note": "Leaf = GetTecDocConstructionGroupsSubcategories + SSR product list. Path/TecDoc ID = navigácia, nie Woo. Quiet drip: bash bot/run_szekop_quiet_drip.sh",
+    "tecdoc_top_category_ids": {
+      "100005": "Filtre",
+      "100006": "Brzdové zariadenie",
+      "100002": "Motor",
+      "100007": "Chladenie",
+      "100011": "Pruženie / tlmenie",
+      "100012": "Riadenie",
+      "100050": "Spojka",
+      "100004": "Výfukový systém",
+      "100010": "Elektrina",
+      "100008": "Zapalovanie / žhavenie",
+      "100018": "Čistenie skiel",
+      "100001": "Karoséria"
+    },
+    "tecdoc_pilot_leaves": [
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Olejový filter",
+        "parent_id": "100005",
+        "leaf_id": "100259",
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/olejovy-filter/106/11195/58760/100259/?path=100005~100259"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Vzduchový filter",
+        "parent_id": "100005",
+        "leaf_id": "100260",
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/vzduchovy-filter/106/11195/58760/100260/?path=100005~100260"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Kabínový filter",
+        "parent_id": "100005",
+        "leaf_id": "100263",
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/filter-vnutorneho-priestoru/106/11195/58760/100263/?path=100005~100263"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Palivový filter",
+        "parent_id": "100005",
+        "leaf_id": "100261",
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/palivovy-filter/106/11195/58760/100261/?path=100005~100261"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Brzdový kotúč",
+        "parent_id": "100626",
+        "leaf_id": "100032",
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/brzdovy-kotuc/106/11195/58760/100032/?path=100626~100032"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Brzdové obloženie (predné platničky)",
+        "parent_id": "100626",
+        "leaf_id": "100030",
+        "sgv_target": "sgv-gen-skoda-octavia-iii",
+        "component_types": [
+          "brake-pads-front",
+          "brake-pad"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/brzdove-oblozenie/106/11195/58760/100030/?path=100626~100030"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Stieracia lišta",
+        "parent_id": "100018",
+        "leaf_id": "100133",
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/stiracia-lizta-gumicka/106/11195/58760/100133/?path=100018~100133"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Autobatéria (AGM/EFB Start-Stop)",
+        "parent_id": "100010",
+        "leaf_id": "100042",
+        "kind": "battery",
+        "sgv_target": "sgv-gen-skoda-octavia-iii",
+        "component_types": [
+          "car-battery",
+          "battery"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/bateria/106/11195/58760/100042/?path=100010~100042"
+      },
+      {
+        "label": "Škoda Octavia III 1.6 TDI — Alternátor",
+        "parent_id": "100041",
+        "leaf_id": "100350",
+        "kind": "alternator",
+        "sgv_target": "sgv-gen-skoda-octavia-iii",
+        "component_types": [
+          "alternator"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/alternator/106/11195/58760/100350/?path=100010~100041~100350"
+      },
+      {
+        "label": "Servisná sada Octavia III — Olejový filter",
+        "parent_id": "100005",
+        "leaf_id": "100259",
+        "kind": "oil-filter",
+        "sgv_target": "sgv-gen-skoda-octavia-iii",
+        "component_types": [
+          "oil-filter",
+          "engine-oil-service-kit"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/tecdoc/osobne/skoda/octavia-iii-5e3-nl3-nr3/1-6-tdi/olejovy-filter/106/11195/58760/100259/?path=100005~100259"
+      },
+      {
+        "label": "Servisná sada — Universal 5W-30 (VW 507/509)",
+        "kind": "engine-oil",
+        "sgv_target": "sgv-gen-skoda-octavia-iii",
+        "component_types": [
+          "engine-oil",
+          "engine-oil-service-kit"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/5w30/19~20~42~45/"
+      },
+      {
+        "label": "Servisná sada — Universal 0W-20 (Toyota Hybrid)",
+        "kind": "engine-oil",
+        "sgv_target": "sgv-model-toyota-corolla",
+        "component_types": [
+          "engine-oil",
+          "engine-oil-service-kit"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/0w20/19~20~42~363/"
+      },
+      {
+        "label": "Servisná sada — Universal 5W-40",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/5w40/19~20~42~46/"
+      },
+      {
+        "label": "Servisná sada — Universal 0W-30",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/0w30/19~20~42~43/"
+      },
+      {
+        "label": "Servisná sada — Universal 0W-40",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/0w40/19~20~42~44/"
+      },
+      {
+        "label": "Servisná sada — Universal 5W-20",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/5w20/19~20~42~296/"
+      },
+      {
+        "label": "Servisná sada — Universal 10W-40",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/10w40/19~20~42~47/"
+      },
+      {
+        "label": "Servisná sada — Universal 10W-60",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/10w60/19~20~42~178/"
+      },
+      {
+        "label": "Servisná sada — Universal 15W-40",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/15w40/19~20~42~48/"
+      },
+      {
+        "label": "Servisná sada — Castrol (značkový list)",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/castrol/19~20~42/"
+      },
+      {
+        "label": "Servisná sada — Mobil (značkový list)",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/mobil/19~20~28/"
+      },
+      {
+        "label": "Servisná sada — Shell (značkový list)",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/shell/19~20~21/"
+      },
+      {
+        "label": "Servisná sada — Total (značkový list)",
+        "kind": "engine-oil",
+        "component_types": [
+          "engine-oil"
+        ],
+        "url": "https://szekopsk.nextis.cz/sk/katalog/univerzalne-diely/total/19~20~49/"
+      }
+    ],
+    "evening_strong": {
+      "script": "bot/run_evening_strong_import.sh",
+      "workflow": ".github/workflows/evening-strong-import.yml",
+      "schedule_sk": "20:05",
+      "lkq": "wave3 then wave6, jobs≤8 limit≤40",
+      "szekop": "heijunka_szekop_parts.py --expand-filters interleaved"
+    },
+    "universal_oils": "suppliers/szekop.py DEFAULT_CATEGORY_URLS"
+  },
+  "heijunka": {
+    "wave3": "filtre + kotúčová × SK park",
+    "wave5": "imobil / zámky / spínacie skrinky",
+    "wave6": "stierače, zapalovanie, ložiská, tlmiče, okruh chladenia, spojka, remene, snímače",
+    "evening_strong": "bash bot/run_evening_strong_import.sh (--now / CI 18:05 UTC)"
+  }
+}

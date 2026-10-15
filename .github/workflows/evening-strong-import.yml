@@ -1,0 +1,107 @@
+name: Evening strong parts import
+
+# Silný staged import po 20:00 SK (CEST = UTC+2 → 18:05 UTC).
+# LKQ Heijunka (≤40/job) + Szekop TecDoc listy. Nie bulk tisícky.
+
+on:
+  schedule:
+    # Každé ~4 h (SK leto UTC+2): 08:05, 12:05, 16:05, 20:05
+    - cron: "5 6,10,14,18 * * *"
+  workflow_dispatch:
+    inputs:
+      waves:
+        description: "Počet LKQ vĺn (default 12)"
+        required: false
+        default: "12"
+      jobs:
+        description: "LKQ jobs / vlna (≤12)"
+        required: false
+        default: "10"
+      limit:
+        description: "SKU / job (≤50)"
+        required: false
+        default: "40"
+      szekop_every:
+        description: "Szekop batch každú N-tú LKQ vlnu"
+        required: false
+        default: "2"
+
+env:
+  # LKQ zapnuté 13.10.2026 (login fix ae8494c); "1" = vypnúť
+  SG_LKQ_DISABLED: "0"
+  # Len NOVÉ SKU: existujúce produkty (cena/sklad/stav) sa nemenia; crawl ide
+  # hlbšie (limit×15) a preskočí už importované → LKQ pridáva nové diely.
+  # Nové idú plnou cestou s publish gate (OE, kategória, cena, sklad, foto).
+  SG_SKIP_EXISTING: "1"
+
+jobs:
+  evening-strong:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+
+      - name: Restore import queue state
+        uses: actions/cache@v4
+        with:
+          path: |
+            bot/data/heijunka_vehicle_queue_state.json
+            bot/data/heijunka_szekop_queue_state.json
+            bot/data/wurth_cheap_progress.json
+          key: import-queue-state-${{ github.run_id }}
+          restore-keys: |
+            import-queue-state-
+            heijunka-state-
+
+      - name: Install deps
+        run: pip install -r bot/requirements.txt
+
+      - name: Supplier logins from HQ
+        working-directory: bot
+        env:
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+        run: python -m suppliers.hq_credentials lkq szekop wurth
+
+      - name: Evening strong import
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          LKQ_LOGIN_URL: ${{ secrets.LKQ_LOGIN_URL }}
+          SZEKOP_USER: ${{ secrets.SZEKOP_USER }}
+          SZEKOP_PASSWORD: ${{ secrets.SZEKOP_PASSWORD }}
+          SZEKOP_LOGIN_URL: ${{ secrets.SZEKOP_LOGIN_URL }}
+          WURTH_USER: ${{ secrets.WURTH_USER }}
+          WURTH_PASSWORD: ${{ secrets.WURTH_PASSWORD }}
+          WURTH_LOGIN_URL: ${{ secrets.WURTH_LOGIN_URL }}
+          AI_MODE: cheap
+          IMPORT_IN_STOCK: "1"
+          SG_DAYTIME_QUIET: force_run
+          SG_EVENING_WAVES: ${{ github.event.inputs.waves || '12' }}
+          SG_EVENING_JOBS: ${{ github.event.inputs.jobs || '10' }}
+          SG_EVENING_LIMIT: ${{ github.event.inputs.limit || '40' }}
+          SG_EVENING_SZEKOP_EVERY: ${{ github.event.inputs.szekop_every || '2' }}
+          SG_EVENING_SZEKOP_JOBS: "4"
+          SG_EVENING_SZEKOP_LIMIT: "40"
+          SG_EVENING_SLEEP: "0.3"
+          SG_SZEKOP_EXPAND: "1"
+        run: bash bot/run_evening_strong_import.sh --now
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evening-strong-reports
+          path: |
+            bot/reports/ops-heijunka-vehicle-*.md
+            bot/reports/ops-heijunka-szekop-*.md
+            bot/reports/ops-parts-import-ready-*.md
+            bot/reports/site-eval-*.md
+          if-no-files-found: ignore

@@ -1,0 +1,62 @@
+name: Supplier import (HQ)
+run-name: "Import ${{ inputs.supplier }} (${{ inputs.mode }}) #${{ inputs.req }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      supplier:
+        description: "lkq | wurth | szekop | pro-tec | jlm | metabond | ptak-mopar"
+        required: true
+      mode:
+        description: "full | prices"
+        required: false
+        default: "full"
+      limit:
+        description: "Max produktov (0 = všetko)"
+        required: false
+        default: "0"
+      req:
+        description: "ID požiadavky z HQ"
+        required: false
+        default: "manual"
+
+concurrency:
+  group: supplier-import-${{ inputs.supplier }}
+  cancel-in-progress: false
+
+env:
+  SG_LKQ_DISABLED: "0"
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - name: Restore import queue state
+        uses: actions/cache@v4
+        with:
+          path: |
+            bot/data/heijunka_vehicle_queue_state.json
+            bot/data/heijunka_szekop_queue_state.json
+            bot/data/wurth_cheap_progress.json
+          key: import-queue-state-${{ github.run_id }}
+          restore-keys: |
+            import-queue-state-
+            heijunka-state-
+      - name: Install deps
+        run: pip install -r bot/requirements.txt
+      - name: Import
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IMPORT_IN_STOCK: "1"
+        run: python bot/supplier_import.py --supplier "${{ inputs.supplier }}" --mode "${{ inputs.mode }}" --limit "${{ inputs.limit }}"

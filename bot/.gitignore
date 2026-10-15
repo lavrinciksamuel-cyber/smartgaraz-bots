@@ -1,0 +1,9 @@
+# Runtime Heijunka queue (local / cloud agent) — not source of truth
+data/heijunka_vehicle_queue_state.json
+data/heijunka_szekop_queue_state.json
+
+# IT outreach — majiteľské zoznamy / fronta (môžu obsahovať e-maily)
+it_outreach/data/prospects.json
+it_outreach/data/queue.json
+it_outreach/data/last_audit.json
+reports/shop-invoices/

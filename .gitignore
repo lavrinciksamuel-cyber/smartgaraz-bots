@@ -1,0 +1,16 @@
+# Secrets / env
+.env
+.env.*
+!.env*.example
+bot/.env
+
+# Runtime state (persisted via Actions cache / HQ — never commit)
+bot/data/heijunka_vehicle_queue_state.json
+bot/data/heijunka_szekop_queue_state.json
+bot/data/wurth_cheap_progress.json
+bot/reports/
+bot/**/__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+venv/
