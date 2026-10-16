@@ -1,0 +1,18 @@
+name: Full catalog loop (drafts)
+on:
+  schedule:
+    - cron: "15 */6 * * *"
+  workflow_dispatch:
+permissions:
+  actions: write
+jobs:
+  kick:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for s in lkq szekop wurth; do
+            n=$(gh run list -R "$GITHUB_REPOSITORY" -w supplier-import.yml --json displayTitle,status -q "[.[]|select((.status==\"in_progress\" or .status==\"queued\") and (.displayTitle|startswith(\"Import $s \")))]|length")
+            if [ "$n" = "0" ]; then gh workflow run supplier-import.yml -R "$GITHUB_REPOSITORY" -f supplier=$s -f mode=full -f limit=0 -f req=full-catalog-drafts; echo "started $s"; else echo "$s running"; fi
+          done
