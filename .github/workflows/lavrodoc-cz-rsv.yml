@@ -1,0 +1,48 @@
+name: lavrodoc-cz-rsv
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Direct CSV/zip URL (empty = discover)"
+        required: false
+        default: ""
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 359
+    steps:
+      - uses: actions/checkout@v4
+      - name: process
+        timeout-minutes: 335
+        run: |
+          mkdir -p out
+          U="${{ inputs.url }}"; [ -z "$U" ] && U=https://download.dataovozidlech.cz/vypiszregistru/vypisvozidel
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h .
+          # Download fully to disk with resume (streaming got cut at ~6.6M of ~19M rows)
+          LEN=$(curl -sSIL -A "Mozilla/5.0" "$U" | tr -d '\r' | awk 'tolower($1)=="content-length:"{v=$2} END{print v}')
+          echo "content-length=$LEN"
+          for i in $(seq 1 40); do
+            curl -sSL -C - --retry 5 --retry-delay 10 -A "Mozilla/5.0" "$U" -o src.bin || true
+            SZ=$(stat -c %s src.bin 2>/dev/null || echo 0); echo "try $i size=$SZ"
+            if [ -n "$LEN" ] && [ "$SZ" -ge "$LEN" ]; then break; fi
+            if [ -z "$LEN" ] && [ $i -ge 2 ]; then break; fi
+            sleep 15
+          done
+          SZ=$(stat -c %s src.bin); echo "final size=$SZ" | tee out/download.txt
+          [ -n "$LEN" ] && [ "$SZ" -lt "$LEN" ] && { echo "INCOMPLETE download"; exit 1; }
+          SIG=$(xxd -p -l 4 src.bin | tr -d '\n'); echo "sig=$SIG"; xxd -l 16 src.bin > out/magic.txt
+          if echo "$SIG" | grep -qi '^504b'; then bsdtar -xOf src.bin | python3 bot/lavrodoc_db/rsv_process.py
+          elif echo "$SIG" | grep -qi '^1f8b'; then gunzip -c src.bin | python3 bot/lavrodoc_db/rsv_process.py
+          else python3 bot/lavrodoc_db/rsv_process.py < src.bin; fi
+          ROWS=$(awk '{print $3}' out/progress.txt); echo "rows=$ROWS"
+          [ "${ROWS:-0}" -ge 15000000 ] || { echo "TOO FEW ROWS"; exit 1; }
+          ls -la out
+          cat out/progress.txt || true
+          python3 -c "import json;d=json.load(open('out/status_dist.json'));print('status',d['all'][:8] if isinstance(d.get('all'),list) else d)" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cz-rsv
+          path: out/
+          retention-days: 7
