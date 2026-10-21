@@ -50,17 +50,33 @@ def wc_count(params: dict):
         return None
 
 
-def run(cmd, env) -> tuple[int, str]:
+T_START = time.time()
+
+
+def run(cmd, env, timeout=None) -> tuple[int, str]:
+    """Spusti krok a priebežne streamuj log (vidno v Actions hneď, nie až na konci)."""
     print("[import] " + " ".join(cmd[1:]), flush=True)
+    left = max(120, int(timeout if timeout else BUDGET_S - (time.time() - T_START)))
+    end = time.time() + left
+    p = subprocess.Popen(cmd, cwd=str(ROOT.parent), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True, bufsize=1)
+    tail: list = []
+    rc = None
+    for line in p.stdout:
+        sys.stdout.write(line)
+        tail.append(line)
+        if len(tail) > 4000:
+            del tail[:1000]
+        if time.time() > end:
+            p.terminate()
+            rc = 124
+            break
     try:
-        p = subprocess.run(cmd, cwd=str(ROOT.parent), env=env, capture_output=True, text=True, timeout=BUDGET_S)
-        out = (p.stdout or "") + (p.stderr or "")
-        rc = p.returncode
-    except subprocess.TimeoutExpired as e:
-        out, rc = str(e.stdout or "") + str(e.stderr or ""), 124
-    sys.stdout.write(out[-20000:] + "\n")
+        p.wait(timeout=60)
+    except subprocess.TimeoutExpired:
+        p.kill()
     sys.stdout.flush()
-    return rc, out
+    return (rc if rc is not None else p.returncode), "".join(tail)
 
 
 def wc_max_id() -> int:
@@ -172,9 +188,16 @@ def main() -> int:
                        "--limit", str(limit), "--sleep", "0.1"], env)
         rounds = 1
     else:
-        if slug == "lkq":
-            cmd = [py, str(ROOT / "heijunka_vehicle_parts.py"), "--jobs", "10", "--limit", "50",
+        shard = os.environ.get("SG_SHARD", "").strip()
+        if slug in ("szekop", "wurth") and shard:
+            # Plný katalóg: paralelné shardy s kurzorom (catalog_shard.py), 1 kolo = celý rozpočet.
+            mins = max(10, int((BUDGET_S - (time.time() - t0)) / 60) - 15)
+            cmd = [py, str(ROOT / "catalog_shard.py"), "--supplier", slug, "--shard", shard, "--budget-min", str(mins)]
+        elif slug == "lkq":
+            cmd = [py, str(ROOT / "heijunka_vehicle_parts.py"), "--jobs", os.environ.get("SG_LKQ_JOBS", "4"), "--limit", "50",
                    "--sleep", "0.2", "--force-daytime", "--no-publish"]
+            if shard:
+                cmd += ["--shard", shard]
         elif slug == "szekop":
             cmd = [py, str(ROOT / "heijunka_szekop_parts.py"), "--jobs", "8", "--limit", "50", "--force-daytime", "--no-publish", "--expand-filters", "--reset-failed"]
         else:
@@ -182,7 +205,7 @@ def main() -> int:
                    "--cheap", "--force-daytime", "--skip-existing", "--sleep", "0.1"]
             if base_url:
                 cmd += ["--base-url", base_url]
-        repeat = slug in ("lkq", "szekop")
+        repeat = slug == "lkq" or (slug == "szekop" and not shard)
         idle = 0
         while True:
             rounds += 1
@@ -197,7 +220,7 @@ def main() -> int:
             idle = idle + 1 if got == 0 else 0
             if idle >= 2 or (limit and len(new_ids(max_id_before)) >= limit):
                 break
-            if time.time() - t0 > BUDGET_S - 1800:
+            if time.time() - t0 > BUDGET_S - 1200:
                 break
 
     pub = {}

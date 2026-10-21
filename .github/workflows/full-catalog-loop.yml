@@ -1,7 +1,6 @@
 name: Full catalog loop (drafts)
 on:
-  schedule:
-    - cron: "15 */6 * * *"
+  # cron vypnutý 21.10.2026 → nahradené catalog-matrix.yml
   workflow_dispatch:
 permissions:
   actions: write

@@ -957,7 +957,7 @@ def main() -> int:
         pending = [
             j
             for j in pending
-            if (sum(ord(c) for c in (j.get("make") or "")) % shard_n) == shard_i
+            if (__import__("zlib").crc32(_job_key(j).encode("utf-8")) % shard_n) == shard_i
         ]
         LOGGER.info("shard %s → pending=%d", args.shard, len(pending))
 

@@ -389,7 +389,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
         if not seeded:
             queue.append(f"{BASE}/")
 
-        max_pages = 220 if not limit else max(30, int(limit) * 3)
+        max_pages = int(os.environ.get("SG_WURTH_MAX_PAGES") or 220) if not limit else max(30, int(limit) * 3)
         pages = 0
         model_queue: List[str] = []
         seed_prefixes = {_cyid(u) for u in queue if _cyid(u)}

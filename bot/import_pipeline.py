@@ -59,6 +59,41 @@ from suppliers.generic import GenericSupplier  # noqa: E402
 LOGGER = logging.getLogger("import_pipeline")
 
 
+def _known_skus() -> set:
+    """Množina všetkých SKU vo WC, cache v /tmp na 30 min (šetrí HostCreators:
+    ~90 req/30 min namiesto 1 GET na každý crawlnutý produkt)."""
+    import json as _json
+    import requests as _rq
+    cache = "/tmp/sg_wc_skus.json"
+    try:
+        if time.time() - os.path.getmtime(cache) < 1800:
+            return set(_json.load(open(cache)))
+    except Exception:
+        pass
+    url = os.environ.get("WC_URL", "").rstrip("/")
+    auth = (os.environ.get("WC_CONSUMER_KEY", ""), os.environ.get("WC_CONSUMER_SECRET", ""))
+    out, page = set(), 1
+    while page < 2000:
+        try:
+            r = _rq.get(f"{url}/wp-json/wc/v3/products", auth=auth, timeout=90,
+                        params={"per_page": 100, "page": page, "status": "any", "_fields": "sku"})
+        except Exception:
+            return out
+        if not r.ok:
+            return out
+        rows = r.json()
+        out |= {str(x.get("sku") or "").strip() for x in rows if x.get("sku")}
+        if len(rows) < 100:
+            break
+        page += 1
+        time.sleep(0.2)
+    try:
+        _json.dump(sorted(out), open(cache, "w"))
+    except Exception:
+        pass
+    return out
+
+
 def import_products(
     products,
     sleep: float = 0.3,
@@ -116,6 +151,11 @@ def import_products(
                 "cheap_path": True,
             })
             continue
+        try:
+            from shop_guard import wait_if_slow
+            wait_if_slow()
+        except Exception:
+            pass
         t0 = time.monotonic()
         try:
             result = process_product_with_ai(
@@ -398,9 +438,13 @@ def main() -> None:
         cfg = Config()
         wc = WooCommerceClient(cfg)
         fresh = []
+        known = _known_skus()
         for p in products:
             raw = p.to_ai_dict() if hasattr(p, "to_ai_dict") else {}
             sku = str((raw.get("sku") if isinstance(raw, dict) else None) or getattr(p, "sku", "") or "").strip()
+            if sku and sku in known:
+                continue
+            # nie je v cache → živá kontrola (len kandidáti, nie celý crawl)
             if sku and wc.find_product_id_by_sku(sku):
                 continue
             fresh.append(p)

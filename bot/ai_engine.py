@@ -2844,6 +2844,7 @@ def process_product_with_ai(
     # Cheap: len dodávateľ / existujúca WC fotka — žiadny DDG.
     # Watermark LKQ/Szekop → zahodiť; proveniencia do `_sg_image_*` meta.
     image_url = None
+    deferred_image = None
     image_original_url = None
     try:
         force_image = bool(product_raw_data.get("force_image")) and not cheap
@@ -2907,6 +2908,10 @@ def process_product_with_ai(
                 report["warnings"].append("black_studio_whiten_failed")
         elif supplier_imgs and wc_local_good:
             LOGGER.info("🖼️  Skip re-upload — WC už má OK lokálnu fotku (#%s)", existing_wc.get("id"))
+        elif supplier_imgs and os.environ.get("SG_DEFER_IMAGES") == "1" and not product_raw_data.get("wc_product_id"):
+            # Rýchly koncept: fotku doplní neskôr enrich_images.py (1 worker, šetrne).
+            deferred_image = supplier_imgs[0]
+            LOGGER.info("🖼️  Fotka odložená (enrich neskôr): %s", deferred_image[:120])
         elif supplier_imgs:
             LOGGER.info("🖼️  Používam fotku z dodávateľa (nie DuckDuckGo): %s", supplier_imgs[0][:120])
             image_original_url = supplier_imgs[0]
@@ -2956,6 +2961,8 @@ def process_product_with_ai(
         {"key": "_delivery_text", "value": str(product_raw_data.get("delivery_text") or "")},
         {"key": "_supplier_stock", "value": str(product_raw_data.get("stock_qty") or "")},
     ]
+    if deferred_image:
+        meta_data.append({"key": "_sg_pending_image", "value": deferred_image})
     # Würth Art.-Nr. / proveniencia dodávateľa (C&D / audit)
     extra_raw = product_raw_data.get("raw_extra") if isinstance(product_raw_data.get("raw_extra"), dict) else {}
     if extra_raw.get("_sg_supplier"):
