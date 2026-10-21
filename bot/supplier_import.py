@@ -218,7 +218,11 @@ def main() -> int:
             if not repeat or rc != 0:
                 break
             idle = idle + 1 if got == 0 else 0
-            if idle >= 2 or (limit and len(new_ids(max_id_before)) >= limit):
+            # Shard: prvé kolá často len preskakujú už importované joby → nezastavuj
+            # sa na „0 nových“; koniec až po prejdení fronty alebo rozpočtu.
+            if shard and "fronta prejdená" in out:
+                break
+            if (idle >= (10**6 if shard else 2)) or (limit and len(new_ids(max_id_before)) >= limit):
                 break
             if time.time() - t0 > BUDGET_S - 1200:
                 break
