@@ -65,6 +65,7 @@ jobs:
           AI_MODE: cheap
           SG_SHARD: ${{ matrix.shard }}
           SG_DEFER_IMAGES: "1"
+          PYTHONUNBUFFERED: "1"
           SG_LKQ_JOBS: "4"
           SG_IMPORT_BUDGET_S: ${{ format('{0}', (github.event.inputs.budget_min || '290')) }}
         run: |
