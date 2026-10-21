@@ -1,7 +1,9 @@
 name: Enrich images (drafts)
 on:
-  schedule:
-    - cron: "10 * * * *"
+  # Fotky = fáza 2 importu (rozhodnutie 21.10.2026). Cron vypnutý, URL fotiek
+  # ostávajú v meta _sg_pending_image; zapnúť odkomentovaním:
+  # schedule:
+  #   - cron: "10 * * * *"
   workflow_dispatch:
 concurrency:
   group: enrich-images

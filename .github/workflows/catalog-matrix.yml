@@ -5,7 +5,8 @@ name: Catalog matrix (drafts, parallel)
 # shop_guard pribrzdí, ak HostCreators spomalí. Fotky doplní enrich-images.yml.
 on:
   schedule:
-    - cron: "40 */5 * * *"
+    # každých 30 min; per-shard concurrency → nový beh čaká, kým starý skončí (nič sa neruší)
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       budget_min:
@@ -23,17 +24,28 @@ jobs:
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      max-parallel: 8
+      max-parallel: 19
       matrix:
         include:
-          - { supplier: lkq, shard: "0/3" }
-          - { supplier: lkq, shard: "1/3" }
-          - { supplier: lkq, shard: "2/3" }
-          - { supplier: szekop, shard: "0/3" }
-          - { supplier: szekop, shard: "1/3" }
-          - { supplier: szekop, shard: "2/3" }
-          - { supplier: wurth, shard: "0/2" }
-          - { supplier: wurth, shard: "1/2" }
+          - { supplier: lkq, shard: "0/10" }
+          - { supplier: lkq, shard: "1/10" }
+          - { supplier: lkq, shard: "2/10" }
+          - { supplier: lkq, shard: "3/10" }
+          - { supplier: lkq, shard: "4/10" }
+          - { supplier: lkq, shard: "5/10" }
+          - { supplier: lkq, shard: "6/10" }
+          - { supplier: lkq, shard: "7/10" }
+          - { supplier: lkq, shard: "8/10" }
+          - { supplier: lkq, shard: "9/10" }
+          - { supplier: szekop, shard: "0/8" }
+          - { supplier: szekop, shard: "1/8" }
+          - { supplier: szekop, shard: "2/8" }
+          - { supplier: szekop, shard: "3/8" }
+          - { supplier: szekop, shard: "4/8" }
+          - { supplier: szekop, shard: "5/8" }
+          - { supplier: szekop, shard: "6/8" }
+          - { supplier: szekop, shard: "7/8" }
+          - { supplier: wurth, shard: "0/1" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -53,6 +65,7 @@ jobs:
           key: shard-${{ steps.sid.outputs.id }}-${{ github.run_id }}
           restore-keys: |
             shard-${{ steps.sid.outputs.id }}-
+            shard-${{ matrix.supplier }}-
       - name: Install deps
         run: pip install -r bot/requirements.txt
       - name: Import shard

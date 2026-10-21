@@ -272,7 +272,7 @@ def run_wurth(sh: Shard, deadline: float, skus: set) -> int:
     sup = get_supplier("wurth")
     if not sh.state.get("urls"):
         # Plný crawl (bez 400 stropu); zoznam URL sa uloží a delí shardom.
-        os.environ.setdefault("SG_WURTH_MAX_PAGES", "6000")
+        os.environ.setdefault("SG_WURTH_MAX_PAGES", "1500")  # ~2 s/str. ≈ 50 min
         urls = sup.discover_product_urls(None)  # vrátane B2B loginu (verejný katalóg dáva 0 URL)
         sh.state["urls"] = [u for u in urls if sh.mine(u)]
         LOGGER.info("Würth crawl: %d URL, shard %d/%d → %d", len(urls), sh.i, sh.n, len(sh.state["urls"]))

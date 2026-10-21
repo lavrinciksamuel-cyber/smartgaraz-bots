@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import re
+import time
 from typing import Dict, Iterable, List, Optional, Set
 from urllib.parse import urljoin, urlparse
 
@@ -174,10 +175,9 @@ def has_wurth_login_form(html: str) -> bool:
 
 
 def _wurth_http(delay: Optional[float] = None) -> HttpClient:
-    """HttpClient with Safari TLS fingerprint (Akamai bypass)."""
-    imp = (os.getenv("WURTH_IMPERSONATE") or WURTH_IMPERSONATE_CHAIN[0]).strip()
-    d = float(os.getenv("CRAWL_DELAY", "0.25")) if delay is None else delay
-    return HttpClient(delay=d, impersonate=imp)
+    """Bežný HTTP klient (bez falšovania TLS odtlačku), slušné tempo ~2 s/req."""
+    d = float(os.getenv("WURTH_CRAWL_DELAY", "2.0")) if delay is None else max(delay, 2.0)
+    return HttpClient(delay=d)
 
 
 class WurthSupplier(LoginMixin, GenericSupplier):
@@ -190,9 +190,8 @@ class WurthSupplier(LoginMixin, GenericSupplier):
         raw_login = (creds.get("login_url") or "").strip()
         if (not raw_login) or raw_login.rstrip("/").endswith("eshop.wurth.sk") or "/login" not in raw_login:
             creds["login_url"] = DEFAULT_LOGIN
-        # Akamai: need curl_cffi Safari TLS; replace plain requests client.
-        if http is None or not getattr(http, "impersonate", None):
-            http = _wurth_http(delay=getattr(http, "delay", None) if http is not None else None)
+        # Vlastný klient s pokojným tempom (bez impersonate / obchádzania ochrany).
+        http = _wurth_http(delay=getattr(http, "delay", None) if http is not None else None)
         super().__init__(base_url=self.base_url, http=http, credentials=creds, source_name="wurth")
         self._logged_in = False
         self._sku_url_cache: Dict[str, str] = {}
@@ -200,38 +199,20 @@ class WurthSupplier(LoginMixin, GenericSupplier):
     # ------------------------------------------------------------------ login
 
     def _get_login_page(self, login_url: str):
-        """GET login; on Akamai challenge rotate Safari TLS impersonations."""
-        chain = []
-        cur = getattr(self.http, "impersonate", None)
-        if cur:
-            chain.append(cur)
-        for imp in WURTH_IMPERSONATE_CHAIN:
-            if imp not in chain:
-                chain.append(imp)
-        last = None
-        for imp in chain:
-            if getattr(self.http, "impersonate", None) != imp or not getattr(self.http, "_cffi", False):
-                delay = getattr(self.http, "delay", 0.25)
-                self.http = HttpClient(delay=delay, impersonate=imp)
-                LOGGER.info("Würth: HTTP impersonate=%s (Akamai bypass)", imp)
+        """Jeden GET login stránky. Pri challenge/403 žiadne obchádzanie — len pauza a 1 opakovanie."""
+        page = None
+        for pause in (0, 300):
+            if pause:
+                LOGGER.warning("Würth: ochrana webu (challenge/403) — pauza %ss", pause)
+                time.sleep(pause)
             try:
                 page = self.http.get(login_url)
             except Exception:
-                LOGGER.debug("Würth: login GET zlyhal impersonate=%s", imp, exc_info=True)
+                LOGGER.debug("Würth: login GET zlyhal", exc_info=True)
                 continue
-            last = page
             if has_wurth_login_form(page.text) and not is_akamai_challenge(page.text):
                 return page
-            if is_akamai_challenge(page.text):
-                LOGGER.warning("Würth: challenge pri impersonate=%s — skúšam ďalší", imp)
-                continue
-            # Soft block / unexpected HTML
-            LOGGER.warning(
-                "Würth: login HTML bez formu (len=%d, impersonate=%s)",
-                len(page.text or ""),
-                imp,
-            )
-        return last
+        return page
 
     def ensure_login(self) -> bool:
         if getattr(self, "_logged_in", False):
@@ -271,10 +252,9 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             if form is None:
                 if is_akamai_challenge(page.text):
                     LOGGER.error(
-                        "Würth: Akamai Challenge Validation namiesto login formu na %s "
-                        "(impersonate=%s) — skús WURTH_IMPERSONATE=safari17_0 + curl_cffi",
+                        "Würth: web vrátil ochrannú stránku namiesto login formu na %s — "
+                        "skončím, skúsi sa ďalší beh",
                         login_url,
-                        getattr(self.http, "impersonate", None),
                     )
                 else:
                     LOGGER.error("Würth: login formulár nenájdený na %s", login_url)
@@ -405,6 +385,17 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             except Exception:
                 continue
             html = resp.text or ""
+            if resp.status_code in (403, 429) or is_akamai_challenge(html):
+                blocks = getattr(self, "_blocks", 0) + 1
+                self._blocks = blocks
+                if blocks > 3:
+                    LOGGER.warning("Würth: opakovaná ochrana webu — crawl končím (pokračuje ďalší beh)")
+                    break
+                LOGGER.warning("Würth: %s / challenge — pauza %ss", resp.status_code, 120 * blocks)
+                time.sleep(120 * blocks)
+                seen_pages.discard(page_url)
+                queue.insert(0, page_url)
+                continue
 
             for url in extract_sku_urls(html, page_url):
                 found.add(url)
