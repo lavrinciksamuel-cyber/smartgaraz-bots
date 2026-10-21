@@ -208,6 +208,25 @@ def szekop_leaves(sup, eng: Dict[str, str]) -> List[str]:
     return out
 
 
+def szekop_leaf_products(sup, leaf: str) -> List[str]:
+    """Len produkty z daného listu — BEZ fallbacku na crawl celého webu
+    (prázdny list, napr. olejový filter pre elektromobil, inak visel 25 min)."""
+    from suppliers.szekop import is_tecdoc_product_url
+    from bs4 import BeautifulSoup
+    try:
+        html = sup.http.get(leaf).text or ""
+    except Exception:
+        return []
+    out = []
+    for a in BeautifulSoup(html, "html.parser").find_all("a", href=True):
+        h = a["href"].split("#")[0].split("?")[0]
+        if h.startswith("/"):
+            h = SZ_BASE + h
+        if h.startswith(SZ_BASE) and is_tecdoc_product_url(h) and h not in out:
+            out.append(h)
+    return out
+
+
 def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
     from suppliers import get_supplier
     sup = get_supplier("szekop")
@@ -228,9 +247,8 @@ def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
             if leaf in leaf_done:
                 continue
             try:
-                s = get_supplier("szekop", category_url=leaf)
-                urls = s.discover_product_urls(limit=None)
-                got = import_urls(s, urls, skus, sh, deadline)
+                urls = szekop_leaf_products(sup, leaf)
+                got = import_urls(sup, urls, skus, sh, deadline) if urls else 0
                 made += got
                 LOGGER.info("leaf %s: url=%d nových=%d (spolu %d)", leaf.split("/?")[0][-60:], len(urls), got, made)
             except Exception as exc:
