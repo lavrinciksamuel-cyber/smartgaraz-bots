@@ -180,6 +180,7 @@ def main() -> int:
     py = sys.executable
     t0 = time.time()
     rc, out, rounds = 0, "", 0
+    shard = os.environ.get("SG_SHARD", "").strip()
     if a.mode == "prices":
         if not host:
             return result(False, "Pre tohto dodávateľa ešte nevieme aktualizovať ceny a sklad.")
@@ -215,7 +216,8 @@ def main() -> int:
                 break
             got = len(new_ids(max_id_before)) - before
             print(f"[import] kolo {rounds}: nových {got}", flush=True)
-            if not repeat or rc != 0:
+            # Shard: kolo, kde všetky joby zlyhali (rc=1, napr. LKQ nemá kategóriu), nie je koniec
+            if not repeat or (rc != 0 and not (shard and rc == 1)):
                 break
             idle = idle + 1 if got == 0 else 0
             # Shard: prvé kolá často len preskakujú už importované joby → nezastavuj
@@ -246,6 +248,8 @@ def main() -> int:
               "minutes": round((time.time() - t0) / 60, 1), "rounds": rounds, "mode": a.mode, "login": login_used, **pub}
     if slug == "lkq" and os.path.exists("/tmp/sg_lkq_login_failed"):
         return result(False, "Prihlásenie do LKQ počas behu zlyhalo – zvyšné úlohy som zastavil.", **counts)
+    if rc == 1 and shard:
+        rc = 0
     if rc != 0:
         bad = [l for l in out.splitlines() if l.strip() and ("ERROR" in l or "Error" in l or "Traceback" in l or "zlyhal" in l)]
         why = (bad[-1] if bad else (out.strip().splitlines() or ["neznáma chyba"])[-1])[-250:]
