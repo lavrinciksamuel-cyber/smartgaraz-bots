@@ -41,6 +41,10 @@ def _retry(fn: Callable[[], T], attempts: int = 4, label: str = "lkq") -> T:
             return fn()
         except Exception as exc:  # noqa: BLE001 — sieťové výpadky LKQ
             last = exc
+            # 4xx (404 neexistujúca vetva) sa opakovaním neopraví → hneď ďalej
+            code = getattr(getattr(exc, "response", None), "status_code", None)
+            if code is not None and 400 <= int(code) < 500 and int(code) != 429:
+                raise
             wait = 2 ** i
             print(f"# retry {label} {i+1}/{attempts} after {wait}s: {exc}", file=sys.stderr)
             time.sleep(wait)
@@ -246,7 +250,9 @@ def _find_category_deep(
     seeds = sorted(cat_links, key=lambda tl: _parent_priority(tl[0], tl[1]))
     queue: deque[Tuple[str, str, int]] = deque((t, l, 0) for t, l in seeds)
     seen: set[str] = set()
-    while queue:
+    budget = int(__import__("os").environ.get("SG_LKQ_BFS_MAX", "30"))
+    while queue and budget > 0:
+        budget -= 1
         _text, link, depth = queue.popleft()
         lid = _last_id(link)
         if not lid or lid in seen or depth >= max_depth:
