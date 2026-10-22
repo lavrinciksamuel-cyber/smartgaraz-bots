@@ -498,6 +498,16 @@ def is_supplier_in_stock(raw_data: Dict[str, Any]) -> bool:
     Pri známom `stock_qty` rozhoduje výhradne množstvo (0 = nie na sklade).
     `onbackorder` / `outofstock` = nie. Neznámy stav bez qty = nie (radšej skip).
     """
+    # LKQ: 0 ks v SR, ale platná dodacia lehota („bežne do 48h/96h/5 dní“) = Sklad v EÚ → importovať
+    if str(raw_data.get("source") or "").lower() == "lkq":
+        try:
+            from availability import classify_raw
+
+            _av = classify_raw(raw_data)
+            if _av and _av["avail"] == "eu":
+                return True
+        except Exception:  # noqa: BLE001
+            pass
     status = str(raw_data.get("stock_status") or "").lower().strip().replace("_", "")
     qty_raw = raw_data.get("stock_qty")
     qty: Optional[float]

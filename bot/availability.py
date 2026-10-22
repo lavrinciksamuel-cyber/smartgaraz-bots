@@ -191,6 +191,15 @@ def classify_existing(p: Dict[str, Any], m: Dict[str, Any]) -> Optional[Dict[str
         qty = _f(m.get("_supplier_stock"))
     text = str(m.get("_delivery_text") or "")
     if src == "lkq":
+        # Nedostupné, ktoré sme dali my (stock/qty sme pritom vynulovali) — drž, kým
+        # import nedonesie novší údaj od LKQ (_last_b2b_sync po poslednej klasifikácii).
+        fresher = str(m.get("_last_b2b_sync") or "")[:16] > str(m.get("_sg_avail_checked") or "")[:16]
+        if m.get("_sg_avail") == "na" and m.get("_sg_avail_oos") == "1" and not fresher:
+            return {"avail": "na", "src": str(m.get("_sg_avail_src") or "LKQ: nedostupné")}
+        # Oprava behu 22.10. (39826277965): nedostupné omylom → unknown s prázdnym _sg_avail_oos
+        if (m.get("_sg_avail") == "unknown" and "_sg_avail_oos" in m and m.get("_sg_avail_oos") == ""
+                and not fresher and qty in (None, 0)):
+            return _result("na", f"LKQ: 0 ks, {text or 'bez dodacej lehoty'}")
         if p.get("stock_status") == "outofstock" and qty in (None, 0) and m.get("_sg_avail_oos") != "1":
             return classify_lkq_item({"StorageStockAmount": 0, "Disponibility": {"Text": text}})
         return classify_lkq_item({"StorageStockAmount": qty, "Disponibility": {"Text": text}})
