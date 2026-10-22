@@ -216,6 +216,30 @@ def is_jlm_source(source: str = "", brand: str = "", name: str = "") -> bool:
     return "jlm" in blob or "jlmaditiva" in blob
 
 
+def is_wurth_source(source: str = "", brand: str = "", name: str = "") -> bool:
+    blob = f"{source} {brand} {name}".lower()
+    return "wurth" in blob or "würth" in blob
+
+
+def wurth_price_floor(net_cost: float) -> float:
+    """Würth: cena v B2B e-shope je NETTO (bez DPH). Lavro s.r.o. nie je platca DPH.
+
+    Pri objednávke do 100 € netto Würth účtuje poplatok 6,80 € (VOP čl. 2.6/5.12)
+    → minimálna predajná = (netto + 6,80) × 1,23 + MIN_MARGIN_EUR, zaokrúhlené na ,90.
+    (Košík Samuela: 11,90 + 6,80 + DPH 4,30 = 23,00 → floor 24,90.)
+    """
+    try:
+        net = float(net_cost)
+    except (TypeError, ValueError):
+        return 0.0
+    if net <= 0:
+        return 0.0
+    fee = _f("WURTH_ORDER_FEE", 6.80) if net < _f("WURTH_FREE_ORDER_NET", 100.0) else 0.0
+    vat = _f("WURTH_VAT_FACTOR", 1.23)
+    raw = (net + fee) * vat + _f("MIN_MARGIN_EUR", 1.50)
+    return round_psychological(raw, _f("PRICE_ENDING", 0.90))
+
+
 def protec_effective_unit_cost(unit_cost: float) -> float:
     """Ops helper: min. objednávka PRO-TEC (default 15 €).
 
@@ -317,6 +341,10 @@ def calculate_retail(
     # Ostatní dodávatelia: ak MOC hint > naša marža — nepodliezaj.
     if not protec and not metabond and not lkq and not jlm and hint > retail and hint > cost_base:
         retail = round(hint, 2)
+
+    # Würth: netto cena + poplatok 6,80 € (objednávka < 100 €) + DPH 23 % — nikdy pod to.
+    if supplier and is_wurth_source(source=supplier, brand=brand, name=name):
+        retail = max(retail, wurth_price_floor(float(cost)))
 
     profit = round(retail - cost_base - shipping, 2)
 

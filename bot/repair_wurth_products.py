@@ -56,6 +56,8 @@ LOSS: List[Dict[str, Any]] = []
 VERSION = "v2-2026-10-22"
 # Samuel 2026-10-22: tieto SKU ostávajú publikované, predaj po 1 ks (cena sa nemení).
 KEEP_PUBLISHED_SKUS = {"0500300002"}
+# Samuel 2026-10-22: 0500300002 predávame po 1 ks za 16,90 € — cenu nemeniť.
+KEEP_PRICE_SKUS = {"0500300002"}
 # Ručne určené kategórie (OE BMW 1711/1712 = chladiaci systém).
 CATEGORY_OVERRIDES = {"0500300002": 882}
 # Ručne overené zlé kategórie (2026-10-22): rýchlospojka prívesu v „Tesnenia motora“,
@@ -105,7 +107,7 @@ def meta_of(p: Dict[str, Any]) -> Dict[str, Any]:
 
 def fetch_wurth(limit: int = 0) -> List[Dict[str, Any]]:
     out, page = [], 1
-    fields = "id,name,sku,status,regular_price,description,short_description,categories,tags,brands,meta_data"
+    fields = "id,name,sku,status,regular_price,sale_price,description,short_description,categories,tags,brands,meta_data"
     while True:
         r = req("GET", "/products", params={"search": "Würth", "status": "any", "per_page": 50,
                                             "page": page, "_fields": fields})
@@ -184,12 +186,56 @@ class Refetcher:
             return None
 
 
+PRICE_LOG: List[Dict[str, Any]] = []
+
+
+def price_floor_update(p: Dict[str, Any], m: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Würth floor: (netto + 6,80 € poplatok) × 1,23 DPH + min. zisk, ,90. Len NAHOR.
+
+    Bez falošných akcií: sale_price sa nenastavuje (a ak by bola pod floor, zmaže sa),
+    takže „Najnižšia cena za 30 dní“ ostáva pravdivá.
+    """
+    from pricing import wurth_price_floor
+    sku = (p.get("sku") or "").strip()
+    if sku in KEEP_PRICE_SKUS:
+        return None
+    try:
+        cost = float(str(m.get("_cost_price") or "").replace(",", "."))
+        cur = float(p.get("regular_price") or 0)
+    except (TypeError, ValueError):
+        return None
+    if cost <= 0 or cur <= 0:
+        return None
+    sale = 0.0
+    try:
+        sale = float(p.get("sale_price") or 0)
+    except (TypeError, ValueError):
+        sale = 0.0
+    floor = wurth_price_floor(cost)
+    eff = sale if 0 < sale < cur else cur
+    if eff + 0.004 >= floor:
+        return None
+    new = max(floor, cur)
+    PRICE_LOG.append({"id": p["id"], "sku": sku, "before": eff, "after": new, "net_cost": cost,
+                      "status": p.get("status")})
+    upd: Dict[str, Any] = {"id": p["id"], "regular_price": f"{new:.2f}", "meta_data": [
+        {"key": "_sg_price_before_floor", "value": f"{eff:.2f}"},
+        {"key": "_sg_price_rule", "value": "wurth_floor: (netto + 6,80) × 1,23 + min. zisk"},
+    ]}
+    if sale:
+        upd["sale_price"] = ""
+    return upd
+
+
 def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool, cat_ids: Dict[str, int]) -> Optional[Dict[str, Any]]:
     m = meta_of(p)
     if m.get("_sg_wurth_repair") == VERSION and not force:
         # už opravené; znova len ak vieme dotiahnuť balenie z Würth PDP
         if not (ref.enabled and str(m.get("_sg_pack_verified") or "") != "1"):
-            return None
+            pu = price_floor_update(p, m)
+            if pu:
+                pu["_stats"] = {"repriced_floor": 1}
+            return pu
     name = html.unescape(p.get("name") or "")
     sku = (p.get("sku") or "").strip()
     ean = str(m.get("_ean") or "")
@@ -321,6 +367,13 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
                 LOSS.append({"id": p["id"], "sku": sku, "name": name, "retail": retail, "pack_cost": cost, "pack": q})
     except (TypeError, ValueError):
         pass
+    pu = price_floor_update(p, m)
+    if pu and "regular_price" not in upd:
+        upd["regular_price"] = pu["regular_price"]
+        if "sale_price" in pu:
+            upd["sale_price"] = ""
+        meta += pu["meta_data"]
+        stats["repriced_floor"] = 1
     upd["meta_data"] = meta
     upd["_stats"] = stats
     return upd
@@ -391,6 +444,13 @@ def main() -> int:
         if len(pending) >= a.batch:
             flush()
     flush()
+    if PRICE_LOG:
+        import statistics
+        incs = [round(x["after"] - x["before"], 2) for x in PRICE_LOG]
+        print("SG_PRICE_SUMMARY " + json.dumps({"repriced": len(PRICE_LOG), "min": min(incs),
+              "median": statistics.median(incs), "max": max(incs)}, ensure_ascii=False), flush=True)
+        for x in PRICE_LOG[:5]:
+            print("SG_PRICE " + json.dumps(x, ensure_ascii=False), flush=True)
     for x in LOSS:
         print("SG_LOSS " + json.dumps(x, ensure_ascii=False), flush=True)
     print("SG_RESULT " + json.dumps({"ok": True, "dry_run": a.dry_run, **totals}, ensure_ascii=False), flush=True)
