@@ -56,6 +56,31 @@ def ideo_category(name: str) -> Optional[List[str]]:
     return None
 
 
+# Podkategórie ideo, ktoré sú zároveň „rodinou“ s variantmi rôznych značiek → nie sú súčasťou názvu.
+GENERIC_FAMILY = re.compile(
+    r"^(?:čistiaca|aplikačná) chémia$|^stierky\b|^utierky\b|^aplikátory$|^rezače\b|^náhradné čepele$|^nožnice\b|"
+    r"^pravítka$|^rozprašovače$|^rukavice$|^iné pomôcky$|^filcové náhrady$|^škrabky$|^odstraňovanie fólií$|"
+    r"^olfa príslušenstvo$|^rezacia podložka", re.I)
+
+
+def clean_name(family: str, vname: str, spec: str) -> Tuple[str, str]:
+    """(názov, značka). Generická rodina → „Popis (skrátený) Variant“, inak „Rodina Variant Balenie“."""
+    spec = re.sub(r"\s+", " ", spec or "").strip()
+    if GENERIC_FAMILY.search((family or "").strip()):
+        head = re.split(r"\s[–-]\s|[.;,(]", spec, maxsplit=1)[0].strip()
+        if len(head) > 70:
+            head = head[:70].rsplit(" ", 1)[0]
+        head = head[:1].upper() + head[1:] if head else ""
+        name = " ".join(x for x in (head, vname) if x)
+        if vname and head and vname.lower() in head.lower():
+            name = head
+        brand = re.split(r"[-\s]", vname or "", maxsplit=1)[0]
+        brand = brand if len(brand) >= 3 and brand[:1].isupper() and brand.isalpha() else ""
+        return name.strip() or vname or family, brand
+    extra = vname if vname and vname.lower() not in family.lower() else ""
+    return " ".join(x for x in (family, extra, spec) if x).strip(), (family.split()[0] if family else "")
+
+
 def _num(s: str) -> Optional[float]:
     m = re.search(r"(\d[\d\s]*[.,]\d{2})", s or "")
     return float(m.group(1).replace(" ", "").replace("\u00a0", "").replace(",", ".")) if m else None
@@ -146,7 +171,6 @@ class IdeoSupplier(BaseSupplier):
         soup = BeautifulSoup(h, "html.parser")
         h1 = soup.find("h1", attrs={"itemprop": "name"}) or soup.find("h1")
         family = h1.get_text(" ", strip=True) if h1 else ""
-        brand = family.split()[0] if family else ""
         desc = ""
         if h1:
             nxt = h1.find_next_sibling("p") or h1.find_next("p")
@@ -175,7 +199,7 @@ class IdeoSupplier(BaseSupplier):
             img_url = urljoin(BASE, img.get("data-original") or img.get("src") or "") if img else ""
             if not art or gross is None:
                 continue
-            name = " ".join(x for x in (family, vname if vname.lower() not in family.lower() else "", spec) if x).strip()
+            name, brand = clean_name(family, vname, spec)
             instock = status.lower().startswith("skladom")
             cat = ideo_category(f"{family} {vname} {spec}")
             out.append(ProductRaw(
