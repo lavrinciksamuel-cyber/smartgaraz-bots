@@ -37,6 +37,7 @@ L1 = "Autokozmetika & Detail"
 # Poradie = priorita. Bez zhody → žiadna kategória (žiadny fallback).
 RULES: Tuple[Tuple[str, str], ...] = (
     (r"microfib|mikrovl|utierk|handri|cloth|towel", "Mikrovlákno & utierky"),
+    (r"avery[- ]?clean|avery\b.*(?:[čc]isti[čc]|cleaner)|wrap care.*clean", "Chémia pre fólie & PPF"),
     (r"riwax|vosk|wax|sealant(?!.*edge)|clay|lešt|polish|compound|pad\b", "Leštenie & vosky"),
     (r"primer|adhesion promoter|aplika[čc]n[ýy] gel|ppf.*gel|edge seal|seal-it|3950|ipa sealant|"
      r"isoprop|alkohol|adhesive remover|odstra[ňn]ova|vhb cleaner|industry cleaner|wrap care", "Chémia pre fólie & PPF"),
