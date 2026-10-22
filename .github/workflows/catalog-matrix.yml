@@ -25,7 +25,7 @@ jobs:
       - id: m
         env:
           IDX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
-          CNT: ${{ vars.SG_ACCOUNT_COUNT || '1' }}
+          CNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
           LKQ_N: ${{ vars.SG_LKQ_SHARDS || '20' }}
           SZ_N: ${{ vars.SG_SZEKOP_SHARDS || '16' }}
         run: |

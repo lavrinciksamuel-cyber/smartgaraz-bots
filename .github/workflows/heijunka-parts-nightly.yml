@@ -21,7 +21,7 @@ on:
 
 env:
   SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
-  SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '1' }}
+  SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
   # LKQ zapnuté 13.10.2026 (login fix ae8494c); "1" = vypnúť
   SG_LKQ_DISABLED: "0"
 
