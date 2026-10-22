@@ -185,6 +185,7 @@ class Refetcher:
                 except Exception:  # noqa: BLE001
                     pass
                 os.environ.setdefault("WURTH_B2B", "1")
+                os.environ.setdefault("WURTH_CHALLENGE_PAUSE", "0")
                 from suppliers import get_supplier
                 self.sup = get_supplier("wurth")
             raw = self.sup.parse_product(url)
@@ -199,7 +200,11 @@ class Refetcher:
                     REFETCH["pack"] += 1
                 if ex.get("origin"):
                     REFETCH["origin_" + str(ex["origin"])] = REFETCH.get("origin_" + str(ex["origin"]), 0) + 1
-            if self.fails >= 3:
+            if raw is None and getattr(self.sup, "_blocked", False) and self.sup.probe_blocked():
+                LOG.warning("Würth refetch: web vracia challenge/403 — refetch hneď vypínam")
+                REFETCH["blocked"] = 1
+                self.enabled = False
+            elif self.fails >= 3:
                 LOG.warning("Würth refetch: 3× bez dát (ochrana webu?) — refetch vypínam")
                 self.enabled = False
             return raw

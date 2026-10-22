@@ -116,6 +116,52 @@ def new_ids(max_id_before: int) -> list:
     return ids
 
 
+KNOWN_SOURCES = {"lkq", "wurth", "szekop", "pro-tec", "jlm", "metabond", "ideo"}
+
+
+def new_by_source(max_id_before: int) -> dict:
+    """Nové produkty v tomto behu podľa _supplier_source (matrix beží paralelne → celkový
+    počet nových ID zahŕňa aj iných dodávateľov)."""
+    import requests
+    url = os.environ.get("WC_URL", "").rstrip("/")
+    out, page = {}, 1
+    while page < 200:
+        r = None
+        for wait in (0, 10, 30):
+            time.sleep(wait)
+            try:
+                r = requests.get(f"{url}/wp-json/wc/v3/products", params={"per_page": 100, "page": page, "status": "any", "orderby": "id", "order": "desc", "_fields": "id,meta_data"},
+                                 auth=(os.environ.get("WC_CONSUMER_KEY", ""), os.environ.get("WC_CONSUMER_SECRET", "")), timeout=120)
+                if r.ok:
+                    break
+            except Exception:
+                r = None
+        if r is None or not r.ok:
+            return out
+        batch = r.json()
+        for p in batch:
+            if int(p["id"]) <= max_id_before:
+                continue
+            src = next((str(m.get("value") or "") for m in p.get("meta_data") or [] if m.get("key") == "_supplier_source"), "") or "?"
+            out[src] = out.get(src, 0) + 1
+        if not batch or min(int(p["id"]) for p in batch) <= max_id_before:
+            return out
+        page += 1
+    return out
+
+
+def own_new(by_src: dict, code: str) -> int:
+    if code == "generic":
+        return sum(v for k, v in by_src.items() if k not in KNOWN_SOURCES)
+    return int(by_src.get(code, 0))
+
+
+def wurth_blocked_result(**kw) -> int:
+    return result(False, "Würth blokuje automatický prístup (ochrana webu challenge/403) – "
+                         "shard som hneď ukončil, nič sa neimportovalo. Neobchádzame to; skúsi sa ďalší beh.",
+                  blocked=True, **kw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--supplier", required=True)
@@ -132,6 +178,10 @@ def main() -> int:
     prof = supplier_profile(slug)
     user, pwd = supplier_login(slug)
     pre = ENV_PREFIX[slug]
+    if slug == "wurth":
+        # Pri ochrane webu nečakaj 5 min/pokus — drží to 1 z 20 runner slotov.
+        os.environ.setdefault("WURTH_CHALLENGE_PAUSE", "0")
+        os.environ.setdefault("SG_WURTH_FAST_FAIL", "1")
     if user and pwd:
         os.environ[f"{pre}_USER"], os.environ[f"{pre}_PASSWORD"] = user, pwd
         if slug == "wurth":
@@ -163,6 +213,9 @@ def main() -> int:
                 # Würth: eshop často vráti anti-bot Challenge Validation namiesto login formu.
                 # Credentials v HQ sú OK — pokračuj public katalógom do konceptov (B2B ceny neskôr).
                 if slug == "wurth":
+                    if getattr(sup, "_blocked", False) and sup.probe_blocked():
+                        print("[import] wurth: login aj verejný katalóg vracajú challenge/403 — koniec bez čakania", flush=True)
+                        return wurth_blocked_result(new=0, login=False)
                     print("[import] wurth: login form/challenge zlyhal — pokračujem public katalógom do konceptov", flush=True)
                     os.environ.pop("WURTH_B2B", None)
                     login_used = False
@@ -244,20 +297,26 @@ def main() -> int:
                 rej = {}
             pub = {"published": int(m.group(2)), "held": sum(rej.values()) if rej else 0, "held_reasons": rej}
 
-    created = len(new_ids(max_id_before))
-    counts = {"new": created, "updated": 0,
+    by_src = new_by_source(max_id_before) if a.mode == "full" else {}
+    created = own_new(by_src, code) if by_src else 0
+    counts = {"new": created, "new_all_suppliers": sum(by_src.values()), "new_by_source": by_src, "updated": 0,
               "minutes": round((time.time() - t0) / 60, 1), "rounds": rounds, "mode": a.mode, "login": login_used, **pub}
     if slug == "lkq" and os.path.exists("/tmp/sg_lkq_login_failed"):
         return result(False, "Prihlásenie do LKQ počas behu zlyhalo – zvyšné úlohy som zastavil.", **counts)
     if rc == 1 and shard:
         rc = 0
+    if slug == "wurth" and a.mode == "full" and created == 0:
+        blocked = ("ochrana webu" in out or "challenge" in out.lower()) and (
+            "discover: 0 URL" in out or '"parsed": 0' in out or "crawl končím" in out)
+        if blocked:
+            return wurth_blocked_result(**counts)
     if rc != 0:
         bad = [l for l in out.splitlines() if l.strip() and ("ERROR" in l or "Error" in l or "Traceback" in l or "zlyhal" in l)]
         why = (bad[-1] if bad else (out.strip().splitlines() or ["neznáma chyba"])[-1])[-250:]
         if rc == 124:
             why = "vypršal čas behu (časť sa stihla)"
         return result(False, f"Import skončil chybou: {why}", **counts)
-    return result(True, f"Hotovo: {counts['new'] or 0} nových produktov" + (f", zverejnených {pub['published']}, na kontrolu {pub['held']}." if pub else "."), **counts)
+    return result(True, f"Hotovo ({slug}): {counts['new'] or 0} nových produktov" + (f", zverejnených {pub['published']}, na kontrolu {pub['held']}." if pub else "."), **counts)
 
 
 if __name__ == "__main__":

@@ -208,6 +208,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
         http = _wurth_http(delay=getattr(http, "delay", None) if http is not None else None)
         super().__init__(base_url=self.base_url, http=http, credentials=creds, source_name="wurth")
         self._logged_in = False
+        self._blocked = False
         self._sku_url_cache: Dict[str, str] = {}
 
     # ------------------------------------------------------------------ login
@@ -215,7 +216,10 @@ class WurthSupplier(LoginMixin, GenericSupplier):
     def _get_login_page(self, login_url: str):
         """Jeden GET login stránky. Pri challenge/403 žiadne obchádzanie — len pauza a 1 opakovanie."""
         page = None
-        for pause in (0, 300):
+        # WURTH_CHALLENGE_PAUSE=0 → pri ochrane webu žiadne čakanie ani opakovanie (rýchly skip).
+        retry = int(os.getenv("WURTH_CHALLENGE_PAUSE", "300") or 0)
+        self._blocked = False
+        for pause in ((0, retry) if retry > 0 else (0,)):
             if pause:
                 LOGGER.warning("Würth: ochrana webu (challenge/403) — pauza %ss", pause)
                 time.sleep(pause)
@@ -226,7 +230,19 @@ class WurthSupplier(LoginMixin, GenericSupplier):
                 continue
             if has_wurth_login_form(page.text) and not is_akamai_challenge(page.text):
                 return page
+        if page is not None and (page.status_code in (403, 429) or is_akamai_challenge(page.text)):
+            self._blocked = True
         return page
+
+    def probe_blocked(self) -> bool:
+        """Jeden bežný GET verejnej stránky (bez obchádzania). True = web vracia challenge/403."""
+        try:
+            r = self.http.get(f"{BASE}/")
+        except Exception:
+            return False
+        blocked = r.status_code in (403, 429) or is_akamai_challenge(r.text or "")
+        self._blocked = blocked
+        return blocked
 
     def ensure_login(self) -> bool:
         if getattr(self, "_logged_in", False):
@@ -402,6 +418,10 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             if resp.status_code in (403, 429) or is_akamai_challenge(html):
                 blocks = getattr(self, "_blocks", 0) + 1
                 self._blocks = blocks
+                if os.getenv("SG_WURTH_FAST_FAIL") == "1" and not getattr(self, "_ok_pages", 0):
+                    self._blocked = True
+                    LOGGER.warning("Würth: ochrana webu hneď na začiatku — crawl končím bez čakania (SG_WURTH_FAST_FAIL)")
+                    break
                 if blocks > 3:
                     LOGGER.warning("Würth: opakovaná ochrana webu — crawl končím (pokračuje ďalší beh)")
                     break
@@ -411,6 +431,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
                 queue.insert(0, page_url)
                 continue
 
+            self._ok_pages = getattr(self, "_ok_pages", 0) + 1
             for url in extract_sku_urls(html, page_url):
                 found.add(url)
                 if limit and len(found) >= limit:
