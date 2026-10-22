@@ -7,7 +7,7 @@ Licencia / Jidoka: ``bot/data/CATALOG_LICENSING.md`` § Würth.
 DEFAULT = VEREJNÝ režim (bez loginu):
   - crawl anonymného HTML katalógu (.sku linky) — len discovery SKU
   - B2B cena/sklad: zapni `WURTH_B2B=1` + `WURTH_USER` / `WURTH_PASSWORD`
-  - Akamai: HttpClient(impersonate=safari17_0) cez curl_cffi (inak Challenge Validation)
+  - Akamai: pri Challenge Validation bot skončí (žiadne obchádzanie ochrany)
   - Fotky z witglobal CDN: default OFF; zapni len `WURTH_MEDIA_OK=1`
     (písomný/B2B súhlas na rehost Würth médií)
 
@@ -165,13 +165,7 @@ def _b2b_enabled() -> bool:
     return os.getenv("WURTH_B2B", "").strip().lower() in ("1", "true", "yes", "on")
 
 
-# Akamai Bot Manager: plain requests / Chrome TLS → "Challenge Validation" (no loginForm).
-# Safari TLS via curl_cffi bypasses it (verified 2026-10-15). Chrome impersonate still gets soft CPT.
-WURTH_IMPERSONATE_CHAIN = (
-    "safari17_0",
-    "safari15_5",
-    "safari15_3",
-)
+# Akamai Bot Manager: pri challenge stránke bot končí — žiadne obchádzanie.
 
 
 def is_akamai_challenge(html: str) -> bool:
@@ -204,7 +198,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
         raw_login = (creds.get("login_url") or "").strip()
         if (not raw_login) or raw_login.rstrip("/").endswith("eshop.wurth.sk") or "/login" not in raw_login:
             creds["login_url"] = DEFAULT_LOGIN
-        # Vlastný klient s pokojným tempom (bez impersonate / obchádzania ochrany).
+        # Vlastný klient s pokojným tempom (bez obchádzania ochrany).
         http = _wurth_http(delay=getattr(http, "delay", None) if http is not None else None)
         super().__init__(base_url=self.base_url, http=http, credentials=creds, source_name="wurth")
         self._logged_in = False
@@ -336,7 +330,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
                 and "loginwithusernameform.password" not in body
                 and "/login" not in final
             )
-            # cookie WU_AUTHENTICATED je spoľahlivý signál (requests + curl_cffi jars)
+            # cookie WU_AUTHENTICATED je spoľahlivý signál (requests jar)
             cookies = session_cookie_names(self.http.session)
             if "WU_AUTHENTICATED" in cookies or any(
                 "AuthenticationStateToken" in n for n in cookies

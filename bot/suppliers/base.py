@@ -158,7 +158,7 @@ class OfferSnapshot:
 
 
 def session_cookie_names(session) -> set:
-    """Cookie names from requests or curl_cffi jar (curl_cffi yields name strings)."""
+    """Cookie names from a requests cookie jar."""
     names: set = set()
     jar = getattr(session, "cookies", None)
     if jar is None:
@@ -177,48 +177,22 @@ def session_cookie_names(session) -> set:
 
 
 class HttpClient:
-    """HTTP session. ``impersonate`` (e.g. safari17_0) uses curl_cffi TLS fingerprint —
-    needed for Akamai Bot Manager on eshop.wurth.sk (plain requests → Challenge Validation).
-    """
+    """Bežná HTTP session (requests) so slušným tempom. Žiadne falšovanie odtlačku."""
 
-    def __init__(
-        self,
-        timeout: int = 45,
-        delay: float = 0.4,
-        verify: bool = False,
-        impersonate: Optional[str] = None,
-    ):
+    def __init__(self, timeout: int = 45, delay: float = 0.4, verify: bool = False):
         # 45s — LKQ Catalog pri záťaži často prekročí 20s read timeout.
         self.timeout = timeout
         self.delay = delay
         self.verify = verify
-        self.impersonate = (impersonate or "").strip() or None
-        self._cffi = False
-        if self.impersonate:
-            try:
-                from curl_cffi import requests as cr  # type: ignore
-
-                self.session = cr.Session(impersonate=self.impersonate)
-                self._cffi = True
-                # curl_cffi sets a matching UA; only add language.
-                self.session.headers.update({"Accept-Language": DEFAULT_HEADERS["Accept-Language"]})
-            except Exception:
-                self.session = requests.Session()
-                self.session.headers.update(DEFAULT_HEADERS)
-                self.impersonate = None
-        else:
-            self.session = requests.Session()
-            self.session.headers.update(DEFAULT_HEADERS)
+        self.session = requests.Session()
+        self.session.headers.update(DEFAULT_HEADERS)
 
     def get(self, url: str, **kwargs) -> requests.Response:
         # Sleep AŽ po requeste (min. spacing), nie pred — menej idle pri rýchlom hoste.
         # Jidoka: žiadny scrape zakázaných konkurenčných / TecAlliance katalógov.
         assert_allowed_catalog_url(url, context="HttpClient.get")
         kwargs.setdefault("timeout", self.timeout)
-        if not self._cffi:
-            kwargs.setdefault("verify", self.verify)
-        elif "verify" in kwargs:
-            kwargs.pop("verify", None)
+        kwargs.setdefault("verify", self.verify)
         t0 = time.monotonic()
         resp = self.session.get(url, **kwargs)
         resp.raise_for_status()
@@ -230,10 +204,7 @@ class HttpClient:
     def post(self, url: str, **kwargs) -> requests.Response:
         assert_allowed_catalog_url(url, context="HttpClient.post")
         kwargs.setdefault("timeout", self.timeout)
-        if not self._cffi:
-            kwargs.setdefault("verify", self.verify)
-        elif "verify" in kwargs:
-            kwargs.pop("verify", None)
+        kwargs.setdefault("verify", self.verify)
         t0 = time.monotonic()
         resp = self.session.post(url, **kwargs)
         resp.raise_for_status()
