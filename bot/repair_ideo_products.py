@@ -36,7 +36,17 @@ def main() -> int:
     sup = get_supplier("ideo")
     if not sup.ensure_login():
         print("SG_RESULT " + json.dumps({"ok": False, "msg": "ideo login zlyhal"})); return 1
-    skus = ideo_skus()
+    skus = set(ideo_skus())
+    # HQ mirror môže zaostávať → doplň IDEO- SKU priamo z WC (search).
+    for page in range(1, 20):
+        wait_if_slow()
+        r = requests.get(f"{wc_url}/wp-json/wc/v3/products", auth=auth, timeout=120,
+                         params={"search": "IDEO-", "status": "any", "per_page": 100, "page": page, "_fields": "sku"})
+        rows = r.json() if r.ok else []
+        skus |= {str(x.get("sku") or "") for x in rows if str(x.get("sku") or "").startswith("IDEO-")}
+        if len(rows) < 100:
+            break
+    skus = sorted(skus)
     LOG.info("ideo SKU v HQ: %d", len(skus))
     stats = {"total": len(skus), "renamed": 0, "recategorized": 0, "no_category": 0, "skipped_published": 0, "not_found": 0, "failed": 0}
     examples, no_cat = [], []
