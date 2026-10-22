@@ -634,7 +634,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             if ogd and ogd.get("content"):
                 desc = ogd["content"]
         pack_verified = bool(pack_qty) and pack_price is not None
-        name = pack_title(name, pack_qty) if pack_verified else name
+        # Názov nemeníme — predajný model (kus vs. balenie) rozhodne Samuel; balenie ide do meta.
         clean = build_clean_html(
             name, clean_description_lines(desc, name), sku=sku, ean=ean,
             pack_qty=pack_qty if pack_verified else None, oe_numbers=oe_numbers,

@@ -155,7 +155,7 @@ def build_clean_html(
         parts.append("<ul>" + "".join(f"<li>{esc(b)}</li>" for b in bullets) + "</ul>")
     facts = []
     if pack_qty and pack_qty > 1:
-        facts.append(f"<li><strong>Balenie:</strong> {pack_qty} ks (cena je za celé balenie)</li>")
+        facts.append(f"<li><strong>Balenie výrobcu:</strong> {pack_qty} ks</li>")
     elif pack_qty == 1:
         facts.append("<li><strong>Balenie:</strong> 1 ks</li>")
     if sku:
@@ -171,13 +171,13 @@ def build_clean_html(
         )
     first = intro[0] if intro else (
         f"{name} – " + ", ".join(b.rstrip(".").lower() if i else b.rstrip(".") for i, b in enumerate(bullets[:3])) + "."
-        if bullets else name
+        if bullets else (f"{name} – originálne čísla dielu (OE): {', '.join(oe_numbers[:4])}." if oe_numbers else name)
     )
     if len(first) > 260:
         first = first[:257].rsplit(" ", 1)[0] + "…"
     short_bits = [first]
     if pack_qty and pack_qty > 1 and "balenie" not in short_bits[0].lower():
-        short_bits.append(f"Balenie {pack_qty} ks – cena je za celé balenie.")
+        short_bits.append(f"Balenie výrobcu {pack_qty} ks.")
     short = " ".join(short_bits)
     if len(short) > 420:
         short = short[:417].rsplit(" ", 1)[0] + "…"

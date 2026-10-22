@@ -52,7 +52,16 @@ from suppliers.wurth_clean import (  # noqa: E402
 )
 
 LOG = logging.getLogger("repair_wurth")
-VERSION = "v1-2026-10-22"
+LOSS: List[Dict[str, Any]] = []
+VERSION = "v2-2026-10-22"
+# Samuel 2026-10-22: tieto SKU ostávajú publikované, predaj po 1 ks (cena sa nemení).
+KEEP_PUBLISHED_SKUS = {"0500300002"}
+# Ručne určené kategórie (OE BMW 1711/1712 = chladiaci systém).
+CATEGORY_OVERRIDES = {"0500300002": 882}
+# Ručne overené zlé kategórie (2026-10-22): rýchlospojka prívesu v „Tesnenia motora“,
+# čistiaci prostriedok v „Tesnenia & Lepidlá“, montážna pasta v „Prevodové oleje“.
+# Automatický odhad je len hlásenie (_sg_cat_review=1) — nehádame, nesťahujeme.
+WRONG_CATEGORY_SKUS = {"088532", "5861900006", "0893850"}  # Náhradné diely › Chladenie & kúrenie
 JUNK_TAGS = {"autodiely", "produkt", "smartgaraz", "smartgaráž", "würth", "wurth", "smartgaraz.sk"}
 # „Autodiel“ kategórie — Würth (dielenský sortiment) sem patrí len pri jasnej zhode v názve.
 VEHICLE_PART_CATS = (
@@ -175,7 +184,7 @@ class Refetcher:
             return None
 
 
-def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool) -> Optional[Dict[str, Any]]:
+def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool, cat_ids: Dict[str, int]) -> Optional[Dict[str, Any]]:
     m = meta_of(p)
     if m.get("_sg_wurth_repair") == VERSION and not force:
         # už opravené; znova len ak vieme dotiahnuť balenie z Würth PDP
@@ -199,19 +208,19 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
     verified = bool(pack)
     origin = str(extra.get("origin") or "")
 
-    # 1) publish → draft
-    if p.get("status") == "publish" and not (verified and origin):
-        upd["status"] = "draft"
-        meta += [{"key": "_sg_prev_status", "value": "publish"},
-                 {"key": "_sg_hold_reason", "value": "Würth: overiť balenie (ks) a pôvod SK/DE pred predajom"}]
-        stats["unpublished"] = 1
+    # 1) v1 omylom stiahol publikované kvôli baleniu → vráť (Samuel: kvôli baleniu nesťahovať)
+    if (p.get("status") == "draft" and m.get("_sg_prev_status") == "publish"
+            and "balenie" in str(m.get("_sg_hold_reason") or "")):
+        upd["status"] = "publish"
+        meta += [{"key": "_sg_prev_status", "value": ""}, {"key": "_sg_hold_reason", "value": ""}]
+        stats["republished"] = 1
 
     # 2) popis + OE
     oe = parse_oe_numbers(p.get("description") or "") or list(extra.get("oe_numbers") or [])
     src_desc = (raw.description if raw and raw.description else p.get("description") or "")
     lines = clean_description_lines(src_desc, name)
-    new_name = pack_title(name, pack) if verified else name
-    body = build_clean_html(new_name, lines, sku=sku, ean=ean, pack_qty=pack if verified else None, oe_numbers=oe)
+    new_name = name  # predajný model (kus vs balenie) rozhodne Samuel — názov nemeníme
+    body = build_clean_html(new_name, lines, sku=sku, ean=ean, pack_qty=None, oe_numbers=oe)
     upd["description"] = body["description"]
     upd["short_description"] = body["short_description"]
     if new_name != name:
@@ -237,13 +246,35 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
         upd["brands"] = [{"id": brand_id}]
         stats["brand_fixed"] = 1
 
+    if sku in KEEP_PUBLISHED_SKUS:
+        upd["status"] = "publish"
+        meta += [{"key": "_sg_prev_status", "value": ""}, {"key": "_sg_hold_reason", "value": ""},
+                 {"key": "_sg_cat_review", "value": ""}]
+        stats.pop("republished", None)
+        if p.get("status") != "publish":
+            stats["republished"] = 1
+
     # 4) kategória
-    if category_verdict(p) == "clear":
+    ov = CATEGORY_OVERRIDES.get(sku)
+    if ov:
+        want = [{"id": ov}]
+        if [c.get("id") for c in p.get("categories") or []] != [ov]:
+            meta.append({"key": "_sg_prev_categories", "value": json.dumps([c.get("id") for c in p.get("categories") or []])})
+            upd["categories"] = want
+            stats["category_fixed"] = 1
+    elif sku not in KEEP_PUBLISHED_SKUS and category_verdict(p) == "clear" and sku not in WRONG_CATEGORY_SKUS:
+        meta.append({"key": "_sg_cat_review", "value": "1"})
+        stats["category_review_flag"] = 1
+    elif sku in WRONG_CATEGORY_SKUS:
         meta += [{"key": "_sg_prev_categories", "value": json.dumps([c.get("id") for c in p.get("categories") or []])},
                  {"key": "_sg_cat_review", "value": "1"}]
         upd["categories"] = []
-        if p.get("status") == "publish":
+        if p.get("status") == "publish" or upd.get("status") == "publish":
             upd["status"] = "draft"
+            meta += [{"key": "_sg_prev_status", "value": "publish"},
+                     {"key": "_sg_hold_reason", "value": "Würth: nejasná/zlá kategória — triedenie"}]
+            stats["unpublished_wrong_category"] = 1
+            stats.pop("republished", None)
         stats["category_cleared"] = 1
 
     # 5) balenie / pôvod / cena
@@ -265,7 +296,7 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
                      {"key": "_sg_unit_cost", "value": f"{cost / pack:.4f}"}]
         except (TypeError, ValueError):
             pass
-    if raw and extra.get("pack_price"):
+    if False and raw and extra.get("pack_price"):  # predajný model čaká na Samuela
         try:
             from pricing import calculate_retail
             cost = float(extra["pack_price"])
@@ -275,6 +306,21 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
             stats["repriced"] = 1
         except Exception as exc:  # noqa: BLE001
             LOG.warning("reprice %s: %s", sku, exc)
+    try:
+        retail = float(p.get("regular_price") or 0)
+        cost = float(str(m.get("_cost_price") or "").replace(",", "."))
+        q = pack or hint
+        if q and q > 1 and retail > 0 and cost > 0:
+            unit_cost = cost / q
+            meta.append({"key": "_sg_unit_cost", "value": f"{unit_cost:.4f}"})
+            # Ak by sme predávali po 1 ks za túto cenu, zarábame? (cena WC je teraz za 1 „kus“ WC)
+        if (p.get("status") == "publish" or upd.get("status") == "publish") and retail > 0 and cost > 0:
+            # strata pri predaji 1 ks, ak WC cena ≈ cena za kus, ale Würth účtuje celé balenie
+            if q and q > 1 and retail < cost:
+                stats["loss_per_piece"] = 1
+                LOSS.append({"id": p["id"], "sku": sku, "name": name, "retail": retail, "pack_cost": cost, "pack": q})
+    except (TypeError, ValueError):
+        pass
     upd["meta_data"] = meta
     upd["_stats"] = stats
     return upd
@@ -301,6 +347,13 @@ def main() -> int:
         prods = fetch_wurth(a.limit)
     LOG.info("Würth produktov: %d (publish=%d)", len(prods), sum(p.get("status") == "publish" for p in prods))
     brand_id = wurth_brand_id()
+    cat_ids: Dict[str, int] = {}
+    try:
+        r = req("GET", "/products/categories", params={"search": "Chladenie", "per_page": 20})
+        for c in (r.json() if r.ok else []):
+            cat_ids.setdefault(html.unescape(c.get("name") or ""), int(c["id"]))
+    except Exception:  # noqa: BLE001
+        pass
     ref = Refetcher(a.refetch)
     totals: Dict[str, int] = {"products": len(prods), "updated": 0, "errors": 0}
     pending: List[Dict[str, Any]] = []
@@ -332,12 +385,14 @@ def main() -> int:
         pending.clear()
 
     for p in prods:
-        u = plan(p, brand_id, ref, a.force)
+        u = plan(p, brand_id, ref, a.force, cat_ids)
         if u:
             pending.append(u)
         if len(pending) >= a.batch:
             flush()
     flush()
+    for x in LOSS:
+        print("SG_LOSS " + json.dumps(x, ensure_ascii=False), flush=True)
     print("SG_RESULT " + json.dumps({"ok": True, "dry_run": a.dry_run, **totals}, ensure_ascii=False), flush=True)
     return 0
 
