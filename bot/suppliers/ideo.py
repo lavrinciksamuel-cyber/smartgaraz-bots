@@ -40,10 +40,11 @@ RULES: Tuple[Tuple[str, str], ...] = (
     (r"riwax|vosk|wax|sealant(?!.*edge)|clay|lešt|polish|compound|pad\b", "Leštenie & vosky"),
     (r"primer|adhesion promoter|aplika[čc]n[ýy] gel|ppf.*gel|edge seal|seal-it|3950|ipa sealant|"
      r"isoprop|alkohol|adhesive remover|odstra[ňn]ova|vhb cleaner|industry cleaner|wrap care", "Chémia pre fólie & PPF"),
+    (r"odstra[ňn]ova[čc] (lepid|zvy[šs]k)|surface prep|montážn|aplika[čc]n[áa] (chémia|tekut)|šampón na aplik|slide-?on|film-?on|right ?o(n|ff)|ad-gel|industrial cleaner", "Chémia pre fólie & PPF"),
     (r"cleaner|[čc]isti[čc]|power clean", "Exteriér & umývanie"),
     (r"stierk|squeeg|aplik[áa]tor|roller|handroller|tweezer|pinzet|cutter|n[ôo][žz]|[čc]epel|blade|"
      r"reza[čc]|olfa|knifeless|edge finisher|wrapstick|gecko|wrapdragon|yellotwin|rubberlift|angelracer|"
-     r"sassercut|škrabk|skrabk|rukavic|rozpra[šs]ova|striek|jetspray|pravítk|pravitk|filcov|nožnic|noznic", "Detailingové náradie"),
+     r"sassercut|škrabk|skrabk|rukavic|^rozpra[šs]ova|striekačk|jetspray|pravítk|pravitk|filcov|nožnic|noznic", "Detailingové náradie"),
 )
 
 
@@ -176,7 +177,7 @@ class IdeoSupplier(BaseSupplier):
                 continue
             name = " ".join(x for x in (family, vname if vname.lower() not in family.lower() else "", spec) if x).strip()
             instock = status.lower().startswith("skladom")
-            cat = ideo_category(f"{family} {vname}")
+            cat = ideo_category(f"{family} {vname} {spec}")
             out.append(ProductRaw(
                 name=name, source="ideo", supplier_url=f"{url}#{art}", sku=f"IDEO-{art}", brand=brand,
                 description=desc, short_description=desc[:240], cost_price=f"{gross:.2f}",
