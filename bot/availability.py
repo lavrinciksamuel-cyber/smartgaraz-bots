@@ -285,6 +285,7 @@ def backfill(args) -> int:
             sup = "wurth" if sup.startswith("wurth") or sup.startswith("würth") else sup
             av = classify_existing(p, m)
             if (av and av["avail"] == "unknown" and sup == "szekop" and szekop_http is not None
+                    and (p.get("status") == "publish" or args.refetch_drafts)
                     and refetched < args.szekop_refetch and "nextis.cz" in str(m.get("supplier_url") or "")
                     and re.search(r"/\d{5,}/?$", str(m.get("supplier_url") or ""))):
                 refetched += 1
@@ -342,6 +343,7 @@ def main() -> int:
     b.add_argument("--sleep", type=float, default=2.0)
     b.add_argument("--szekop-refetch", type=int, default=0, help="max. Szekop PDP na overenie BA/distribučný")
     b.add_argument("--szekop-delay", type=float, default=1.5)
+    b.add_argument("--refetch-drafts", action="store_true", help="Szekop refetch aj pre koncepty (default len publikované)")
     a = ap.parse_args()
     if a.cmd == "backfill":
         return backfill(a)
