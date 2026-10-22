@@ -429,6 +429,12 @@ def build_description_v3(
                 continue
             if core in ("Easy", "Easy-to-clean", "Charger with connecting cable for"):
                 continue
+            # krátke anglické zlomky zoznamu obsahu („Coarse filter for“)
+            if (len(core.split()) <= 8 and EN_RE.search(core)
+                    and not re.search(r"[áäčďéíľĺňóôŕšťúýž]", core.lower())):
+                dropped_en += 1
+                ENGLISH_SEEN.add(core)
+                continue
             if is_english(core) or (len(EN_WORDS.findall(core)) >= 2 and not re.search(r"[áäčďéíľĺňóôŕšťúýž]", core.lower())):
                 dropped_en += 1
                 ENGLISH_SEEN.add(core)
