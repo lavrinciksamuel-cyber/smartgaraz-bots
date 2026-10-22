@@ -132,10 +132,15 @@ class IdeoSupplier(BaseSupplier):
                     return
 
     def parse_product(self, url: str) -> Optional[ProductRaw]:
-        v = self.parse_variants(url)
-        return v[0] if v else None
+        """URL `…#ART12345` → presne ten variant (cena/sklad sync). Bez fragmentu len 1-variantová rodina."""
+        base, _, art = url.partition("#")
+        v = self.parse_variants(base)
+        if art:
+            return next((p for p in v if p.sku == f"IDEO-{art}"), None)
+        return v[0] if len(v) == 1 else None
 
     def parse_variants(self, url: str) -> List[ProductRaw]:
+        url = url.split("#", 1)[0]
         h = self._get(url)
         soup = BeautifulSoup(h, "html.parser")
         h1 = soup.find("h1", attrs={"itemprop": "name"}) or soup.find("h1")
@@ -173,7 +178,7 @@ class IdeoSupplier(BaseSupplier):
             instock = status.lower().startswith("skladom")
             cat = ideo_category(f"{family} {vname}")
             out.append(ProductRaw(
-                name=name, source="ideo", supplier_url=url, sku=f"IDEO-{art}", brand=brand,
+                name=name, source="ideo", supplier_url=f"{url}#{art}", sku=f"IDEO-{art}", brand=brand,
                 description=desc, short_description=desc[:240], cost_price=f"{gross:.2f}",
                 stock_status="instock" if instock else "onbackorder",
                 delivery_text="2–3 pracovné dni" if instock else "na objednávku",

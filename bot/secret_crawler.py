@@ -63,6 +63,8 @@ def resolve_supplier(url: str = "", supplier_name: str = ""):
         return get_supplier("lkq")
     if "szekop" in host:
         return get_supplier("szekop")
+    if "ideo.sk" in host:
+        return get_supplier("ideo")
     return GenericSupplier(
         base_url=f"{urlparse(url).scheme}://{urlparse(url).netloc}",
         source_name=host or "generic",
