@@ -357,6 +357,14 @@ class SzekopSupplier(LoginMixin, GenericSupplier):
             existing_images=images,
             attributes=attrs,
         )
+        # Dostupnosť SR/EÚ: sklad BA (Bratislava) vs. distribučný (availability.py)
+        try:
+            from availability import parse_szekop_stocks
+            _ba, _dist, _st = parse_szekop_stocks(soup)
+            product.raw_extra = dict(product.raw_extra or {})
+            product.raw_extra.update({"stock_ba": _ba, "stock_dist": _dist, "stock_text": _st})
+        except Exception:  # noqa: BLE001
+            pass
 
         try:
             b2b = extract_b2b_signals(soup)

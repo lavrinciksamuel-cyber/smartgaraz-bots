@@ -105,9 +105,23 @@ class ProductRaw:
                     "origin",
                     "origin_text",
                     "clean_html",
+                    "stock_ba",
+                    "stock_dist",
+                    "stock_text",
                 )
                 if k in extra and extra[k] not in (None, "")
             }
+            # LKQ dostupnosť (availability.py) — len potrebné polia, nie celý item
+            _li = extra.get("lkq_item")
+            if isinstance(_li, dict) and _li:
+                _d = _li.get("Disponibility") or {}
+                data["raw_extra"]["lkq_item"] = {
+                    "StorageStockAmount": _li.get("StorageStockAmount"),
+                    "IsStorageStock": _li.get("IsStorageStock"),
+                    "IsOrderable": _li.get("IsOrderable", True),
+                    "IsUserOrderForbidden": _li.get("IsUserOrderForbidden", False),
+                    "Disponibility": {"Text": _d.get("Text") if isinstance(_d, dict) else str(_d or "")},
+                }
             if not data["raw_extra"]:
                 data.pop("raw_extra", None)
         # AI copywriting nepotrebuje sklad/dodanie, ale cenotvorba áno cez meta sync

@@ -1,0 +1,39 @@
+name: Availability SR / EÚ / nedostupné (backfill)
+# Dostupnosť pre všetky produkty (LKQ, Szekop, Würth): meta _sg_avail (sr|eu|na|unknown)
+# + stock_status=outofstock pri „nedostupné“. Nemaže produkty. HQ load guard (shop_guard).
+# Denne preklasifikuje podľa posledných údajov z importov a overí Szekop BA/distribučný sklad.
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "Argumenty (napr. --dry-run --limit 2000, --szekop-refetch 3000)"
+        required: false
+        default: "--szekop-refetch 3000"
+  schedule:
+    - cron: "40 1 * * *"
+concurrency:
+  group: availability-backfill
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - run: pip install -r bot/requirements.txt
+      - name: Backfill
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          ARGS="${{ github.event.inputs.args }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then ARGS="--szekop-refetch 3000"; fi
+          python bot/availability.py backfill $ARGS

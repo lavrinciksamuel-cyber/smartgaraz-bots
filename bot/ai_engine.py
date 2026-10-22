@@ -2565,6 +2565,15 @@ def _apply_pricing_and_stock(payload: Dict[str, Any], product_raw_data: Dict[str
             pass
     if product_raw_data.get("stock_status"):
         payload["stock_status"] = str(product_raw_data["stock_status"])
+    # Dostupnosť SR / EÚ / nedostupné (availability.py) — meta _sg_avail + stock_status
+    try:
+        from availability import apply_to_payload
+
+        _av = apply_to_payload(payload, product_raw_data)
+        if _av:
+            report["sg_avail"] = _av
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.debug("availability skip: %s", exc)
 
 
 def _fast_sync_product(
