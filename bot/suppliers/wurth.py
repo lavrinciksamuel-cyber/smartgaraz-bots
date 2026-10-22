@@ -44,6 +44,16 @@ from .base import (
     session_cookie_names,
 )
 from .generic import GenericSupplier
+from .wurth_clean import (
+    build_clean_html,
+    clean_description_lines,
+    pack_from_supplier_block,
+    pack_title,
+    parse_oe_numbers,
+    parse_origin,
+    parse_pack_qty,
+    parse_price_basis,
+)
 
 try:
     from media_licensing import wurth_media_allowed
@@ -541,10 +551,31 @@ class WurthSupplier(LoginMixin, GenericSupplier):
         price_el = soup.select_one(".priceValue")
         if price_el:
             price = parse_price(price_el.get_text())
-        if price is None:
-            blob = soup.select_one(".productdetail_info_right_order_price_information")
-            if blob:
-                price = parse_price(blob.get_text())
+        order_blob = soup.select_one(".productdetail_info_right_order_price_information")
+        order_text = order_blob.get_text(" ", strip=True) if order_blob else ""
+        if price is None and order_blob:
+            price = parse_price(order_text)
+        # Balenie: Würth cena je za BALENIE („Počet x Balenie 1 x 10 ks“), príp. „za 100 ks“.
+        order_area = " ".join(
+            el.get_text(" ", strip=True)
+            for el in soup.select(
+                ".productdetail_info_right_order, .productdetail_info_right_order_price_information, "
+                ".productdetail_info_right, .packaging, .packing-unit, .product-packaging"
+            )
+        )
+        page_text = soup.get_text("\n", strip=True)
+        pack_qty = parse_pack_qty(order_area) or pack_from_supplier_block(resp.text or "", sku)
+        price_basis = parse_price_basis(order_area or order_text)
+        pack_price = None
+        if price is not None:
+            if price_basis and pack_qty:
+                pack_price = round(float(price) / price_basis * pack_qty, 4)
+            elif price_basis and not pack_qty:
+                pack_price = None  # cena za N ks bez balenia — nevieme, čo zákazník dostane
+            else:
+                pack_price = float(price)
+        origin = parse_origin(page_text)
+        oe_numbers = parse_oe_numbers(page_text)
 
         stock_status = "instock"
         stock_el = soup.select_one(".productdetail_info_right_stock")
@@ -594,20 +625,30 @@ class WurthSupplier(LoginMixin, GenericSupplier):
         desc = ""
         desc_el = soup.select_one(".block_productinformation")
         if desc_el:
+            for li in desc_el.find_all("li"):
+                li.insert_before("\n")
+                li.insert_after("\n")
             desc = desc_el.get_text("\n", strip=True)
         if not desc:
             ogd = soup.find("meta", property="og:description") or soup.find("meta", attrs={"name": "description"})
             if ogd and ogd.get("content"):
                 desc = ogd["content"]
+        pack_verified = bool(pack_qty) and pack_price is not None
+        name = pack_title(name, pack_qty) if pack_verified else name
+        clean = build_clean_html(
+            name, clean_description_lines(desc, name), sku=sku, ean=ean,
+            pack_qty=pack_qty if pack_verified else None, oe_numbers=oe_numbers,
+        )
 
         b2b = extract_b2b_signals(soup)
-        # Po B2B logine je zobrazená cena nákupná (cost). Würth zriedka ukáže MOC.
+        # Po B2B logine je zobrazená cena nákupná (cost) = CENA ZA BALENIE.
         # Bez WURTH_B2B loginu cenu ako cost NEBERIEME (guest cenník ≠ náš IČO).
+        # cost = cena balenia; WC produkt = celé balenie (nie kus).
         cost = None
         retail_hint = b2b.get("retail_hint")
         if self._logged_in:
-            cost = b2b.get("cost_price")
-            if cost is None and price is not None:
+            cost = pack_price if pack_price is not None else None
+            if cost is None and price is not None and not price_basis:
                 cost = price
         elif price is not None and not self._logged_in:
             # Verejná/guest cena môže ísť len ako retail hint, nie ako cost.
@@ -628,6 +669,8 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             attrs["Art.-Nr."] = sku
         if bulb_tok:
             attrs["Typ žiarovky"] = bulb_tok
+        if pack_verified:
+            attrs["Počet v balení"] = f"{pack_qty} ks"
 
         return ProductRaw(
             name=name,
@@ -636,7 +679,9 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             sku=sku,
             ean=ean,
             brand="Würth",
-            description=desc,
+            description=clean["description"],
+            short_description=clean["short_description"],
+            oe_numbers=oe_numbers,
             regular_price=str(retail_hint) if retail_hint else "",
             sale_price="",
             cost_price=str(cost) if cost is not None else "",
@@ -662,6 +707,15 @@ class WurthSupplier(LoginMixin, GenericSupplier):
                 "bulb_type": bulb_tok,
                 "_sg_supplier": "wurth_sk",
                 "_sg_supplier_art_no": sku,
+                "pack_qty": pack_qty,
+                "pack_price": pack_price,
+                "unit_cost": round(pack_price / pack_qty, 4) if pack_verified else None,
+                "price_basis": price_basis,
+                "pack_verified": pack_verified,
+                "origin": origin.get("origin"),
+                "origin_text": origin.get("origin_text"),
+                "oe_numbers": oe_numbers,
+                "clean_html": True,
                 "media_source": "wurth_b2b_portal",
                 "media_rights_note": (
                     "B2B customer media — require active account + WURTH_MEDIA_OK"

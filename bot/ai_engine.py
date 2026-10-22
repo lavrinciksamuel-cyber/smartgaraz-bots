@@ -894,20 +894,28 @@ def build_template_content(
         if supplier_full:
             bits.append(truncate(supplier_full, 220))
         elif vehicle_compat:
-            bits.append("Over kompatibilitu podľa OE / viskozity pred nákupom.")
+            bits.append("Over kompatibilitu podľa OE / viskozity pred nákupom." if re.search(r"olej|kvapalin", name_l)
+                        else "Pred nákupom over kompatibilitu podľa OE čísla.")
         else:
             bits.append("Použi podľa návodu výrobcu a určenia produktu.")
         short_description = " ".join(bits)
 
+    path_blob = " ".join(category_path or []).lower()
+    is_oil = bool(re.search(r"\boleje?\b|kvapalin|\bsae\b|\b\d{1,2}w-?\d{2}\b", f"{path_blob} {name_l}"))
     if vehicle_compat:
+        # SAE viskozita len pri olejoch/kvapalinách — skrutka, filter, … nie.
+        compat_hint = (
+            "OE čísla, SAE viskozity alebo schválenia výrobcu vozidla" if is_oil
+            else "OE čísla dielu a údajov o vozidle"
+        )
         desc_fallback = (
             f"{product_name_sk} — autodielenský sortiment SmartGaráž. "
-            "Technické údaje podľa výrobcu; pri neistote over OE číslo alebo SAE viskozitu."
+            + ("Technické údaje podľa výrobcu; pri neistote over OE číslo alebo SAE viskozitu."
+               if is_oil else "Technické údaje podľa výrobcu; pri neistote over OE číslo.")
         )
         compat_block = (
-            f"<h3>Kompatibilita &amp; Aplikácia</h3>\n"
-            f"<p>Pred montážou / výmenou over kompatibilitu podľa OE čísla, "
-            f"SAE viskozity alebo schválenia výrobcu vozidla.</p>"
+            f"<h3>Kompatibilita</h3>\n"
+            f"<p>Pred montážou / výmenou over kompatibilitu podľa {compat_hint}.</p>"
         )
     else:
         desc_fallback = (
@@ -930,20 +938,24 @@ def build_template_content(
         ("Objem/Hmotnosť", vol.strip("()") if vol else "—"),
         ("Kategória", " › ".join(category_path) if category_path else "—"),
     ]
+    # Bez tabuliek (dizajn) — čistý zoznam, prázdne „—“ riadky vynechaj.
     table_rows = "".join(
-        f"<tr><th>{html.escape(k)}</th><td>{html.escape(v)}</td></tr>" for k, v in rows
+        f"<li><strong>{html.escape(k)}:</strong> {html.escape(v)}</li>"
+        for k, v in rows if v and v != "—" and k != "Kategória"
     )
     full_description = (
         f"<h2>{html.escape(product_name_sk)}</h2>\n"
         f"<p>{html.escape(desc_body)}</p>\n"
         f"<h3>Identifikačné a technické údaje</h3>\n"
-        f"<table>{table_rows}</table>\n"
+        f"<ul>{table_rows}</ul>\n"
         f"{compat_block}"
     )
 
     focus = " ".join(x for x in [brand, leaf, vol.strip("()") if vol else ""] if x).strip() or product_name_sk
+    # Tagy len vecné (kategória, objem) — značka ide do brand taxonómie,
+    # SKU/„autodiely“/„SmartGaráž“/„Produkt“ ako tag = šum.
     tags = []
-    for t in (brand, leaf, sku, vol.strip("()") if vol else "", "SmartGaráž", "autodiely"):
+    for t in (leaf if leaf != "Produkt" else "", vol.strip("()") if vol else ""):
         if t and t not in tags:
             tags.append(t)
     search_terms = []
@@ -959,6 +971,15 @@ def build_template_content(
     ):
         if t and t not in search_terms:
             search_terms.append(t)
+
+    # Würth (a iné) parser už pripravil čistý popis bez tabuliek → použi ho.
+    _extra = raw_data.get("raw_extra") if isinstance(raw_data.get("raw_extra"), dict) else {}
+    if _extra.get("clean_html") and raw_data.get("description"):
+        full_description = str(raw_data["description"])
+        if raw_data.get("short_description"):
+            short_description = re.sub(r"<[^>]+>", "", str(raw_data["short_description"])).strip()
+    if focus.strip().lower() in ("produkt", f"{brand} produkt".strip().lower()):
+        focus = re.sub(rf"^{re.escape(brand)}\s+", "", product_name_sk) if brand else product_name_sk
 
     seo = {
         "focus_keyword": truncate(focus, 80),
@@ -2977,6 +2998,20 @@ def process_product_with_ai(
             meta_data.append(
                 {"key": "_sg_supplier_art_no", "value": str(product_raw_data["sku"])}
             )
+    if str(product_raw_data.get("source") or "").lower() in ("wurth", "würth"):
+        # Balenie / pôvod (SK/DE) — cena je za CELÉ balenie (1 WC kus = 1 balenie).
+        _pv = bool(extra_raw.get("pack_verified"))
+        meta_data.append({"key": "_sg_pack_verified", "value": "1" if _pv else "0"})
+        for _k, _mk in (("pack_qty", "_sg_pack_qty"), ("pack_price", "_sg_pack_cost"),
+                        ("unit_cost", "_sg_unit_cost"), ("price_basis", "_sg_price_basis"),
+                        ("origin", "_sg_origin"), ("origin_text", "_sg_origin_text")):
+            if extra_raw.get(_k) not in (None, ""):
+                meta_data.append({"key": _mk, "value": str(extra_raw[_k])})
+        _oe = product_raw_data.get("oe_numbers") or []
+        if _oe:
+            meta_data.append({"key": "_sg_oe_numbers", "value": "|".join(str(x) for x in _oe)})
+        meta_data.append({"key": "_sg_wurth_fee_note", "value": (
+            "Würth VOP čl. 2.6/5.12: poplatok za spracovanie objednávky 6,80 € pri objednávke do 100 €.")})
     if seo.get("focus_keyword"):
         meta_data.append({"key": "rank_math_focus_keyword", "value": seo["focus_keyword"]})
     if seo.get("meta_title"):
@@ -3084,6 +3119,13 @@ def process_product_with_ai(
                 report.setdefault("warnings", []).append("no_oe_draft")
         except Exception:
             pass
+
+    # Würth: nikdy nepublikuj bez overeného balenia + pôvodu (SK/DE).
+    if status == "publish" and str(product_raw_data.get("source") or "").lower() in ("wurth", "würth"):
+        if not (extra_raw.get("pack_verified") and extra_raw.get("origin")):
+            status = "draft"
+            meta_data = list(meta_data or []) + [
+                {"key": "_sg_hold_reason", "value": "Würth: overiť balenie (ks) a pôvod SK/DE pred predajom"}]
 
     payload: Dict[str, Any] = {
         "name": product_name_sk,

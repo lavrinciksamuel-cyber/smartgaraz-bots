@@ -101,6 +101,11 @@ def qa_reasons(p: dict, max_price: float, require_in_stock: bool = True) -> list
 
     if price <= 0:
         reasons.append("no_price")
+    # Würth: cena je za balenie — bez overeného balenia/pôvodu (SK/DE) nepredávať.
+    if str(meta.get("_supplier_source") or "").lower() == "wurth" and not (
+        str(meta.get("_sg_pack_verified") or "") == "1" and meta.get("_sg_origin")
+    ):
+        reasons.append("wurth_pack_origin_unverified")
     # Jidoka: falošné 1.90 € / podnákladové ceny z chybného prepisu.
     # Drobný retail (žiarovky, poistky, sviečky, malé DOT) bežne 0,5–3 € — OK.
     cat_blob_early = " ".join((c.get("name") or "") for c in cats).lower()

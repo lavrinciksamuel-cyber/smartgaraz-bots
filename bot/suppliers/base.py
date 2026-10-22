@@ -97,6 +97,14 @@ class ProductRaw:
                     "lkq_codes",
                     "list_price",
                     "retail_hint",
+                    "pack_qty",
+                    "pack_price",
+                    "unit_cost",
+                    "price_basis",
+                    "pack_verified",
+                    "origin",
+                    "origin_text",
+                    "clean_html",
                 )
                 if k in extra and extra[k] not in (None, "")
             }

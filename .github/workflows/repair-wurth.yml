@@ -1,0 +1,39 @@
+name: Repair Würth products (pack / popis / kategória)
+# Idempotentná oprava Würth produktov: publish → koncept kým nie je overené
+# balenie (ks) + pôvod SK/DE, čistý popis + OE čísla, tagy, značka, hádané kategórie.
+# Denne skúsi doplniť balenie/pôvod z Würth PDP (--refetch); pri ochrane webu refetch vypne.
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "Argumenty (napr. --dry-run --limit 20, --force)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "15 2 * * *"
+concurrency:
+  group: repair-wurth
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - run: pip install -r bot/requirements.txt
+      - name: Repair
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          ARGS="${{ github.event.inputs.args }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then ARGS="--refetch"; fi
+          python bot/repair_wurth_products.py $ARGS
