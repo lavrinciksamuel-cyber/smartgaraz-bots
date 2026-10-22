@@ -45,6 +45,10 @@ from .base import (
 )
 from .generic import GenericSupplier
 from .wurth_clean import (
+    build_description_v3,
+    known_pack_qty,
+    sale_title,
+    translations_sk,
     build_clean_html,
     clean_description_lines,
     pack_from_supplier_block,
@@ -564,7 +568,7 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             )
         )
         page_text = soup.get_text("\n", strip=True)
-        pack_qty = parse_pack_qty(order_area) or pack_from_supplier_block(resp.text or "", sku)
+        pack_qty = parse_pack_qty(order_area) or pack_from_supplier_block(resp.text or "", sku) or known_pack_qty(sku)
         price_basis = parse_price_basis(order_area or order_text)
         pack_price = None
         if price is not None:
@@ -634,11 +638,14 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             if ogd and ogd.get("content"):
                 desc = ogd["content"]
         pack_verified = bool(pack_qty) and pack_price is not None
-        # Názov nemeníme — predajný model (kus vs. balenie) rozhodne Samuel; balenie ide do meta.
-        clean = build_clean_html(
-            name, clean_description_lines(desc, name), sku=sku, ean=ean,
+        # v3: čistý SK popis (čo to je, použitie, parametre, balenie a predaj); predaj po baleniach.
+        v3 = build_description_v3(
+            name, desc, sku=sku, ean=ean, supplier_url=final_url,
             pack_qty=pack_qty if pack_verified else None, oe_numbers=oe_numbers,
+            translations=translations_sk(),
         )
+        name = sale_title(v3["title"], pack_qty if pack_verified else None)
+        clean = {"description": v3["description"], "short_description": v3["short_description"]}
 
         b2b = extract_b2b_signals(soup)
         # Po B2B logine je zobrazená cena nákupná (cost) = CENA ZA BALENIE.

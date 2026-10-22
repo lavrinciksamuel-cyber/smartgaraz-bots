@@ -43,6 +43,11 @@ sys.path.insert(0, str(ROOT))
 import requests  # noqa: E402
 
 from suppliers.wurth_clean import (  # noqa: E402
+    build_description_v3,
+    known_pack_qty,
+    sale_title,
+    sale_unit_lines,
+    translations_sk,
     build_clean_html,
     clean_description_lines,
     name_pack_hint,
@@ -53,7 +58,11 @@ from suppliers.wurth_clean import (  # noqa: E402
 
 LOG = logging.getLogger("repair_wurth")
 LOSS: List[Dict[str, Any]] = []
-VERSION = "v2-2026-10-22"
+try:
+    DESC_V3: Dict[str, Any] = json.loads((ROOT / "data" / "wurth_descriptions_v3.json").read_text(encoding="utf-8"))
+except Exception:  # noqa: BLE001
+    DESC_V3 = {}
+VERSION = "v3-2026-10-22"
 # Samuel 2026-10-22: tieto SKU ostávajú publikované, predaj po 1 ks (cena sa nemení).
 KEEP_PUBLISHED_SKUS = {"0500300002"}
 # Samuel 2026-10-22: 0500300002 predávame po 1 ks za 16,90 € — cenu nemeniť.
@@ -249,6 +258,15 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
     if pack is None:
         pack = pack_from_supplier_block(p.get("description") or "", sku)
         pack_src = "wurth_desc_block" if pack else ""
+        if not pack:
+            pack = known_pack_qty(sku)
+            pack_src = "wurth_accessory_table" if pack else ""
+        if not pack and str(m.get("_sg_pack_verified") or "") == "1" and m.get("_sg_pack_qty"):
+            try:
+                pack = int(m["_sg_pack_qty"])
+                pack_src = str(m.get("_sg_pack_source") or "stored")
+            except (TypeError, ValueError):
+                pack = None
     else:
         pack_src = "wurth_pdp"
     verified = bool(pack)
@@ -265,8 +283,29 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
     oe = parse_oe_numbers(p.get("description") or "") or list(extra.get("oe_numbers") or [])
     src_desc = (raw.description if raw and raw.description else p.get("description") or "")
     lines = clean_description_lines(src_desc, name)
-    new_name = name  # predajný model (kus vs balenie) rozhodne Samuel — názov nemeníme
-    body = build_clean_html(new_name, lines, sku=sku, ean=ean, pack_qty=None, oe_numbers=oe)
+    per_piece = sku in KEEP_PRICE_SKUS
+    v3 = DESC_V3.get(sku)
+    if raw and raw.description:
+        body = {"description": raw.description, "short_description": raw.short_description or ""}
+        new_name = sale_title(raw.name, pack, per_piece)
+    elif v3:
+        body = {"description": v3["description"], "short_description": v3["short_description"]}
+        new_name = sale_title(v3["title"], pack, per_piece)
+        stats["desc_v3"] = 1
+    else:
+        body = build_description_v3(name, src_desc, sku=sku, ean=ean, supplier_url=str(m.get("supplier_url") or ""),
+                                    pack_qty=pack, per_piece=per_piece, oe_numbers=oe, translations=translations_sk())
+        new_name = sale_title(body["title"], pack, per_piece)
+    # balenie v popise musí sedieť s aktuálnym stavom (v3 dáta mohli vzniknúť bez balenia)
+    if pack and not per_piece and "overujeme" in body["description"]:
+        sale_old = "".join(f"<li>{x}</li>" for x in sale_unit_lines(None))
+        sale_new = "".join(f"<li>{x}</li>" for x in sale_unit_lines(pack))
+        body["description"] = body["description"].replace(sale_old, sale_new)
+        body["short_description"] = body["short_description"].replace(
+            "Cena za celé originálne balenie Würth.",
+            f"Minimálne balenie {pack} ks, cena za celé balenie." if pack > 1 else "Cena za 1 ks.")
+    if new_name != name:
+        meta.append({"key": "_sg_name_before", "value": name})
     upd["description"] = body["description"]
     upd["short_description"] = body["short_description"]
     if new_name != name:
@@ -325,6 +364,10 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
 
     # 5) balenie / pôvod / cena
     hint = name_pack_hint(name)
+    verified = bool(pack)
+    meta.append({"key": "_sg_sale_unit", "value": "piece" if per_piece else ("pack" if pack else "wurth_pack_unknown")})
+    if verified:
+        stats["pack_known"] = 1
     meta += [{"key": "_sg_pack_verified", "value": "1" if verified else "0"},
              {"key": "_sg_pack_source", "value": pack_src},
              {"key": "_sg_origin", "value": origin},
@@ -355,7 +398,7 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
     try:
         retail = float(p.get("regular_price") or 0)
         cost = float(str(m.get("_cost_price") or "").replace(",", "."))
-        q = pack or hint
+        q = pack
         if q and q > 1 and retail > 0 and cost > 0:
             unit_cost = cost / q
             meta.append({"key": "_sg_unit_cost", "value": f"{unit_cost:.4f}"})

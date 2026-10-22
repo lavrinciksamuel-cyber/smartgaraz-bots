@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import html as _html
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 PACK_PATTERNS = (
     # „Počet x Balenie 1 x 10 ks“ / „1 x 10 ks“
@@ -241,3 +241,294 @@ def name_pack_hint(name: str) -> Optional[int]:
     if m:
         return int(m.group(1) or m.group(2))
     return None
+
+
+# =============================================================== v3 (2026-10-22)
+# Parametre z Würth technického bloku („Obsah 400 ml Hustota 0,9 g/cm³ …“).
+SPEC_LABELS = (
+    "Hmotnosť výrobku (na kus)", "Hmotnosť obsahu", "Obsah", "DĺžkaxŠírka", "Dĺžka vo zvitku",
+    "Dĺžka hadice", "Dĺžka kábla", "Pracovná dĺžka", "Celková dĺžka", "Dĺžka", "Šírka zvitku", "Šírka",
+    "Výška", "Celková hrúbka", "Hrúbka", "Vonkajší priemer", "Vnútorný priemer", "Priemer otvoru",
+    "Priemer kolíka", "Priemer", "Rozmer závitu", "Závit", "Stúpanie", "Veľkosť kľúča (s)", "Veľkosť",
+    "Materiál", "Farba", "Obal", "Chemický základ", "Menovité napätie", "Menovitý prúd",
+    "Intenzita prúdu max.", "Výkon druhého špirálového vlákna", "Výkon", "Označenie pätice",
+    "Teplota farby", "Teplotná odolnosť max.", "Teplotná odolnosť min.", "Teplotný rozsah použitia min.",
+    "Teplotný rozsah použitia max.", "Teplota spracovania min.", "Teplota spracovania max.",
+    "Prevádzkový tlak max.", "Max. šírka zovretia", "Hustota / podmienky", "Bod vzplanutia min.",
+    "Skladovateľnosť od dátumu výroby / podmienky", "Vhodnosť pre vonkajší priemer rúry",
+    "Vhodnosť pre vonkajší priemer hadice", "Vhodnosť pre priemer kábla", "Schválenie", "Norma",
+    "Kapacita batérie", "Napätie batérie", "Hmotnosť", "Dĺžkaxšírkaxhrúbka", "DĺžkaxŠírkaxHrúbka",
+    "Dĺžkaxšírka", "Počet dielov", "Hustota", "Podmienka pre hustotu pri teplote",
+    "Podmienka pre skladovateľnosť od dátumu výroby", "Skladovateľnosť od dátumu výroby",
+    "Teplota skladovania", "Skladovacia teplota", "Normy", "Kategória ochrany",
+)
+# štítky, ktoré len ukončia hodnotu (do parametrov ich nedávame)
+SPEC_SKIP = {"Podmienka pre hustotu pri teplote", "Podmienka pre skladovateľnosť od dátumu výroby",
+             "Hustota", "Hustota / podmienky"}
+EN_WORDS = re.compile(r"\b(permissible|storage|period|frost|fragile|prone|expose|directly|elements|product|"
+                      r"suitable|surface|surfaces|easy|clean|protection|use|using|apply|applied|"
+                      r"glove|gloves|coating|technology|robust|extra|strong|impact|which|while|without)\b", re.I)
+_SPEC_RE = re.compile(
+    r"(?<![A-Za-zÁ-ž])((?:" + "|".join(re.escape(x) for x in sorted(SPEC_LABELS, key=len, reverse=True))
+    + r")(?:[ ,]+[a-záäčďéíľĺňóôŕšťúýž.()/]+){0,3})\s+(?=[0-9A-ZÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ+\-–])"
+)
+ENGLISH_SEEN: set = set()
+EN_RE = re.compile(r"\b(the|and|with|for|of|is|are|this|that|from|your|can|be|to|in|on|or|by|as|at|it|such|into|when|used)\b", re.I)
+
+
+def is_english(text: str) -> bool:
+    words = re.findall(r"[A-Za-z]+", text or "")
+    if len(words) < 4:
+        sk = re.search(r"[áäčďéíľĺňóôŕšťúýž]", (text or "").lower())
+        return bool(words) and not sk and len(EN_WORDS.findall(text or "")) >= 1
+    hits = len(EN_RE.findall(text or ""))
+    sk = len(re.findall(r"[áäčďéíľĺňóôŕšťúýž]", (text or "").lower()))
+    return hits >= 2 and hits / max(len(words), 1) > 0.08 and sk <= len(words) * 0.15
+
+
+_UNIT = r"(?:mm|cm|ml|m|l|g/cm³|kg|g|bar|V/DC|V/AC|V|W|°C|ks|KS|Ah|Nm|K|h|A|Mesiac(?:ov)?|mesiacov|%|palcov|\")(?![A-Za-zá-ž])"
+_NUM_VAL = re.compile(rf"^([+\-–]?\s?\d[\d.,]*(?:\s?(?:x|×|až|do|-|–|/)\s?[+\-]?\d[\d.,]*)*\s?{_UNIT}?(?:\s?/\s?(?:pri|pri teplote)\s?[\d.,]+\s?°C)?)")
+
+
+def _tidy_value(val: str) -> str:
+    v = (val or "").strip()
+    if re.match(r"^[+\-–]?\s?\d", v):
+        m = _NUM_VAL.match(v)
+        if m:
+            v = m.group(1).strip()
+        v = re.sub(r"(\d),000\b", r"\1", v)
+        return v
+    # textová hodnota: koniec pred ďalším „Slovom“ (nový štítok), mimo zátvoriek
+    depth = 0
+    for i, ch in enumerate(v):
+        depth += ch == "("
+        depth -= ch == ")"
+        if depth == 0 and i > 0 and v[i - 1] == " " and re.match(r"[A-ZÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ][a-záäčďéíľĺňóôŕšťúýž]{2,}", v[i:]):
+            return v[:i].strip()
+    return v
+
+
+def extract_specs(text: str) -> tuple:
+    """(specs[(label, value)], zvyšný text). Hodnota = text po ďalší label (max 60 zn.)."""
+    t = re.sub(r"[ \t\r\f\v]+", " ", text or "")
+    t = re.sub(r" ?\n ?", "\n", t)
+    hits = list(_SPEC_RE.finditer(t))
+    specs: List[tuple] = []
+    cut: List[tuple] = []
+    for i, m in enumerate(hits):
+        end = hits[i + 1].start() if i + 1 < len(hits) else min(len(t), m.end() + 60)
+        val = t[m.end():end].strip(" ,;.\n").split("\n")[0]
+        # hodnota končí na vete / ďalšej veľkej vete
+        val = re.split(r"(?<=[a-zá-ž0-9)%³²°])\.\s+(?=[A-ZÁ-Ž])", val)[0]
+        if not val or len(val) > 60:
+            val = val[:60].rsplit(" ", 1)[0] if val else ""
+        has_num = bool(re.search(r"\d", val))
+        label = m.group(1).strip(" ,")
+        val = _tidy_value(val)
+        val = re.sub(r"(\d+)\s*Mesiac\b", r"\1 mesiacov", val)
+        val = re.sub(r"(\d+)\s*KS\b", r"\1 ks", val)
+        base = next((x for x in SPEC_LABELS if label.startswith(x)), label)
+        textual_ok = base in ("Materiál", "Farba", "Obal", "Chemický základ", "Označenie pätice", "Schválenie", "Norma",
+                              "Normy", "Hustota")
+        if base in SPEC_SKIP:
+            _nl = t.find("\n", m.end())
+            _end = end if i + 1 < len(hits) else m.end() + len(val)
+            cut.append((m.start(), min(_end, _nl) if _nl >= 0 else _end))
+            continue
+        if val and (has_num or (textual_ok and len(val) <= 40)):
+            if label not in [s[0] for s in specs]:
+                specs.append((label, val))
+            _nl = t.find("\n", m.end())
+            _end = end if i + 1 < len(hits) else m.end() + len(val)
+            cut.append((m.start(), min(_end, _nl) if _nl >= 0 else _end))
+    rest = t
+    for a, b in sorted(cut, reverse=True):
+        rest = rest[:a] + " \n " + rest[b:]
+    return specs[:14], rest
+
+
+USE_RE = re.compile(r"^(Na |Pre |Vhodn|Určen|Použitie|Ideáln|Používa sa|Slúži)", re.I)
+BOILER_RE = re.compile(
+    r"(Vyhradzujeme si právo|Garantujeme stálu kvalitu|nepreberáme žiadnu zodpovednosť|"
+    r"Pred každou aplikáciou vykonajte vlastné testy|zákaznícky servis|Katalóg spoločnosti|"
+    r"Hárky údajov|Zobraziť viac|Zobraziť menej)", re.I,
+)
+
+
+def slug_facts(supplier_url: str) -> List[tuple]:
+    """Würth interné označenie v URL slugu (…/Nazov-OZNACENIE-M10X1/0500300002.sku/) → závit/materiál."""
+    path = (supplier_url or "").split(".sku")[0]
+    seg = path.rstrip("/").split("/")[-2] if path.count("/") >= 2 else ""
+    up = seg.upper()
+    out: List[tuple] = []
+    m = re.search(r"\bM(\d{1,2}(?:[.,]\d)?)X(\d(?:[.,]\d{1,2})?)\b", up.replace("-", " "))
+    if m:
+        out.append(("Závit", f"M{m.group(1)}x{m.group(2)}"))
+    if "PLAST" in up:
+        out.append(("Materiál", "plast"))
+    elif "OCEL" in up or "-OC-" in up:
+        out.append(("Materiál", "oceľ"))
+    elif "MOSAD" in up:
+        out.append(("Materiál", "mosadz"))
+    return out
+
+
+def sale_unit_lines(pack_qty: Optional[int], per_piece: bool = False) -> List[str]:
+    if per_piece:
+        return ["<strong>Minimálne balenie:</strong> 1 ks – predáva sa po kusoch",
+                "<strong>Cena:</strong> za 1 ks"]
+    if pack_qty and pack_qty > 1:
+        return [f"<strong>Minimálne balenie:</strong> {pack_qty} ks",
+                f"<strong>Cena:</strong> za celé balenie ({pack_qty} ks)"]
+    if pack_qty == 1:
+        return ["<strong>Minimálne balenie:</strong> 1 ks", "<strong>Cena:</strong> za 1 ks"]
+    return ["<strong>Minimálne balenie:</strong> 1 originálne balenie Würth (počet kusov v balení overujeme)",
+            "<strong>Cena:</strong> za celé balenie Würth"]
+
+
+def build_description_v3(
+    name: str,
+    raw_text: str,
+    *,
+    sku: str = "",
+    ean: str = "",
+    supplier_url: str = "",
+    pack_qty: Optional[int] = None,
+    per_piece: bool = False,
+    oe_numbers: Optional[List[str]] = None,
+    translations: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """Elegantný SK popis: čo to je, použitie, parametre, balenie a predaj. Len údaje, ktoré máme."""
+    esc = _html.escape
+    translations = translations or {}
+    lines = clean_description_lines(raw_text, name)
+    blob = " \n ".join(lines)
+    specs, rest = extract_specs(blob)
+    for f in slug_facts(supplier_url):
+        if f[0] not in [s[0] for s in specs]:
+            specs.append(f)
+    paras = to_paragraphs([x for x in rest.split("\n") if x.strip()])
+    intro: List[str] = []
+    feats: List[str] = []
+    uses: List[str] = []
+    dropped_en = 0
+    title_l = re.sub(r"\s*\(\d{1,6}\s*ks\)", "", name).lower()
+    for ptxt0 in paras:
+        sents = re.split(r"(?<=[.!?])\s+", ptxt0)
+        keep: List[str] = []
+        for snt in sents:
+            core = snt.strip(" .;,")
+            if not core:
+                continue
+            if core in translations:
+                tr_ = translations[core].strip()
+                keep.append(tr_ if tr_.endswith((".", "!", "?")) else tr_ + "."); continue
+            # zvyšky tabuľky príslušenstva („Popis: … Obj. č.“, kódy) — nie popis produktu
+            if re.search(r"\bPopis:|\bObj\b|\bMnožstvo:|^\d{6,}\b|[A-Z]{4,}-[A-Z0-9.-]{4,}|"
+                         r"\b[A-ZÁČĎÉÍĽŇÓÔŠŤÚÝŽ]{4,}\s+[A-ZÁČĎÉÍĽŇÓÔŠŤÚÝŽ]{4,}\s+[A-ZÁČĎÉÍĽŇÓÔŠŤÚÝŽ]{3,}", core):
+                continue
+            if core in ("Easy", "Easy-to-clean", "Charger with connecting cable for"):
+                continue
+            if is_english(core) or (len(EN_WORDS.findall(core)) >= 2 and not re.search(r"[áäčďéíľĺňóôŕšťúýž]", core.lower())):
+                dropped_en += 1
+                ENGLISH_SEEN.add(core)
+                continue
+            # zmiešané „Skladovacia teplota: 15-25°C Permissible storage period: 12 mesiacov“
+            if re.search(r"\b(Permissible storage period|Frost-prone|Easy-to-clean)\b", core, re.I):
+                dropped_en += 1
+                ENGLISH_SEEN.add(core)
+                continue
+            keep.append(snt.strip())
+        ptxt = " ".join(keep).strip(" .;,")
+        if len(ptxt) < 4 or BOILER_RE.search(ptxt):
+            continue
+        if ptxt[0].islower() or ptxt.lower() in ("würth", "efekt", "pokyny") or ptxt.lower() in title_l:
+            continue
+        ptxt = re.sub(r"^Pokyny\s+", "", ptxt)
+        ptxt = re.sub(r"\s+Pokyny\s+(?=[A-ZÁ-Ž])", ". ", ptxt)
+        ptxt = re.sub(r"^Würth\s+(?=[A-ZÁ-Ž])", "", ptxt)
+        if len(ptxt) < 4 or ptxt.lower() in ("zahrnuté v dodávke", "obsahuje", "obsah"):
+            continue
+        ptxt = re.sub(r"\.\.+", ".", ptxt)
+        if ptxt in intro or ptxt in feats or ptxt in uses:
+            continue
+        if len(ptxt.split()) < 2:
+            continue
+        if USE_RE.match(ptxt):
+            uses.append(ptxt)
+        elif len(ptxt) >= 90 and len(intro) < 2:
+            intro.append(ptxt)
+        else:
+            feats.append(ptxt)
+    title = re.sub(r"\s*\(\d{1,6}\s*ks\)", "", name).strip()
+    if sku:
+        title = re.sub(rf"\s+{re.escape(sku)}\s*$", "", title).strip()
+    parts = [f"<h2>{esc(title)}</h2>"]
+    for p in intro:
+        parts.append(f"<p>{esc(p if p.endswith(('.', '!')) else p + '.')}</p>")
+    if feats:
+        parts.append("<h3>Vlastnosti</h3><ul>" + "".join(f"<li>{esc(f)}</li>" for f in feats[:12]) + "</ul>")
+    if uses:
+        parts.append("<h3>Použitie</h3><ul>" + "".join(f"<li>{esc(u)}</li>" for u in uses[:6]) + "</ul>")
+    if specs:
+        parts.append("<h3>Parametre</h3><ul>" + "".join(
+            f"<li><strong>{esc(k)}:</strong> {esc(v)}</li>" for k, v in specs) + "</ul>")
+    sale = sale_unit_lines(pack_qty, per_piece)
+    facts = sale + ([f"<strong>Katalógové číslo Würth:</strong> {esc(sku)}"] if sku else []) + (
+        [f"<strong>EAN:</strong> {esc(ean)}"] if ean else [])
+    parts.append("<h3>Balenie a predaj</h3><ul>" + "".join(f"<li>{x}</li>" for x in facts) + "</ul>")
+    if oe_numbers:
+        parts.append("<h3>Originálne čísla dielu (OE)</h3><p>" + esc(", ".join(oe_numbers)) + "</p>"
+                     "<p>Pred objednaním over zhodu OE čísla s dielom na tvojom vozidle.</p>")
+    lead = intro[0] if intro else (uses[0] if uses else "")
+    if len(lead) > 200:
+        cut_at = lead[:200].rfind(". ")
+        lead = lead[:cut_at] if cut_at > 80 else lead[:197].rsplit(" ", 1)[0] + "…"
+    if per_piece:
+        sale_txt = "Predáva sa po kusoch, cena za 1 ks"
+    elif pack_qty and pack_qty > 1:
+        sale_txt = f"Minimálne balenie {pack_qty} ks, cena za celé balenie"
+    elif pack_qty == 1:
+        sale_txt = "Cena za 1 ks"
+    else:
+        sale_txt = "Cena za celé originálne balenie Würth"
+    short = f"{title}" + (f" – {lead[0].lower() + lead[1:]}" if lead else "") + f". {sale_txt}."
+    short = short.replace("..", ".").replace("….", "…")
+    return {
+        "description": "\n".join(parts),
+        "short_description": f"<p>{esc(short)}</p>",
+        "title": title,
+        "specs": specs,
+        "dropped_english": dropped_en,
+        "has_text": bool(intro or feats or uses),
+    }
+
+
+def _data_json(name: str) -> dict:
+    import json
+    from pathlib import Path
+    try:
+        return json.loads((Path(__file__).resolve().parent.parent / "data" / name).read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def known_pack_qty(sku: str) -> Optional[int]:
+    """Balenie z Würth tabuliek príslušenstva (bot/data/wurth_pack_qty.json)."""
+    v = _data_json("wurth_pack_qty.json").get((sku or "").replace(" ", ""))
+    try:
+        return int(v) if v else None
+    except (TypeError, ValueError):
+        return None
+
+
+def translations_sk() -> Dict[str, str]:
+    return _data_json("wurth_translations_sk.json")
+
+
+def sale_title(title: str, pack_qty: Optional[int], per_piece: bool = False) -> str:
+    t = re.sub(r"\s*[–-]\s*balenie\s+\d+\s*ks\s*$", "", (title or "").strip(), flags=re.I)
+    t = re.sub(r"\s*\((?:balenie\s*)?\d{1,6}\s*ks\)", "", t).strip()
+    if pack_qty and pack_qty > 1 and not per_piece:
+        return f"{t} – balenie {pack_qty} ks"
+    return t
