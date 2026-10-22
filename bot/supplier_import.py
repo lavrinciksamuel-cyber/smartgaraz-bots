@@ -26,9 +26,10 @@ SUPPLIERS = {
     "jlm": ("jlm", "jlm", False),
     "metabond": ("metabond", "metabond", False),
     "ptak-mopar": ("generic", "", False),
+    "ideo": ("ideo", "ideo.sk", True),
 }
 ENV_PREFIX = {"lkq": "LKQ", "wurth": "WURTH", "szekop": "SZEKOP", "pro-tec": "PROTEC",
-              "jlm": "JLM", "metabond": "METABOND", "ptak-mopar": "GENERIC"}
+              "jlm": "JLM", "metabond": "METABOND", "ptak-mopar": "GENERIC", "ideo": "IDEO"}
 BUDGET_S = int(os.environ.get("SG_IMPORT_BUDGET_S", str(int(4.5 * 3600))))
 
 

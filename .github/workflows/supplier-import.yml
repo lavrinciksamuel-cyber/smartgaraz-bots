@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       supplier:
-        description: "lkq | wurth | szekop | pro-tec | jlm | metabond | ptak-mopar"
+        description: "lkq | wurth | szekop | pro-tec | jlm | metabond | ptak-mopar | ideo"
         required: true
       mode:
         description: "full | prices"
@@ -58,5 +58,7 @@ jobs:
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IDEO_USER: ${{ secrets.IDEO_USER }}
+          IDEO_PASSWORD: ${{ secrets.IDEO_PASSWORD }}
           IMPORT_IN_STOCK: "1"
         run: python bot/supplier_import.py --supplier "${{ inputs.supplier }}" --mode "${{ inputs.mode }}" --limit "${{ inputs.limit }}"

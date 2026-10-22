@@ -108,6 +108,7 @@ class ProductRaw:
                     "stock_ba",
                     "stock_dist",
                     "stock_text",
+                    "sg_category_path",
                 )
                 if k in extra and extra[k] not in (None, "")
             }

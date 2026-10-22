@@ -191,6 +191,16 @@ def calculate_retail_mopar(net_cost: float) -> PricingResult:
     )
 
 
+def calculate_retail_ideo(cost_with_vat: float) -> PricingResult:
+    """ideo dealer: náklad = cena s DPH (nie sme platcovia), predaj = +30 %, nahor na ,90."""
+    margin = _f("IDEO_MARGIN_PERCENT", 30.0)
+    ending = _f("PRICE_ENDING", 0.90)
+    cost_base = float(cost_with_vat)
+    retail = round_psychological(cost_base * (1.0 + margin / 100.0), ending)
+    return PricingResult(cost_price=round(cost_base, 2), shipping=0.0, margin_percent=margin,
+                         retail_price=retail, profit_eur=round(retail - cost_base, 2))
+
+
 def is_mopar_source(source: str = "", brand: str = "", name: str = "") -> bool:
     blob = f"{source} {brand} {name}".lower()
     return any(k in blob for k in ("mopar", "maxpro", "ptak"))
@@ -280,6 +290,8 @@ def calculate_retail(
 ) -> PricingResult:
     if supplier and is_mopar_source(source=supplier, brand=brand, name=name):
         return calculate_retail_mopar(cost)
+    if supplier and re.search(r"\bideo\b", str(supplier).lower()):
+        return calculate_retail_ideo(cost)
     margin = margin_percent if margin_percent is not None else _f("MARGIN_PERCENT", 35.0)
     shipping = shipping_flat if shipping_flat is not None else _f("SHIPPING_FLAT", 0.60)
     ending = price_ending if price_ending is not None else _f("PRICE_ENDING", 0.90)

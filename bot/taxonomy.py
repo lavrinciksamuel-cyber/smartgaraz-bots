@@ -47,7 +47,7 @@ CATEGORY_TREE: Dict[str, List[str]] = {
         "Exteriér & umývanie",
         "Interiér",
         "Disky & pneumatiky",
-        "Leštenie & vosky",
+        "Leštenie & vosky", "Detailingové náradie", "Mikrovlákno & utierky", "Chémia pre fólie & PPF",
     ],
     "Dielenská chémia & Údržba": [
         "Čističe bŕzd & Odmasťovače",
@@ -1468,6 +1468,12 @@ def match_keyword_category(raw_data: dict) -> Optional[List[str]]:
     bulb = match_bulb_type(raw_data)
     if bulb:
         return sanitize_category_path(bulb)
+
+    # Dodávateľ dal explicitnú cestu (ideo mapa) → použij ju; prázdna = bez kategórie.
+    _ex = raw_data.get("raw_extra") if isinstance(raw_data.get("raw_extra"), dict) else {}
+    if str(raw_data.get("source") or "").lower() == "ideo":
+        _p = _ex.get("sg_category_path") or []
+        return sanitize_category_path(_p) if _p else None
 
     primary = " ".join([
         str(raw_data.get("name") or ""),

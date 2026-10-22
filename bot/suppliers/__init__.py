@@ -25,6 +25,7 @@ from .metabond import MetabondSupplier
 from .efautoparts import EfautopartsSupplier
 from .linkentry import LinkentrySupplier
 from .jlm import JlmSupplier
+from .ideo import IdeoSupplier
 
 
 def _creds(prefix: str) -> Dict[str, str]:
@@ -57,7 +58,7 @@ def _creds(prefix: str) -> Dict[str, str]:
     return out
 
 
-_HQ_SLUG = {"LKQ": "lkq", "SZEKOP": "szekop", "WURTH": "wurth", "PROTEC": "protec", "METABOND": "metabond"}
+_HQ_SLUG = {"LKQ": "lkq", "SZEKOP": "szekop", "WURTH": "wurth", "PROTEC": "pro-tec", "METABOND": "metabond", "IDEO": "ideo"}
 
 
 def get_supplier(name: str, base_url: Optional[str] = None, category_url: Optional[str] = None) -> BaseSupplier:
@@ -115,6 +116,8 @@ def get_supplier(name: str, base_url: Optional[str] = None, category_url: Option
         if not creds.get("user"):
             creds = {**_creds("LINKENTRY"), **creds}
         return LinkentrySupplier(http=http_slow, credentials=creds)
+    if key in ("ideo", "ideo.sk"):
+        return IdeoSupplier(http=http, credentials=_creds("IDEO"))
     if key in ("generic", "any", "custom") or base_url:
         return GenericSupplier(
             base_url=base_url or os.getenv("GENERIC_BASE_URL", ""),
@@ -137,5 +140,6 @@ AVAILABLE_SUPPLIERS = (
     "szekop",
     "efautoparts",
     "linkentry",
+    "ideo",
     "generic",
 )

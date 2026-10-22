@@ -131,6 +131,13 @@ def classify_raw(raw: Dict[str, Any]) -> Optional[Dict[str, str]]:
         if "stock_ba" in extra or "stock_dist" in extra:
             return classify_szekop(_f(extra.get("stock_ba")), _f(extra.get("stock_dist")), str(extra.get("stock_text") or ""))
         return _result("unknown", "Szekop: bez rozpisu skladov")
+    if src == "ideo":
+        st = str(raw.get("stock_status") or "")
+        if st == "instock":
+            return _result("sr", "ideo Bratislava: skladom (2–3 prac. dni)")
+        if st == "onbackorder":
+            return _result("eu", "ideo: na objednávku")
+        return _result("na", "ideo: nedostupné")
     if src in ("wurth", "würth"):
         return classify_wurth(str(extra.get("origin") or ""), str(raw.get("stock_status") or "instock"))
     return None
