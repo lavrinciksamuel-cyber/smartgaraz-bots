@@ -10,7 +10,7 @@ on:
         required: false
         default: "--szekop-refetch 3000"
   schedule:
-    - cron: "40 1 * * *"
+    - cron: "10 3 * * *"
 concurrency:
   group: availability-backfill
   cancel-in-progress: false
@@ -33,6 +33,8 @@ jobs:
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
           PYTHONUNBUFFERED: "1"
+          SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX }}
+          SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT }}
         run: |
           ARGS="${{ github.event.inputs.args }}"
           if [ "${{ github.event_name }}" = "schedule" ]; then ARGS="--szekop-refetch 3000"; fi
