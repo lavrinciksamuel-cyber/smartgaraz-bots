@@ -165,6 +165,9 @@ def category_verdict(p: Dict[str, Any]) -> str:
     return "keep"
 
 
+REFETCH: Dict[str, int] = {"ok": 0, "fail": 0, "pack": 0}
+
+
 class Refetcher:
     def __init__(self, enabled: bool):
         self.enabled = enabled
@@ -176,13 +179,26 @@ class Refetcher:
             return None
         try:
             if self.sup is None:
+                try:  # rovnaké loginy ako import shard (HQ → env)
+                    from suppliers.hq_credentials import export_logins
+                    export_logins("wurth")
+                except Exception:  # noqa: BLE001
+                    pass
+                os.environ.setdefault("WURTH_B2B", "1")
                 from suppliers import get_supplier
                 self.sup = get_supplier("wurth")
             raw = self.sup.parse_product(url)
             if raw is None:
                 self.fails += 1
+                REFETCH["fail"] += 1
             else:
                 self.fails = 0
+                REFETCH["ok"] += 1
+                ex = getattr(raw, "raw_extra", {}) or {}
+                if ex.get("pack_qty"):
+                    REFETCH["pack"] += 1
+                if ex.get("origin"):
+                    REFETCH["origin_" + str(ex["origin"])] = REFETCH.get("origin_" + str(ex["origin"]), 0) + 1
             if self.fails >= 3:
                 LOG.warning("Würth refetch: 3× bez dát (ochrana webu?) — refetch vypínam")
                 self.enabled = False
@@ -494,6 +510,8 @@ def main() -> int:
               "median": statistics.median(incs), "max": max(incs)}, ensure_ascii=False), flush=True)
         for x in PRICE_LOG[:5]:
             print("SG_PRICE " + json.dumps(x, ensure_ascii=False), flush=True)
+    if a.refetch:
+        print("SG_REFETCH " + json.dumps({**REFETCH, "logged_in": bool(getattr(ref.sup, "_logged_in", False))}), flush=True)
     for x in LOSS:
         print("SG_LOSS " + json.dumps(x, ensure_ascii=False), flush=True)
     print("SG_RESULT " + json.dumps({"ok": True, "dry_run": a.dry_run, **totals}, ensure_ascii=False), flush=True)
