@@ -14,6 +14,10 @@ on:
 concurrency:
   group: availability-backfill
   cancel-in-progress: false
+env:
+  SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
+  SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '1' }}
+
 jobs:
   backfill:
     runs-on: ubuntu-latest

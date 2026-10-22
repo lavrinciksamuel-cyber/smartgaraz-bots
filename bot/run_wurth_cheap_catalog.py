@@ -337,7 +337,8 @@ def main() -> int:
         progress["leaf_urls"] = leaves
         save_progress(progress)
 
-    pending = [u for u in leaves if _cyid(u) not in done]
+    from account_split import mine as _acct_mine
+    pending = [u for u in leaves if _cyid(u) not in done and _acct_mine("wc:" + _cyid(u))]
 
     def _prio(url: str) -> tuple:
         cid = _cyid(url)

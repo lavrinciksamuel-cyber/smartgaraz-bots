@@ -290,6 +290,9 @@ def main() -> int:
         len(jobs),
         len(extra_leaves),
     )
+    from account_split import mine as _acct_mine, count as _acct_n
+    if _acct_n() > 1:
+        pending = [j for j in pending if _acct_mine("hs:" + json.dumps(j, sort_keys=True, ensure_ascii=False))]
     batch = pending[: max(0, args.jobs)]
     results: List[Dict[str, Any]] = []
 

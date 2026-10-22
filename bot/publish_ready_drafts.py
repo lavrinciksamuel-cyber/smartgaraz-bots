@@ -329,6 +329,8 @@ def main() -> int:
         for s in (args.supplier or "").split(",")
         if s.strip()
     }
+    from account_split import filter_products as _acct_filter
+    drafts = _acct_filter(drafts)
     for p in drafts:
         if args.min_id and int(p.get("id") or 0) < args.min_id:
             continue

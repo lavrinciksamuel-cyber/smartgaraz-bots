@@ -961,6 +961,11 @@ def main() -> int:
         ]
         LOGGER.info("shard %s → pending=%d", args.shard, len(pending))
 
+    from account_split import mine as _acct_mine, count as _acct_n
+    if _acct_n() > 1:
+        pending = [j for j in pending if _acct_mine("hv:" + _job_key(j))]
+        LOGGER.info("account split → pending=%d", len(pending))
+
     covered: set = set()
     if args.skip_covered:
         covered = _wc_covered_vehicles(min_products=6)

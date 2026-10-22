@@ -496,6 +496,9 @@ def main() -> int:
                 totals[k] = totals.get(k, 0) + v
         pending.clear()
 
+    from account_split import filter_products as _acct_filter
+    prods = _acct_filter(prods)
+    LOG.info("account split → %d Würth produktov pre tento účet", len(prods))
     for p in prods:
         u = plan(p, brand_id, ref, a.force, cat_ids)
         if u:
