@@ -68,34 +68,16 @@ class Shard:
 
 
 def existing_skus() -> set:
-    """Všetky SKU vo WC (1× na beh, ~100/req, šetrne)."""
-    import requests
-    from shop_guard import wait_if_slow
-    url = os.environ.get("WC_URL", "").rstrip("/")
-    auth = (os.environ.get("WC_CONSUMER_KEY", ""), os.environ.get("WC_CONSUMER_SECRET", ""))
-    out, page = set(), 1
-    while page < 2000:
-        wait_if_slow()
-        r = None
-        for wait in (0, 10, 30, 60):
-            time.sleep(wait)
-            try:
-                r = requests.get(f"{url}/wp-json/wc/v3/products", auth=auth, timeout=90,
-                                 params={"per_page": 100, "page": page, "status": "any", "_fields": "sku"})
-                if r.ok:
-                    break
-            except Exception:
-                r = None
-        if r is None or not r.ok:
-            break
-        rows = r.json()
-        out |= {str(x.get("sku") or "").strip() for x in rows if x.get("sku")}
-        if len(rows) < 100:
-            break
-        page += 1
-        time.sleep(0.3)
-    LOGGER.info("WC existujúce SKU: %d", len(out))
-    return out
+    """Všetky SKU vo WC — z HQ (rýchle), fallback WC REST."""
+    from hq_skus import existing
+    skus, urls, src = existing()
+    global EXISTING_URLS
+    EXISTING_URLS = urls
+    LOGGER.info("existujúce SKU: %d, URL: %d (zdroj %s)", len(skus), len(urls), src)
+    return set(skus)
+
+
+EXISTING_URLS: set = set()
 
 
 def import_urls(supplier, urls: List[str], skus: set, sh: Shard, deadline: float) -> int:
@@ -106,6 +88,9 @@ def import_urls(supplier, urls: List[str], skus: set, sh: Shard, deadline: float
     for u in urls:
         if time.time() > deadline:
             break
+        if u in EXISTING_URLS or u.split("?")[0] in EXISTING_URLS:
+            sh.state["stats"]["skipped_existing"] += 1  # už importované → bez fetchu detailu
+            continue
         try:
             p = supplier.parse_product(u)
         except Exception as exc:

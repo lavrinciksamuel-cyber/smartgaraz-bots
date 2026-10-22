@@ -49,7 +49,8 @@ jobs:
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      # repo B (index 1) nechá 3 sloty pre ideo / Pro-Tec / údržbu (prednosť)
+      max-parallel: ${{ vars.SG_ACCOUNT_INDEX == '1' && 17 || 20 }}
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4

@@ -60,38 +60,15 @@ LOGGER = logging.getLogger("import_pipeline")
 
 
 def _known_skus() -> set:
-    """Množina všetkých SKU vo WC, cache v /tmp na 30 min (šetrí HostCreators:
-    ~90 req/30 min namiesto 1 GET na každý crawlnutý produkt)."""
-    import json as _json
-    import requests as _rq
-    cache = "/tmp/sg_wc_skus.json"
-    try:
-        if time.time() - os.path.getmtime(cache) < 1800:
-            return set(_json.load(open(cache)))
-    except Exception:
-        pass
-    url = os.environ.get("WC_URL", "").rstrip("/")
-    auth = (os.environ.get("WC_CONSUMER_KEY", ""), os.environ.get("WC_CONSUMER_SECRET", ""))
-    out, page = set(), 1
-    while page < 2000:
-        try:
-            r = _rq.get(f"{url}/wp-json/wc/v3/products", auth=auth, timeout=90,
-                        params={"per_page": 100, "page": page, "status": "any", "_fields": "sku"})
-        except Exception:
-            return out
-        if not r.ok:
-            return out
-        rows = r.json()
-        out |= {str(x.get("sku") or "").strip() for x in rows if x.get("sku")}
-        if len(rows) < 100:
-            break
-        page += 1
-        time.sleep(0.2)
-    try:
-        _json.dump(sorted(out), open(cache, "w"))
-    except Exception:
-        pass
-    return out
+    """Všetky SKU vo WC — z HQ (/api/sync/existing-skus), fallback WC REST."""
+    from hq_skus import existing
+    skus, _urls, src = existing()
+    global _KNOWN_SRC
+    _KNOWN_SRC = src
+    return set(skus)
+
+
+_KNOWN_SRC = ""
 
 
 def import_products(
@@ -445,7 +422,8 @@ def main() -> None:
             if sku and sku in known:
                 continue
             # nie je v cache → živá kontrola (len kandidáti, nie celý crawl)
-            if sku and wc.find_product_id_by_sku(sku):
+            # HQ zoznam je takmer real-time a WC aj tak odmietne duplicitné SKU → bez pomalého live GET.
+            if sku and _KNOWN_SRC == "wc" and wc.find_product_id_by_sku(sku):
                 continue
             fresh.append(p)
         products = fresh

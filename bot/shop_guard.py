@@ -7,7 +7,7 @@ Pri 508 (Resource Limit Is Reached) hneď dlhá pauza, aby účet nesuspendovali
 Inak pauza 30/60/120/240 s, kým sa HQ aj API nespamätajú.
 """
 from __future__ import annotations
-import logging, os, time
+import logging, os, threading, time
 
 LOGGER = logging.getLogger("shop_guard")
 _last = 0.0
@@ -15,6 +15,7 @@ BAD = (429, 500, 502, 503, 504, 508)
 
 
 def _probe() -> tuple:
+    """(hq_dt, hq_code, api_code, api_dt)."""
     import requests
     hq = os.environ.get("SG_GUARD_HQ_URL", "https://hq.smartgaraz.sk/")
     t = time.monotonic()
@@ -26,9 +27,10 @@ def _probe() -> tuple:
     except Exception:
         hq_code = 599
     hq_dt = time.monotonic() - t
-    api_code = 200
+    api_code, api_dt = 200, 0.0
     wc = os.environ.get("WC_URL", "").rstrip("/")
     if wc:
+        t = time.monotonic()
         try:
             r = requests.get(f"{wc}/wp-json/wc/v3/products", timeout=30,
                              params={"per_page": 1, "_fields": "id"},
@@ -36,23 +38,40 @@ def _probe() -> tuple:
             api_code = r.status_code
         except Exception:
             api_code = 599
-    return hq_dt, hq_code, api_code
+        api_dt = time.monotonic() - t
+    return hq_dt, hq_code, api_code, api_dt
+
+
+_lock = threading.Lock()
+_extra = 0.0  # adaptívna pauza medzi zápismi (s) — rastie pri pomalom shope, klesá pri zdravom
 
 
 def wait_if_slow() -> None:
-    global _last
+    """HQ = tvrdá brzda (TTFB > 3 s / 5xx). WC API > SG_GUARD_API_SLOW_S (8 s) / 5xx = backoff.
+    Lock: kým jeden worker čaká, ostatné workery jobu stoja tiež (adaptívna súbežnosť)."""
+    global _last, _extra
     every = float(os.environ.get("SG_GUARD_EVERY_S", "30"))
     slow = float(os.environ.get("SG_GUARD_SLOW_S", "3"))
-    if time.monotonic() - _last < every:
-        return
-    _last = time.monotonic()
-    for pause in (30, 60, 120, 240, 240, 240, 240):
-        dt, hq_code, api_code = _probe()
-        if 508 in (hq_code, api_code):
-            LOGGER.error("shop_guard: hosting hlási limit zdrojov (508) — pauza 600s")
-            time.sleep(600)
-            continue
-        if dt <= slow and hq_code not in BAD and api_code not in BAD:
-            return
-        LOGGER.warning("shop_guard: HQ %.1fs (%s), WC API %s — pauza %ss", dt, hq_code, api_code, pause)
-        time.sleep(pause)
+    api_slow = float(os.environ.get("SG_GUARD_API_SLOW_S", "8"))
+    with _lock:
+        if time.monotonic() - _last >= every:
+            _last = time.monotonic()
+            for pause in (30, 60, 120, 240, 240, 240, 240):
+                dt, hq_code, api_code, api_dt = _probe()
+                if 508 in (hq_code, api_code):
+                    LOGGER.error("shop_guard: hosting hlási limit zdrojov (508) — pauza 600s")
+                    time.sleep(600)
+                    continue
+                hq_ok = dt <= slow and hq_code not in BAD
+                api_ok = api_code not in BAD and api_dt <= api_slow
+                if hq_ok and api_ok:
+                    # pomalší, ale ešte OK shop → mierne pribrzdi; zdravý → povoľ
+                    _extra = min(20.0, _extra + 2.0) if api_dt > api_slow / 2 else max(0.0, _extra - 2.0)
+                    break
+                _extra = min(20.0, _extra + 5.0)
+                LOGGER.warning("shop_guard: HQ %.1fs (%s), WC API %.1fs (%s) — pauza %ss, krok +%.0fs",
+                               dt, hq_code, api_dt, api_code, pause, _extra)
+                time.sleep(pause)
+        extra = _extra
+    if extra > 0:
+        time.sleep(extra)
