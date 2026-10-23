@@ -213,7 +213,7 @@ def iter_drafts(url, auth, session, sleep: float):
         if len(batch) < 100:
             return
         page += 1
-        time.sleep(sleep if dt < 8 else 30)
+        time.sleep(sleep if dt < 8 else (10 if dt < 15 else 30))
 
 
 def main() -> int:
