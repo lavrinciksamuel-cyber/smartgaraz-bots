@@ -113,6 +113,9 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
         from pricing import bad_cost_reason
         if bad_cost_reason(cost, price, supplier=src, name=name, sku=sku) == "cost_outlier":
             reasons.append("cost_outlier")
+    # Pro-Tec: parser/ceny sa opravujú — zverejni len so známou nákupnou cenou a cenou nad ňou.
+    if src == "pro-tec" and price > 0 and not (cost and cost > 0 and price > cost + 0.009):
+        reasons.append("protec_price_not_above_cost")
 
     # kategória
     cats = [(c.get("name") or "").replace("&amp;", "&").strip() for c in (p.get("categories") or [])]
@@ -214,7 +217,7 @@ def iter_drafts(url, auth, session, sleep: float):
         if len(batch) < 100:
             return
         page += 1
-        time.sleep(sleep if dt < 8 else 30)
+        time.sleep(sleep if dt < 8 else (10 if dt < 15 else 30))
 
 
 def main() -> int:
