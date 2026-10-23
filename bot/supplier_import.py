@@ -340,6 +340,9 @@ def main() -> int:
     if a.mode == "prices":
         if not host:
             return result(False, "Pre tohto dodávateľa ešte nevieme aktualizovať ceny a sklad.")
+        if slug == "pro-tec":
+            # Najprv riadky, ktoré overenie označilo ako pokazené banner parserom.
+            os.environ.setdefault("SG_PRIORITY_SKUS", "43201,33179,22202,X6000-5")
         env["SG_ONLY_SUPPLIER_HOST"] = host
         rc, out = run([py, str(ROOT / "secret_crawler.py"), "--existing", "--status", "any",
                        "--limit", str(limit), "--sleep", "0.1"], env)

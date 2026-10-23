@@ -8,6 +8,8 @@ bot/.env
 bot/data/heijunka_vehicle_queue_state.json
 bot/data/heijunka_szekop_queue_state.json
 bot/data/wurth_cheap_progress.json
+bot/data/wurth_sk_inbox/*
+!bot/data/wurth_sk_inbox/.gitkeep
 bot/reports/
 bot/**/__pycache__/
 **/__pycache__/

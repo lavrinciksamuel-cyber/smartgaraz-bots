@@ -81,6 +81,9 @@ def build_wc_payload(offer, pricing) -> Dict:
         {"key": "_supplier_source", "value": offer.source},
         {"key": "_last_b2b_sync", "value": time.strftime("%Y-%m-%d %H:%M:%S")},
     ]
+    if "pro-tec" in str(offer.source or "").lower() or "protec" in str(offer.source or "").lower():
+        from suppliers.protec import PARSER_VERSION
+        meta.append({"key": "_sg_protec_parser", "value": PARSER_VERSION})
     # Predaj = aktuálna MOC (pricing.retail_price). Nákupná (_cost_price) len v meta.
     sell = float(pricing.retail_price)
     if sell <= 0:
@@ -121,6 +124,13 @@ def build_wc_payload(offer, pricing) -> Dict:
         }
     if pricing.stock_qty is not None:
         payload["stock_quantity"] = int(pricing.stock_qty)
+    # Pro-Tec: po oprave parsera zosúlaď SKU a názov so stránkou (banner P1241).
+    # Stav (publish/draft) sa sem nedáva — upsert ho pri update aj tak zahodí.
+    if "pro-tec" in str(offer.source or "").lower() or "protec" in str(offer.source or "").lower():
+        if offer.sku:
+            payload["sku"] = offer.sku
+        if offer.name:
+            payload["name"] = offer.name
     return payload
 
 
@@ -278,11 +288,67 @@ def sync_existing_wc(
     stats = {"updated": 0, "skipped": 0, "failed": 0}
     page = 1
     processed = 0
+    seen_ids: set = set()
     # 1 login / supplier host na celý beh
     supplier_by_host: Dict[str, object] = {}
+
+    def _one(product: dict) -> None:
+        nonlocal processed
+        from shop_guard import wait_if_slow
+        wait_if_slow()
+        processed += 1
+        meta = {m["key"]: m["value"] for m in product.get("meta_data", []) if isinstance(m, dict)}
+        supplier_url = meta.get("supplier_url") or ""
+        if not supplier_url or (_ONLY_HOST and _ONLY_HOST not in (urlparse(supplier_url).netloc or "").lower()):
+            stats["skipped"] += 1
+            return
+        try:
+            host = (urlparse(supplier_url).netloc or "").lower()
+            supplier = supplier_by_host.get(host)
+            if supplier is None:
+                supplier = resolve_supplier(supplier_url, meta.get("_supplier_source") or "")
+                if hasattr(supplier, "ensure_login"):
+                    supplier.ensure_login()
+                supplier_by_host[host] = supplier
+            offer = supplier.fetch_offer(supplier_url)
+            if not offer:
+                stats["failed"] += 1
+                return
+            offer.sku = offer.sku or product.get("sku") or ""
+            offer.name = offer.name or product.get("name") or ""
+            result = sync_one(wc, offer, dry_run=dry_run, product_id=int(product["id"]))
+            if result.startswith("updated") or result.startswith("created"):
+                stats["updated"] += 1
+            else:
+                stats["skipped"] += 1
+        except Exception as exc:
+            LOGGER.warning("ID %s zlyhalo: %s", product.get("id"), exc)
+            stats["failed"] += 1
+
     status_param = (status or "publish").strip().lower()
     if status_param not in ("publish", "draft", "pending", "private", "any"):
         status_param = "publish"
+
+    priority = [s.strip() for s in os.getenv("SG_PRIORITY_SKUS", "").split(",") if s.strip()]
+    for sku in priority:
+        try:
+            resp = wc.api.get("products", params={"sku": sku})
+            data = resp.json() if resp is not None else []
+        except Exception as exc:
+            LOGGER.warning("priority SKU %s: %s", sku, exc)
+            continue
+        rows = data if isinstance(data, list) else ([data] if isinstance(data, dict) and data.get("id") else [])
+        for product in rows:
+            if status_param != "any" and str(product.get("status") or "") != status_param:
+                continue
+            pid = product.get("id")
+            if pid in seen_ids:
+                continue
+            seen_ids.add(pid)
+            _one(product)
+            time.sleep(sleep)
+            if limit and processed >= limit:
+                return stats
 
     def _has_cost(product: dict) -> bool:
         meta = {
@@ -329,34 +395,10 @@ def sync_existing_wc(
         for product in products:
             if limit and processed >= limit:
                 return stats
-            processed += 1
-            meta = {m["key"]: m["value"] for m in product.get("meta_data", []) if isinstance(m, dict)}
-            supplier_url = meta.get("supplier_url") or ""
-            if not supplier_url or (_ONLY_HOST and _ONLY_HOST not in (urlparse(supplier_url).netloc or "").lower()):
-                stats["skipped"] += 1
+            if product.get("id") in seen_ids:
                 continue
-            try:
-                host = (urlparse(supplier_url).netloc or "").lower()
-                supplier = supplier_by_host.get(host)
-                if supplier is None:
-                    supplier = resolve_supplier(supplier_url, meta.get("_supplier_source") or "")
-                    if hasattr(supplier, "ensure_login"):
-                        supplier.ensure_login()
-                    supplier_by_host[host] = supplier
-                offer = supplier.fetch_offer(supplier_url)
-                if not offer:
-                    stats["failed"] += 1
-                    continue
-                offer.sku = offer.sku or product.get("sku") or ""
-                offer.name = offer.name or product.get("name") or ""
-                result = sync_one(wc, offer, dry_run=dry_run, product_id=int(product["id"]))
-                if result.startswith("updated") or result.startswith("created"):
-                    stats["updated"] += 1
-                else:
-                    stats["skipped"] += 1
-            except Exception as exc:
-                LOGGER.warning("ID %s zlyhalo: %s", product.get("id"), exc)
-                stats["failed"] += 1
+            seen_ids.add(product.get("id"))
+            _one(product)
             time.sleep(sleep)
         page += 1
         if not prefer_no_cost:
@@ -374,42 +416,10 @@ def sync_existing_wc(
         for product in queue:
             if limit and processed >= limit:
                 break
-            processed += 1
-            meta = {
-                m["key"]: m["value"]
-                for m in product.get("meta_data", [])
-                if isinstance(m, dict)
-            }
-            supplier_url = meta.get("supplier_url") or ""
-            if not supplier_url or (_ONLY_HOST and _ONLY_HOST not in (urlparse(supplier_url).netloc or "").lower()):
-                stats["skipped"] += 1
+            if product.get("id") in seen_ids:
                 continue
-            try:
-                host = (urlparse(supplier_url).netloc or "").lower()
-                supplier = supplier_by_host.get(host)
-                if supplier is None:
-                    supplier = resolve_supplier(
-                        supplier_url, meta.get("_supplier_source") or ""
-                    )
-                    if hasattr(supplier, "ensure_login"):
-                        supplier.ensure_login()
-                    supplier_by_host[host] = supplier
-                offer = supplier.fetch_offer(supplier_url)
-                if not offer:
-                    stats["failed"] += 1
-                    continue
-                offer.sku = offer.sku or product.get("sku") or ""
-                offer.name = offer.name or product.get("name") or ""
-                result = sync_one(
-                    wc, offer, dry_run=dry_run, product_id=int(product["id"])
-                )
-                if result.startswith("updated") or result.startswith("created"):
-                    stats["updated"] += 1
-                else:
-                    stats["skipped"] += 1
-            except Exception as exc:
-                LOGGER.warning("ID %s zlyhalo: %s", product.get("id"), exc)
-                stats["failed"] += 1
+            seen_ids.add(product.get("id"))
+            _one(product)
             time.sleep(sleep)
     return stats
 

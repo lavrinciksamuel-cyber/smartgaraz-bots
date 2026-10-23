@@ -23,6 +23,72 @@ from brands import detect_true_brand
 
 LOGGER = logging.getLogger("suppliers.protec")
 
+# Zmení sa, keď sa zmení výber produktu zo Shoptet trackingu. Sync/reprice
+# starších riadkov (banner P1241) sa nesmie spoľahnúť na uložený cost, kým
+# produkt nemá túto značku po novom parse.
+PARSER_VERSION = "pcode-v1"
+
+
+def _norm_code(value: object) -> str:
+    return re.sub(r"[\s._]+", "", str(value or "")).strip().lower()
+
+
+def page_product_code(soup) -> str:
+    """Kód z hlavného detailu (`.p-code`), nie z banneru v trackingu."""
+    el = soup.select_one(".p-code, [itemprop='sku']")
+    if not el:
+        return ""
+    text = el.get_text(" ", strip=True)
+    text = re.sub(
+        r"^(kód|kod|code|katalógové\s*číslo|katalogove\s*cislo|sku)\s*:?\s*",
+        "",
+        text,
+        flags=re.I,
+    )
+    return text.strip()
+
+
+def select_tracked_product(products: dict, page_code: str) -> dict:
+    """Položka trackingu, ktorej id / content_ids / code sedí s `.p-code`.
+
+    `list(products.values())[0]` je na Shoptete banner (P1241 Diesel System
+    Super Clean) na každej stránke — bez zhody kódu ho neberieme.
+    """
+    items = [(str(key), item) for key, item in (products or {}).items() if isinstance(item, dict)]
+    if not items:
+        return {}
+    code = _norm_code(page_code)
+    if not code:
+        return items[0][1] if len(items) == 1 else {}
+    for key, item in items:
+        ids = item.get("content_ids") or []
+        if isinstance(ids, str):
+            ids = [ids]
+        candidates = [key, item.get("code"), item.get("id"), item.get("product_id")]
+        if isinstance(ids, list):
+            candidates.extend(ids)
+        if any(_norm_code(c) == code for c in candidates if c not in (None, "")):
+            return item
+    return {}
+
+
+def detail_price_amount(soup) -> float:
+    """Cena z bloku hlavného produktu, nie z cudzieho banneru."""
+    for sel in (
+        ".p-detail .price-final",
+        ".p-detail-inner .price-final",
+        ".product-detail .price-final",
+        ".price-final-holder .price-final",
+        ".p-final-price .price-final",
+    ):
+        el = soup.select_one(sel)
+        if not el:
+            continue
+        val = parse_price(el.get_text())
+        if val:
+            return float(val)
+    return 0.0
+
 
 class ProtecSupplier(LoginMixin, GenericSupplier):
     name = "pro-tec"
@@ -120,25 +186,29 @@ class ProtecSupplier(LoginMixin, GenericSupplier):
     def parse_product(self, url: str) -> Optional[ProductRaw]:
         self.ensure_login()
         soup = self.soup(url)
+        page_code = page_product_code(soup)
         shoptet: dict = {}
         tracking = soup.find("script", id="trackingScript")
         if tracking and tracking.get("data-products"):
             try:
                 dp = json.loads(tracking["data-products"])
                 if dp.get("products"):
-                    shoptet = list(dp["products"].values())[0]
+                    shoptet = select_tracked_product(dp["products"], page_code)
             except Exception:
                 pass
 
-        name = shoptet.get("content_name") or shoptet.get("name") or ""
+        h1 = soup.find("h1")
+        h1_name = h1.get_text(strip=True) if h1 else ""
+        # Tracking len keď sedí s kódom stránky. Inak názov z H1, nie z banneru.
+        name = (shoptet.get("content_name") or shoptet.get("name") or "") if shoptet else ""
         if not name:
-            h1 = soup.find("h1")
-            name = h1.get_text(strip=True) if h1 else ""
+            name = h1_name
         if not name:
             return None
 
         content_ids = shoptet.get("content_ids") or []
-        sku = content_ids[0] if isinstance(content_ids, list) and content_ids else (shoptet.get("code") or "")
+        tracked_sku = content_ids[0] if isinstance(content_ids, list) and content_ids else (shoptet.get("code") or "")
+        sku = page_code or tracked_sku or ""
         if not sku:
             m = re.search(r"(?:Kód|Katalógové\s*číslo):?\s*([A-Za-z0-9\-]+)", soup.get_text(), re.I)
             if m:
@@ -150,10 +220,12 @@ class ProtecSupplier(LoginMixin, GenericSupplier):
             if m:
                 ean = m.group(1)
 
-        current = float(shoptet.get("value") or 0) or parse_price(
-            (soup.find("meta", property="product:price:amount") or {}).get("content")
-            if soup.find("meta", property="product:price:amount") else None
-        ) or 0.0
+        tracked_value = float(shoptet.get("value") or 0) if shoptet else 0.0
+        block_price = detail_price_amount(soup)
+        meta_el = soup.find("meta", property="product:price:amount")
+        meta_price = float(parse_price(meta_el.get("content")) or 0.0) if meta_el and meta_el.get("content") else 0.0
+        # Zhoda s .p-code → value z trackingu (po logine je to B2B). Bez zhody nikdy banner.
+        current = tracked_value if shoptet and tracked_value > 0 else (block_price or meta_price or 0.0)
 
         old_price = 0.0
         old_el = soup.select_one(".price-standard, .price-before-discount, del, s")
@@ -252,5 +324,7 @@ class ProtecSupplier(LoginMixin, GenericSupplier):
                 "b2b": b2b,
                 "retail_hint": retail_hint or None,
                 "list_price": list_price or None,
+                "protec_parser": PARSER_VERSION,
+                "page_code": page_code,
             },
         )

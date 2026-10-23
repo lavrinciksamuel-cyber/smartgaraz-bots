@@ -1,0 +1,44 @@
+name: Würth SK price list
+# Týždenný cenník od obchodného zástupcu Würth (XLSX / BMEcat, prípadne CSV).
+# Chodí e-mailom na Gmail; bot schránku zatiaľ nečíta.
+# Dnes: súbor nahrať do HQ (GET /api/sync/wurth-pricelist) alebo do
+# bot/data/wurth_sk_inbox/. Ceny v súbore sú bez DPH.
+# Poplatok 6,80 € pri objednávke do 99,99 €, od 100 € bez poplatku.
+# Cena a sklad len z tohto súboru. Bez čerstvého riadku sa nič nehádá.
+# Nové SKU = koncept. Default je náhľad.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Cesta k súboru (prázdne = inbox alebo HQ)"
+        required: false
+        default: ""
+      args:
+        description: "Náhľad je default. Zápis: --apply"
+        required: false
+        default: ""
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - run: pip install -r bot/requirements.txt
+      - name: Ingest
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          FILE="${{ github.event.inputs.file }}"
+          EXTRA=""
+          if [ -n "$FILE" ]; then EXTRA="--file $FILE"; fi
+          python bot/wurth_sk_feed.py $EXTRA ${{ github.event.inputs.args }}

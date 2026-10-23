@@ -16,6 +16,12 @@ DÔLEŽITÉ — SmartGaráž NIE JE platca DPH na Slovensku:
 Vzorec:
   predajná = (nákupná_s_DPH + doprava_na_ks) × (1 + MARGIN_PERCENT/100)
   zaokrúhlenie na psychologickú cenu (.90 / .99 / 0.05)
+  a NIKDY pod MIN_PROFIT_FACTOR (default 1,20) z nákupnej s DPH, tiež nahor na ,90.
+  Vyššie pravidlo dodávateľa (marža, fee floor, ideo/mopar 30 %) ostáva, keď dá viac.
+
+Würth B2B je NETTO (bez DPH). Lavro nie je platca DPH, takže pred maržou
+sa netto násobí WURTH_VAT_FACTOR (1,23). Do meta `_cost_price` ostáva netto,
+aby sa 1,23 nepripočítalo druhýkrát. Fee floor (objednávka < 100 €) ostáva.
 
 Env (.env):
   MARGIN_PERCENT=35          # základná marža %
@@ -34,8 +40,10 @@ PRO-TEC (pro-tec-slovakia.sk):
   - `PROTEC_APPLY_MIN_ORDER_TO_MOC=1` zapne starý floor (default OFF).
 
 Maloobchod (Szekop / PRO-TEC / LKQ / …):
-  PRO-TEC / Metabond / LKQ / JLM: pri retail_hint ≥ cost predávame **presne** ich MOC
-  (LKQ: nákup = UserPrice/Vaša cena s DPH, predaj = RetailPrice/MOC s DPH).
+  PRO-TEC / Metabond / LKQ / JLM: pri retail_hint ≥ cost vychádzame z ich MOC
+  (LKQ: nákup = UserPrice/Vaša cena s DPH, predaj = RetailPrice/MOC s DPH),
+  ale konečná predajná je max(ich MOC, nákup s DPH × 1,20) nahor na ,90.
+  Pro-Tec: nákup = dealerská cena s DPH. Ak je ich MOC už nad 20 %, nezaokrúhľujeme ju.
   JLM: feed PRICE_VAT = MOC; cost ≈ MOC × JLM_COST_RATIO (default 0.80) kým nie je VO.
   Szekop/ostatní: max(marža, retail_hint); oleje ≥ OIL_MARGIN_PERCENT.
 
@@ -77,6 +85,10 @@ def _f(name: str, default: float) -> float:
         return default
 
 
+# Pomer predaj/nákup, od ktorého je nákupná zjavne zlá (P2109: 2398 / 24,48).
+COST_OUTLIER_RATIO = 15.0
+
+
 def round_psychological(price: float, ending: float = 0.90) -> float:
     """Zaokrúhli nahor na X.90 / X.99 / najbližších 5 centov."""
     if ending <= 0:
@@ -86,6 +98,91 @@ def round_psychological(price: float, ending: float = 0.90) -> float:
     if candidate < price:
         candidate = whole + 1 + ending
     return round(candidate, 2)
+
+
+def cost_with_vat_for(cost: float, supplier: str = "", name: str = "", brand: str = "") -> float:
+    """Nákup, z ktorého sa ráta zisk. Würth a Mopar/Pák sú netto → × DPH. Ostatní už s DPH."""
+    try:
+        raw = float(cost)
+    except (TypeError, ValueError):
+        return 0.0
+    if raw <= 0:
+        return 0.0
+    if is_wurth_source(source=supplier, brand=brand, name=name):
+        return raw * _f("WURTH_VAT_FACTOR", 1.23)
+    if is_mopar_source(source=supplier, brand=brand, name=name):
+        return raw * _f("MOPAR_VAT_FACTOR", 1.23)
+    return raw
+
+
+def min_profit_price(cost_with_vat: float, ending: Optional[float] = None) -> float:
+    """Najnižšia predajná: nákup s DPH × MIN_PROFIT_FACTOR, nahor na ,90."""
+    try:
+        gross = float(cost_with_vat)
+    except (TypeError, ValueError):
+        return 0.0
+    if gross <= 0:
+        return 0.0
+    factor = _f("MIN_PROFIT_FACTOR", 1.20)
+    end = _f("PRICE_ENDING", 0.90) if ending is None else ending
+    return round_psychological(gross * factor, end)
+
+
+def _enforce_min_profit(
+    result: PricingResult,
+    cost_with_vat: float,
+    ending: Optional[float] = None,
+) -> PricingResult:
+    """Zdvihni predaj len keď je pod 20 % floorom. Vyššiu cenu nezaokrúhľuj."""
+    floor = min_profit_price(cost_with_vat, ending=ending)
+    if floor <= 0 or result.retail_price + 1e-9 >= floor:
+        return result
+    result.retail_price = floor
+    result.profit_eur = round(floor - float(cost_with_vat) - float(result.shipping or 0), 2)
+    return result
+
+
+def bad_cost_reason(
+    cost: Optional[float],
+    price: Optional[float],
+    supplier: str = "",
+    name: str = "",
+    brand: str = "",
+    sku: str = "",
+) -> Optional[str]:
+    """missing_cost / cost_outlier, inak None.
+
+    Pomer ≥ 15× je podozrivý (P2109). Ak naša vlastná cenotvorba z toho nákladu
+    vyjde blízko aktuálnej ceny (Würth fee floor na drobnom netto), nie je to chyba dát.
+    """
+    try:
+        cost_f = float(cost) if cost not in (None, "") else None
+    except (TypeError, ValueError):
+        cost_f = None
+    if cost_f is None or cost_f <= 0:
+        return "missing_cost"
+    try:
+        price_f = float(price) if price not in (None, "") else 0.0
+    except (TypeError, ValueError):
+        price_f = 0.0
+    if price_f <= 0 or price_f / cost_f < _f("COST_OUTLIER_RATIO", COST_OUTLIER_RATIO):
+        return None
+    expected = calculate_retail(
+        cost_f,
+        supplier=supplier or "",
+        name=name or "",
+        brand=brand or "",
+        sku=sku or "",
+        margin_percent=35.0,
+        shipping_flat=0.60,
+        price_ending=0.90,
+        min_margin_eur=1.50,
+        cost_has_vat=True,
+        vat_rate=0.0,
+    ).retail_price
+    if expected > 0 and price_f <= expected * 1.15 + 0.02:
+        return None
+    return "cost_outlier"
 
 
 def is_oil_product(
@@ -234,7 +331,8 @@ def is_wurth_source(source: str = "", brand: str = "", name: str = "") -> bool:
 def wurth_price_floor(net_cost: float) -> float:
     """Würth: cena v B2B e-shope je NETTO (bez DPH). Lavro s.r.o. nie je platca DPH.
 
-    Pri objednávke do 100 € netto Würth účtuje poplatok 6,80 € (VOP čl. 2.6/5.12)
+    Würth SK (newsletter): ceny sú bez DPH. Objednávka do 99,99 € netto má
+    manipulačný poplatok 6,80 €, od 100 € je bez poplatku (VOP čl. 2.6/5.12).
     → minimálna predajná = (netto + 6,80) × 1,23 + MIN_MARGIN_EUR, zaokrúhlené na ,90.
     (Košík Samuela: 11,90 + 6,80 + DPH 4,30 = 23,00 → floor 24,90.)
     """
@@ -289,9 +387,18 @@ def calculate_retail(
     retail_hint: Optional[float] = None,
 ) -> PricingResult:
     if supplier and is_mopar_source(source=supplier, brand=brand, name=name):
-        return calculate_retail_mopar(cost)
-    if supplier and re.search(r"\bideo\b", str(supplier).lower()):
-        return calculate_retail_ideo(cost)
+        return _enforce_min_profit(
+            calculate_retail_mopar(cost),
+            cost_with_vat_for(cost, supplier, name, brand),
+            ending=price_ending,
+        )
+    # ideo aj TSS (twin aj tento repo) majú +30 % z ceny s DPH — nad 20 % floorom.
+    if supplier and re.search(r"\b(ideo|tss)\b", str(supplier).lower()):
+        return _enforce_min_profit(
+            calculate_retail_ideo(cost),
+            cost_with_vat_for(cost, supplier, name, brand),
+            ending=price_ending,
+        )
     margin = margin_percent if margin_percent is not None else _f("MARGIN_PERCENT", 35.0)
     shipping = shipping_flat if shipping_flat is not None else _f("SHIPPING_FLAT", 0.60)
     ending = price_ending if price_ending is not None else _f("PRICE_ENDING", 0.90)
@@ -318,12 +425,16 @@ def calculate_retail(
     if (protec or metabond or lkq or jlm) and hint > 0 and hint + 1e-9 >= float(cost):
         profit = round(hint - float(cost) - shipping, 2)
         m_pct = round((hint / float(cost) - 1.0) * 100.0, 1) if float(cost) > 0 else 0.0
-        return PricingResult(
-            cost_price=round(float(cost), 2),
-            shipping=round(shipping, 2),
-            margin_percent=m_pct,
-            retail_price=round(hint, 2),
-            profit_eur=profit,
+        return _enforce_min_profit(
+            PricingResult(
+                cost_price=round(float(cost), 2),
+                shipping=round(shipping, 2),
+                margin_percent=m_pct,
+                retail_price=round(hint, 2),
+                profit_eur=profit,
+            ),
+            cost_with_vat_for(cost, supplier or "", name, brand),
+            ending=ending,
         )
 
     # Oleje: minimum OIL_MARGIN_PERCENT (default 20 %), aj keď globálna marža klesne
@@ -336,6 +447,12 @@ def calculate_retail(
     # Voliteľný starý floor (default OFF) — min. objednávka ≠ kusová MOC.
     if protec and _protec_apply_min_order_to_moc():
         unit_cost = protec_effective_unit_cost(unit_cost)
+
+    wurth = bool(supplier and is_wurth_source(source=supplier, brand=brand, name=name))
+    if wurth:
+        # B2B cenník je netto. Marža ide z ceny s DPH; `_cost_price` ostáva netto (`cost`).
+        unit_cost = float(cost) * _f("WURTH_VAT_FACTOR", 1.23)
+        has_vat = True
 
     # Iba ak by nákupná bola preukázateľne BEZ DPH (COST_HAS_VAT=0), pridaj DPH
     # do nákladov pred maržou. Pre bežný prípad (COST_HAS_VAT=1) sa nič
@@ -360,12 +477,16 @@ def calculate_retail(
 
     profit = round(retail - cost_base - shipping, 2)
 
-    return PricingResult(
-        cost_price=round(float(cost), 2),  # meta = skutočná jednotková B2B
-        shipping=round(shipping, 2),
-        margin_percent=margin,
-        retail_price=retail,
-        profit_eur=profit,
+    return _enforce_min_profit(
+        PricingResult(
+            cost_price=round(float(cost), 2),  # meta = skutočná jednotková B2B (Würth = netto)
+            shipping=round(shipping, 2),
+            margin_percent=margin,
+            retail_price=retail,
+            profit_eur=profit,
+        ),
+        cost_base,
+        ending=ending,
     )
 
 
