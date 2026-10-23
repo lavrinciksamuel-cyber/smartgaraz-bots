@@ -2,9 +2,16 @@
 # -*- coding: utf-8 -*-
 """Würth SK cenník (XLSX / CSV / BMEcat) → cena a sklad. Obsah môže byť v súbore.
 
-Cena v súbore je netto nášho účtu. Predaj ráta calculate_retail (×1,23, marža,
-fee floor, min. 20 %). Riadok bez ceny nenechá starú cenu. Riadok bez skladu
-nemeni sklad. Nové SKU vzniknú ako koncept.
+Majiteľ žiada u obchodného zástupcu Würth týždenný cenník (XLSX alebo BMEcat).
+Príde ako príloha e-mailu na Gmail. Bot schránku zatiaľ nečíta — súbor sa sem
+dostane ručne: nahratie v HQ, alebo súbor v bot/data/wurth_sk_inbox/.
+Automatické stiahnutie z Gmailu je až ďalší krok.
+
+Würth SK: všetky ceny v súbore sú bez DPH. Objednávka do 99,99 € netto má
+manipulačný poplatok 6,80 €, od 100 € je bez poplatku (viď calculate_retail /
+wurth_price_floor). Predaj = netto × 1,23, potom marža, fee floor a min. 20 %.
+Riadok bez ceny nenechá starú cenu. Riadok bez skladu nemení sklad.
+Nové SKU vzniknú ako koncept.
 
 Súbor: --file, inak bot/data/wurth_sk_inbox/, inak HQ GET /api/sync/wurth-pricelist.
 

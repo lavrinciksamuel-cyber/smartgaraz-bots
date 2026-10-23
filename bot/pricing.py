@@ -331,7 +331,8 @@ def is_wurth_source(source: str = "", brand: str = "", name: str = "") -> bool:
 def wurth_price_floor(net_cost: float) -> float:
     """Würth: cena v B2B e-shope je NETTO (bez DPH). Lavro s.r.o. nie je platca DPH.
 
-    Pri objednávke do 100 € netto Würth účtuje poplatok 6,80 € (VOP čl. 2.6/5.12)
+    Würth SK (newsletter): ceny sú bez DPH. Objednávka do 99,99 € netto má
+    manipulačný poplatok 6,80 €, od 100 € je bez poplatku (VOP čl. 2.6/5.12).
     → minimálna predajná = (netto + 6,80) × 1,23 + MIN_MARGIN_EUR, zaokrúhlené na ,90.
     (Košík Samuela: 11,90 + 6,80 + DPH 4,30 = 23,00 → floor 24,90.)
     """

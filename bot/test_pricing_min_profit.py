@@ -63,6 +63,11 @@ class PricingFloor(EnvGuard):
     def test_wurth_small_basket_fee_floor(self):
         self.assertEqual(retail(11.90, "wurth"), 24.90)
 
+    def test_wurth_fee_applies_through_99_99_and_stops_at_100(self):
+        from pricing import wurth_price_floor
+        self.assertEqual(wurth_price_floor(99.99), 132.90)
+        self.assertEqual(wurth_price_floor(100.0), 124.90)
+
     def test_stored_cost_stays_net(self):
         result = calculate_retail(
             1802.89, supplier="wurth", margin_percent=35, shipping_flat=0.60,

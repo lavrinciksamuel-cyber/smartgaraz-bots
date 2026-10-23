@@ -1,6 +1,9 @@
 name: Würth SK price list
-# Cenník z Würth SK (XLSX / CSV / BMEcat), ktorý si majiteľ nechá poslať.
-# Súbor: bot/data/wurth_sk_inbox/ alebo HQ GET /api/sync/wurth-pricelist.
+# Týždenný cenník od obchodného zástupcu Würth (XLSX / BMEcat, prípadne CSV).
+# Chodí e-mailom na Gmail; bot schránku zatiaľ nečíta.
+# Dnes: súbor nahrať do HQ (GET /api/sync/wurth-pricelist) alebo do
+# bot/data/wurth_sk_inbox/. Ceny v súbore sú bez DPH.
+# Poplatok 6,80 € pri objednávke do 99,99 €, od 100 € bez poplatku.
 # Cena a sklad len z tohto súboru. Bez čerstvého riadku sa nič nehádá.
 # Nové SKU = koncept. Default je náhľad.
 on:
