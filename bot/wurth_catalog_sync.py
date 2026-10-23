@@ -14,8 +14,11 @@ sitemap aj produktovú pretty URL: eshop.wurth.ba a eshop.wurth-kosova.com.
    ktorý už máme, sa neprepisuje. Popis z iného jazyka sa skráti a preloží
    do slovenčiny (bosnianske produktové frázy). Albánčina sa namiesto
    slovenčiny nepublikuje.
-3. Nové artikle v autodielenských kategóriách (chémia, spojovací materiál,
-   dielenské náradie, spotrebný materiál) sú koncepty bez ceny.
+3. Nové artikle okolo auta (autochémia, spojovací materiál, náradie,
+   dielenské vybavenie, elektro, spotrebný materiál, príslušenstvo
+   servisu a detailingu) sú koncepty bez ceny. Zaradia sa do existujúcej
+   kategórie shopu. Nejasná kategória ostane koncept bez kategórie.
+   Nové kategórie sa nezakladajú. Stavba, záhrada, CNC a Hahn+Kolb nie.
 
 Cena sa nevymýšľa. Sklad sa mení len pravidlom Nedostupné a jeho zrušením,
 keď sa artikl znova objaví (bez množstva kusov).
@@ -64,26 +67,152 @@ PRICE_KEYS = frozenset({"regular_price", "sale_price", "price"})
 MAX_SHORT = 320
 MAX_BULLETS = 4
 
-# L1 slug verejného shopu → naša skupina. Stavebná chémia a záhradné cesty sú nižšie vylúčené.
+# Celý L1 verejného shopu, ak je to okolo auta. Stavba, záhrada, sanita,
+# nábytkové kovanie, kotvy, požiarna ochrana budov a Hahn+Kolb tu nie sú.
 BUCKET_ROOTS = {
     "hemijsko-tehnicki-proizvodi": "chemistry",
     "elementi-za-spajanje-opsti-metricki-colni": "fasteners",
-    "radionicka-oprema": "tools",
     "rucni-alati": "tools",
     "mjerna-tehnika": "tools",
     "masine-akumulatorske-pneumatske-elektro-motorne": "tools",
+    "radionicka-oprema": "workshop",
+    "lemljenje-zavarivanje": "workshop",
+    "ewm-program-zavarivanja": "workshop",
+    "orsy-sistem": "workshop",
+    "masinska-obrada-materijala": "consumables",
+    "crijeva-spojnice-obujmice-za-crijeva": "consumables",
+    "zastita-na-radu": "consumables",
+    "proizvodi-od-tehnicke-gume-i-plastike": "consumables",
+    "dijelovi-za-vozila": "vehicle",
+    "oprema-za-motorna-vozila-orsymobil": "vehicle_equipment",
+    "dijagnostika-za-motorna-vozila-wow": "tools",
 }
-CONSUMABLE_MARKERS = ("brus", "abraz", "rezne-ploc", "rezna-ploc")
+# Elektro len tam, kde ide o auto alebo dielňu. Domové zásuvky, smart home
+# a ističe v tom nie sú.
+ELECTRICAL_L2 = frozenset({
+    "elektroinstalacije/elektroinstalacioni-materijal",
+    "elektroinstalacije/kablovske-spojnice-za-elektroinstalacije",
+    "elektroinstalacije/elektroizolacioni-materijali",
+    "elektroinstalacije/tehnologija-spajanja",
+    "elektroinstalacije/elektroinstalacijski-dijelovi",
+    "elektroinstalacije/elektromaterijal-za-izjednacavanje-potencijala",
+})
+# Podstrom, ktorý v inom prípade povolenom L1 nie je okolo auta.
+EXCLUDE_PREFIXES = (
+    "hemijsko-tehnicki-proizvodi/gradevinska-hemija",
+    "rucni-alati/gradevinski-zanatski-alati",
+    "rucni-alati/specificni-alati-za-gradevinarstvo",
+    "rucni-alati/alati-za-ciscenje-i-kopanje",
+    "elementi-za-spajanje-opsti-metricki-colni/vijci-za-drvo",
+    "elementi-za-spajanje-opsti-metricki-colni/montazni-elementi-za-drvo-opcenito",
+    "elementi-za-spajanje-opsti-metricki-colni/galanterija-za-biro-i-kucanstvo",
+    "elementi-za-spajanje-opsti-metricki-colni/spojni-elementi-za-profilne-sisteme",
+    "masinska-obrada-materijala/alati-za-glodanje-i-struganje",
+    "masinska-obrada-materijala/cnc-obrada-materijala",
+    "crijeva-spojnice-obujmice-za-crijeva/oprema-za-navodnjavanje-connex",
+    "zastita-na-radu/bezbjednost-na-radnom-mjestu-gradilistu",
+    "radionicka-oprema/administriranje-dokumentacije",
+)
 EXCLUDE_MARKERS = (
     "gradevinska-hemija",
     "gradevin",
     "poljoprivred",
     "hortikult",
-    "/vrt",
     "vrtni-",
+    "alati-za-vrt",
     "hahn-kolb",
     "/cnc",
 )
+# Najdlhší prefix vyhrá. Hodnota je cesta v našom strome. Prázdne = nejasné.
+# Spojovací materiál a ochranné pomôcky nemajú vlastnú kategóriu, ostanú bez nej.
+_TOOLS = ("Náradie & Vybavenie", "Dielenské vybavenie")
+_KEYS = ("Náradie & Vybavenie", "Kľúče & račne")
+_MEASURE = ("Náradie & Vybavenie", "Diagnostika & meranie")
+_LABELS = ("Náradie & Vybavenie", "Etikety & označenie")
+_CHEM_SEAL = ("Dielenská chémia & Údržba", "Tesnenia & Lepidlá")
+_CHEM = ("Dielenská chémia & Údržba",)
+_ELECTRO = ("Náhradné diely", "Elektro & senzory")
+_CABLES = ("Náhradné diely", "Elektro & senzory", "Káble & konektory")
+_AC = ("Náhradné diely", "Chladenie & kúrenie", "Diely klimatizácie")
+SLUG_CATEGORY: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
+    ("hemijsko-tehnicki-proizvodi/ljepila", _CHEM_SEAL),
+    ("hemijsko-tehnicki-proizvodi/zaptivne-mase", _CHEM_SEAL),
+    ("hemijsko-tehnicki-proizvodi/maziva-i-odstranjivaci-hrde", _CHEM),
+    ("hemijsko-tehnicki-proizvodi/sistemi-za-punjenje-visekratne-boce", _TOOLS),
+    ("rucni-alati/program-nasadnih-kljuceva", _KEYS),
+    ("rucni-alati/kljucevi-za-vijke", _KEYS),
+    ("rucni-alati/program-odvijaca-vijaka", _KEYS),
+    ("rucni-alati/bitsevi-i-pribor", _KEYS),
+    ("rucni-alati/setovi-rucnih-alata", _KEYS),
+    ("rucni-alati/specijalni-alati-za-motorna-vozila", _TOOLS),
+    ("rucni-alati/specificni-alati-za-motorna-vozila", _TOOLS),
+    ("rucni-alati/specijalni-alati-za-privredna-vozila", _TOOLS),
+    ("rucni-alati/kfz-nfz-alat-za-inspekciju", _TOOLS),
+    ("rucni-alati/alati-za-karoserije", _TOOLS),
+    ("rucni-alati/klijesta-i-pincete", _TOOLS),
+    ("rucni-alati/udarni-alati", _TOOLS),
+    ("rucni-alati/stezni-alati", _TOOLS),
+    ("rucni-alati/alati-za-sjecenje", _TOOLS),
+    ("rucni-alati/alati-za-rezanje-i-struganje", _TOOLS),
+    ("rucni-alati/izvlakaci", _TOOLS),
+    ("rucni-alati/alati-za-izvijanje-vijaka", _TOOLS),
+    ("rucni-alati/alati-za-lomljenje-navrtki", _TOOLS),
+    ("rucni-alati/reparatura-i-ojacavanje-navoja", _TOOLS),
+    ("rucni-alati/tehnika-zakivanja-zakovicama", _TOOLS),
+    ("rucni-alati/alati-za-skidanje-izolacije", _TOOLS),
+    ("rucni-alati/metle-cetke-i-drske", _TOOLS),
+    ("rucni-alati/alati-za-obiljezavanje-i-oznacavanje", _TOOLS),
+    ("masine-akumulatorske-pneumatske-elektro-motorne", _TOOLS),
+    ("mjerna-tehnika", _MEASURE),
+    ("dijagnostika-za-motorna-vozila-wow", _MEASURE),
+    ("radionicka-oprema/pneumatska-tehnika", _TOOLS),
+    ("radionicka-oprema/sistemi-za-skladistenje", _TOOLS),
+    ("radionicka-oprema/radna-rasvjeta-baterije-punjaci", _TOOLS),
+    ("radionicka-oprema/radionicka-oprema-za-motorna-vozila", _TOOLS),
+    ("radionicka-oprema/trake-kaisevi-lanci-uzadi-ankeri", _TOOLS),
+    ("radionicka-oprema/sanduci-za-alate-koferi-tasne", _TOOLS),
+    ("radionicka-oprema/sanduci", _TOOLS),
+    ("radionicka-oprema/nosaci-alata-omce-za-alat-torbe", _TOOLS),
+    ("radionicka-oprema/sistemska-radionicka-oprema", _TOOLS),
+    ("radionicka-oprema/uredaji-za-dizanje", _TOOLS),
+    ("radionicka-oprema/podizne-platforme", _TOOLS),
+    ("radionicka-oprema/sistemi-za-skladistenje-opasnih-materija", _TOOLS),
+    ("radionicka-oprema/materijal-za-pakovanje", _TOOLS),
+    ("radionicka-oprema/sistemi-za-obiljezavanje", _LABELS),
+    ("lemljenje-zavarivanje", _TOOLS),
+    ("ewm-program-zavarivanja", _TOOLS),
+    ("orsy-sistem", _TOOLS),
+    ("oprema-za-motorna-vozila-orsymobil", _TOOLS),
+    ("masinska-obrada-materijala", _TOOLS),
+    ("crijeva-spojnice-obujmice-za-crijeva", _TOOLS),
+    ("elektroinstalacije/kablovske-spojnice-za-elektroinstalacije", _CABLES),
+    ("elektroinstalacije/tehnologija-spajanja", _CABLES),
+    ("elektroinstalacije/elektroinstalacioni-materijal", _ELECTRO),
+    ("elektroinstalacije/elektroizolacioni-materijali", _ELECTRO),
+    ("elektroinstalacije/elektroinstalacijski-dijelovi", _ELECTRO),
+    ("elektroinstalacije/elektromaterijal-za-izjednacavanje-potencijala", _ELECTRO),
+    ("dijelovi-za-vozila/elektrika-za-motorna-vozila", _ELECTRO),
+    ("dijelovi-za-vozila/klima-tehnologija-za-motorna-vozila", _AC),
+)
+# Kľúčové slovo z názvu smie spresniť cestu len v týchto hlavných kategóriách.
+KEYWORD_MAINS = {
+    "chemistry": frozenset({
+        "Dielenská chémia & Údržba", "Autochémia & Aditíva",
+        "Autokozmetika & Detail", "Motorové oleje & Kvapaliny",
+    }),
+    "fasteners": frozenset({"Náhradné diely"}),
+    "tools": frozenset({"Náradie & Vybavenie"}),
+    "workshop": frozenset({"Náradie & Vybavenie"}),
+    "electrical": frozenset({"Náhradné diely", "Náradie & Vybavenie"}),
+    "consumables": frozenset({
+        "Náradie & Vybavenie", "Dielenská chémia & Údržba", "Autokozmetika & Detail",
+    }),
+    "vehicle": frozenset({
+        "Náhradné diely", "Autokozmetika & Detail", "Dielenská chémia & Údržba",
+        "Motorové oleje & Kvapaliny", "Náradie & Vybavenie", "Autochémia & Aditíva",
+    }),
+    "vehicle_equipment": frozenset({"Náradie & Vybavenie", "Náhradné diely"}),
+}
 
 # Najdlhšie frázy prvé. Len produktové výrazy, nie voľný preklad viet.
 _BCS_PHRASES: Tuple[Tuple[str, str], ...] = (
@@ -177,18 +306,108 @@ def robots_allows(text: str, path: str) -> bool:
     return True if best is None else best[1]
 
 
+def _path_parts(path: str) -> List[str]:
+    return [p for p in unquote(path).strip("/").split("/") if p]
+
+
 def bucket_for_path(path: str) -> Optional[str]:
-    """Autodielenská skupina, alebo None (stavba, záhrada, CNC, iné)."""
-    parts = [p for p in unquote(path).strip("/").split("/") if p]
+    """Skupina okolo auta, alebo None (stavba, záhrada, sanita, CNC, iné)."""
+    parts = _path_parts(path)
     if not parts:
         return None
     blob = "/" + "/".join(parts)
     if any(marker in blob for marker in EXCLUDE_MARKERS):
         return None
+    joined = "/".join(parts)
+    if any(joined == prefix or joined.startswith(prefix + "/") for prefix in EXCLUDE_PREFIXES):
+        return None
     root = parts[0]
-    if root == "masinska-obrada-materijala":
-        return "consumables" if any(marker in blob for marker in CONSUMABLE_MARKERS) else None
-    return BUCKET_ROOTS.get(root)
+    if root in BUCKET_ROOTS:
+        return BUCKET_ROOTS[root]
+    two = "/".join(parts[:2])
+    if two in ELECTRICAL_L2:
+        return "electrical"
+    return None
+
+
+def strict_category_path(path: Sequence[str]) -> Optional[List[str]]:
+    """Cesta len ak je celá v našom strome. Neznámy list sa nedopĺňa prvou položkou."""
+    from taxonomy import CATEGORY_TREE, PART_LEAVES
+
+    cleaned = [str(part).strip() for part in path if str(part).strip()]
+    if not cleaned or cleaned[0] not in CATEGORY_TREE:
+        return None
+    if len(cleaned) == 1:
+        return [cleaned[0]]
+    sub = next((name for name in CATEGORY_TREE[cleaned[0]] if name.lower() == cleaned[1].lower()), None)
+    if not sub:
+        return None
+    if len(cleaned) == 2:
+        return [cleaned[0], sub]
+    leaf = next((name for name in (PART_LEAVES.get(sub) or []) if name.lower() == cleaned[2].lower()), None)
+    if not leaf:
+        return None
+    return [cleaned[0], sub, leaf]
+
+
+def slug_category(path: str) -> Optional[List[str]]:
+    """Existujúca kategória podľa vetvy verejného shopu. None = z URL nejasné."""
+    if not bucket_for_path(path):
+        return None
+    joined = "/".join(_path_parts(path))
+    best: Optional[Tuple[str, ...]] = None
+    best_len = -1
+    for prefix, shop_path in SLUG_CATEGORY:
+        if joined == prefix or joined.startswith(prefix + "/"):
+            if len(prefix) > best_len:
+                best = shop_path
+                best_len = len(prefix)
+    if not best:
+        return None
+    return strict_category_path(best)
+
+
+def shop_category_for(path: str, slovak_name: str = "") -> Optional[List[str]]:
+    """Naša kategória. Názov ju smie spresniť. Keď nesedí, vráti None."""
+    bucket = bucket_for_path(path)
+    if not bucket:
+        return None
+    from taxonomy import match_keyword_category
+
+    slug_path = slug_category(path)
+    keyword_path = None
+    name = (slovak_name or "").strip()
+    if name:
+        raw = match_keyword_category({"name": name, "sku": "", "brand": "Würth"})
+        if raw and raw[0] in KEYWORD_MAINS.get(bucket, frozenset()):
+            keyword_path = strict_category_path(raw)
+    if keyword_path and slug_path:
+        if keyword_path[0] == slug_path[0] and len(keyword_path) >= len(slug_path):
+            return keyword_path
+        if len(slug_path) >= 2:
+            return slug_path
+        return keyword_path
+    return keyword_path or slug_path
+
+
+def existing_category_leaf(rows: Sequence[dict], path: Sequence[str]) -> Optional[int]:
+    """ID poslednej úrovne, len keď celá cesta vo Woo už existuje. Nič nevytvára."""
+    parent = 0
+    leaf: Optional[int] = None
+    for name in path:
+        want = html.unescape(name).strip().lower()
+        found = None
+        for row in rows:
+            if int(row.get("parent") or 0) != parent:
+                continue
+            if html.unescape(str(row.get("name") or "")).strip().lower() == want:
+                found = int(row["id"])
+                break
+        if found is None:
+            return None
+        leaf = found
+        parent = found
+    return leaf
 
 
 def leaf_paths(paths: Iterable[str]) -> List[str]:
@@ -414,10 +633,24 @@ def plan_content_fill(product: dict, public: dict, *, images: Optional[Sequence[
     return _forbid_price(payload)
 
 
-def plan_draft(sku: str, public: dict, *, bucket: str, source_url: str, images: Optional[Sequence[str]] = None, media_ok: bool = False) -> dict:
-    """Nový koncept. Bez ceny a bez skladu."""
+def plan_draft(
+    sku: str,
+    public: dict,
+    *,
+    bucket: str,
+    source_url: str,
+    images: Optional[Sequence[str]] = None,
+    media_ok: bool = False,
+    category_path: Optional[Sequence[str]] = None,
+    category_id: Optional[int] = None,
+) -> dict:
+    """Nový koncept. Bez ceny a bez skladu. Kategória len ak už v shope je."""
     sk = slovak_content(public)
     name = sk.get("name") or f"Würth {sku}"
+    path = [str(part) for part in (category_path or []) if str(part).strip()]
+    if category_id and not path:
+        raise RuntimeError("kategória bez cesty")
+    status = "mapped" if category_id else ("missing_in_shop" if path else "unclear")
     payload: dict = {
         "name": name,
         "sku": sku,
@@ -430,8 +663,12 @@ def plan_draft(sku: str, public: dict, *, bucket: str, source_url: str, images: 
             {"key": "_sg_catalog_source", "value": "wurth_public_ba"},
             {"key": "_sg_public_category", "value": bucket},
             {"key": "_sg_public_url", "value": source_url[:500]},
+            {"key": "_sg_category_path", "value": " > ".join(path)},
+            {"key": "_sg_category_status", "value": status},
         ],
     }
+    if category_id:
+        payload["categories"] = [{"id": int(category_id)}]
     if sk.get("description"):
         payload["description"] = f"<p>{html.escape(sk['description'])}</p>"
     if sk.get("short"):
@@ -572,6 +809,29 @@ def _wc_request(method: str, path: str, **kwargs):
             return response
         last = response
     return last
+
+
+def fetch_shop_categories() -> List[dict]:
+    """Existujúce Woo kategórie. Pri chybe prázdny zoznam — koncept ostane bez kategórie."""
+    rows: List[dict] = []
+    page = 1
+    while page <= 30:
+        response = _wc_request(
+            "GET",
+            "/products/categories",
+            params={"per_page": 100, "page": page, "_fields": "id,name,parent"},
+        )
+        if response is None or not response.ok:
+            LOG.warning("kategórie WC HTTP %s — nové koncepty ostanú bez kategórie", getattr(response, "status_code", 0))
+            return []
+        chunk = response.json()
+        if not isinstance(chunk, list) or not chunk:
+            break
+        rows.extend(row for row in chunk if isinstance(row, dict))
+        if len(chunk) < 100:
+            break
+        page += 1
+    return rows
 
 
 def fetch_shop_wurth(limit: int) -> List[dict]:
@@ -764,7 +1024,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "would_mark_unavailable": len(mark),
         "would_restore": len(restore),
         "relevant_leaf_pages": len(public["leaves"]),
-        "relevant_leaf_pages_note": "candidate URLs; a leaf is a new article only when the page has data-product-code",
+        "relevant_leaf_pages_note": "candidate URLs around cars; a leaf is a new article only when the page has data-product-code",
+        "leaves_with_shop_category": sum(1 for path in public["leaves"] if slug_category("/" + path)),
+        "leaves_category_unclear": sum(1 for path in public["leaves"] if not slug_category("/" + path)),
+        "leaves_category_note": "from the public URL aisle; a product name can still map an unclear aisle, otherwise the draft stays uncategorized",
         "relevant_by_bucket": public["buckets"],
         "sample_pack_checked": sample_pack_n,
         "sample_pack_found": sample_pack_hit,
@@ -819,6 +1082,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     from account_split import mine
 
+    shop_categories = fetch_shop_categories()
     drafted = 0
     for path in public["leaves"]:
         if args.new_limit and drafted >= args.new_limit:
@@ -838,7 +1102,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 page_url = canonical
         bucket = bucket_for_path("/" + path) or ""
         images = verified_image_urls(http, page, article)[:1] if media_ok else []
-        creates.append(plan_draft(article, parsed, bucket=bucket, source_url=page_url, images=images, media_ok=media_ok))
+        cat_path = shop_category_for("/" + path, slovak_content(parsed).get("name") or "")
+        cat_id = existing_category_leaf(shop_categories, cat_path) if cat_path else None
+        creates.append(plan_draft(
+            article, parsed, bucket=bucket, source_url=page_url, images=images, media_ok=media_ok,
+            category_path=cat_path, category_id=cat_id,
+        ))
         our_set.add(article)
         drafted += 1
 

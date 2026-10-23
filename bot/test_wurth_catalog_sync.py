@@ -52,6 +52,53 @@ class CatalogSyncTest(unittest.TestCase):
             "consumables",
         )
         self.assertIsNone(sync.bucket_for_path("/masinska-obrada-materijala/alati-za-glodanje-i-struganje/nozevi"))
+        self.assertEqual(sync.bucket_for_path("/elektroinstalacije/kablovske-spojnice-za-elektroinstalacije/cu/y"), "electrical")
+        self.assertEqual(sync.bucket_for_path("/dijelovi-za-vozila/elektrika-za-motorna-vozila/zarulje/h7"), "vehicle")
+        self.assertEqual(sync.bucket_for_path("/crijeva-spojnice-obujmice-za-crijeva/crijeva/gorivo/8mm"), "consumables")
+        self.assertEqual(sync.bucket_for_path("/radionicka-oprema/radionicka-oprema-za-motorna-vozila/zdvihac/x"), "workshop")
+        self.assertEqual(sync.bucket_for_path("/zastita-na-radu/licna-zastitna-oprema/rukavice/xl"), "consumables")
+        self.assertIsNone(sync.bucket_for_path("/elektroinstalacije/oprema-za-pametne-kuce-smart-home/rele/x"))
+        self.assertIsNone(sync.bucket_for_path("/sanitarije-grijanje-vodoinstalacije-klima-sgk/armature/slavina"))
+        self.assertIsNone(sync.bucket_for_path("/hahn-kolb-cnc-alati-i-oprema/rezni-alati/glodalo"))
+        self.assertIsNone(sync.bucket_for_path("/elementi-za-spajanje-opsti-metricki-colni/vijci-za-drvo/4x40"))
+        self.assertIsNone(sync.bucket_for_path("/crijeva-spojnice-obujmice-za-crijeva/oprema-za-navodnjavanje-connex/hadica"))
+
+    def test_shop_category_uses_existing_tree_and_leaves_fasteners_unclear(self):
+        self.assertEqual(
+            sync.slug_category("/hemijsko-tehnicki-proizvodi/ljepila/pu/kartusa"),
+            ["Dielenská chémia & Údržba", "Tesnenia & Lepidlá"],
+        )
+        self.assertEqual(
+            sync.slug_category("/rucni-alati/program-nasadnih-kljuceva/1-2/gedore"),
+            ["Náradie & Vybavenie", "Kľúče & račne"],
+        )
+        self.assertEqual(
+            sync.slug_category("/dijelovi-za-vozila/klima-tehnologija-za-motorna-vozila/kompresor/x"),
+            ["Náhradné diely", "Chladenie & kúrenie", "Diely klimatizácie"],
+        )
+        self.assertIsNone(sync.slug_category("/elementi-za-spajanje-opsti-metricki-colni/vijci-metricki-colni/m6/x"))
+        self.assertIsNone(sync.slug_category("/zastita-na-radu/licna-zastitna-oprema/rukavice/xl"))
+        self.assertEqual(
+            sync.shop_category_for(
+                "/hemijsko-tehnicki-proizvodi/sredstva-za-ciscenje-odrzavanje-i-njegu/auto/sampon",
+                "Würth Šampón na karosériu",
+            )[0],
+            "Autokozmetika & Detail",
+        )
+        self.assertEqual(
+            sync.shop_category_for(
+                "/elementi-za-spajanje-opsti-metricki-colni/vijci-metricki-colni/koleso/m14",
+                "Würth Skrutka kolesa M14",
+            ),
+            ["Náhradné diely", "Náprava & podvozok", "Ložiská kolies"],
+        )
+        rows = [
+            {"id": 1, "name": "Náradie & Vybavenie", "parent": 0},
+            {"id": 2, "name": "Kľúče & račne", "parent": 1},
+            {"id": 9, "name": "Kľúče & račne", "parent": 0},
+        ]
+        self.assertEqual(sync.existing_category_leaf(rows, ["Náradie & Vybavenie", "Kľúče & račne"]), 2)
+        self.assertIsNone(sync.existing_category_leaf(rows, ["Náradie & Vybavenie", "Neexistuje"]))
 
     def test_leaves_are_pages_without_children(self):
         leaves = sync.leaf_paths([
@@ -133,9 +180,22 @@ class CatalogSyncTest(unittest.TestCase):
             source_url="https://eshop.wurth.ba/x",
         )
         self.assertEqual(draft["status"], "draft")
+        self.assertNotIn("categories", draft)
+        self.assertTrue(any(row["key"] == "_sg_category_status" and row["value"] == "unclear" for row in draft["meta_data"]))
         self.assertFalse(sync.PRICE_KEYS.intersection(draft))
         self.assertNotIn("stock_status", draft)
         self.assertNotIn("stock_quantity", draft)
+        mapped = sync.plan_draft(
+            "0890100044",
+            {"name": "Nasadni kljuc", "description": "", "bullets": [], "pack_qty": None},
+            bucket="tools",
+            source_url="https://eshop.wurth.ba/x",
+            category_path=["Náradie & Vybavenie", "Kľúče & račne"],
+            category_id=2,
+        )
+        self.assertEqual(mapped["status"], "draft")
+        self.assertEqual(mapped["categories"], [{"id": 2}])
+        self.assertFalse(sync.PRICE_KEYS.intersection(mapped))
         self.assertTrue(draft["name"].startswith("Würth "))
         self.assertEqual(sync.translate_bcs_to_sk("Solucion për larje dhe motorit"), "")
 

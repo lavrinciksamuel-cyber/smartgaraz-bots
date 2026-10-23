@@ -4,7 +4,11 @@ name: Würth catalog sync
 # 07:00–23:00 Europe/Bratislava prísnejšie prahy; táto hodina je mimo neho
 # v oboch sezónach a je až po heijunka (21:20 UTC).
 # Cena sa nezapisuje. Sklad len ako Nedostupné po dvoch výpadkoch po sebe,
-# a len ak artikl už vo verejnom sitemape bol. Nové koncepty max 40 na beh.
+# a len ak artikl už vo verejnom sitemape bol.
+# Kandidáti: všetko okolo auta (chémia, spojovací materiál, náradie, dielňa,
+# elektro, spotrebný materiál, príslušenstvo servisu a detailingu).
+# Koncept bez ceny, do existujúcej kategórie. Nejasná kategória ostane bez nej.
+# Nové koncepty max 40 na beh.
 on:
   workflow_dispatch:
     inputs:
