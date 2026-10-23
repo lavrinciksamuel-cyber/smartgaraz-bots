@@ -51,6 +51,8 @@ ALLOWED_SUPPLIER_HOST_SUFFIXES: tuple[str, ...] = (
     "eshop.wurth.sk",
     "wurth.sk",
     "wurth.cz",
+    "eshop.wurth.ba",  # verejné fotky, len článkové číslo (wurth_photo_backfill)
+    "eshop.wurth-kosova.com",
     "media.witglobal.net",  # Würth CDN (len s WURTH_MEDIA_OK + B2B účet)
     "witglobal.net",
     "protec.sk",

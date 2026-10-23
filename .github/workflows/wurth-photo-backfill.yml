@@ -1,0 +1,55 @@
+name: Würth photo backfill
+# Verejné fotky Würth (eshop.wurth.ba, eshop.wurth-kosova.com) podľa artiklového
+# čísla. Default je dry-run a vypíše mieru zhody. --apply zapíše len images +
+# proveniencia, nikdy cenu, sklad ani status. Cudzí shop nie je zdroj ceny.
+# Vyžaduje WURTH_MEDIA_OK, ktorý tento job nastaví len keď je apply zapnuté.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Zapísať fotky do Woo (inak dry-run)"
+        type: boolean
+        default: false
+      limit:
+        description: "Max produktov pre tento účet (0 = všetky bez reálnej fotky)"
+        type: number
+        default: 0
+concurrency:
+  group: wurth-photo-backfill
+  cancel-in-progress: false
+env:
+  SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
+  SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
+
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Backfill
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          WURTH_MEDIA_OK: ${{ inputs.apply && '1' || '0' }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            ARGS+=(--apply)
+          fi
+          LIMIT="${{ inputs.limit }}"
+          if [ -n "$LIMIT" ] && [ "$LIMIT" != "0" ]; then
+            ARGS+=(--limit "$LIMIT")
+          fi
+          if [ ${#ARGS[@]} -eq 0 ]; then
+            python bot/wurth_photo_backfill.py
+          else
+            python bot/wurth_photo_backfill.py "${ARGS[@]}"
+          fi

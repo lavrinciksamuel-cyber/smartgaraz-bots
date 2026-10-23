@@ -49,6 +49,8 @@ _WURTH_MEDIA_HOST_HINTS = (
     "wurth.sk",
     "wurth.cz",
     "eshop.wurth",
+    "wurth.ba",
+    "wurth-kosova.com",
 )
 
 

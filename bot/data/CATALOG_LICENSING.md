@@ -78,6 +78,7 @@ Skryté formátovanie: `strip_hidden_formatting` / `sanitize_sk_copy`.
 | B2B fotka bez watermarku | Rehost + meta `_sg_image_source` / `_sg_image_original_url` / `_sg_image_fetched_at` |
 | Watermark / logo dodávateľa v URL | Zahodiť |
 | Würth / witglobal CDN | Default **OFF**; zapnúť len `WURTH_MEDIA_OK=1` |
+| Verejná fotka Würth BA / Kosovo | Len `bot/wurth_photo_backfill.py`. Zhoda podľa artiklového čísla (URL, `data-product-code` alebo názov súboru), nie podľa názvu produktu. Cena a sklad sa nečítajú. Zápis do Woo len s `--apply` a `WURTH_MEDIA_OK=1`. Bez search URL (`?q=` na BA, akákoľvek query na Kosovo — robots.txt ich zakazuje). |
 | C&D výzva | `python bot/purge_supplier_images.py --source wurth_b2b --dry-run` |
 
 ## Würth — špecifiká
@@ -88,6 +89,8 @@ Skryté formátovanie: `strip_hidden_formatting` / `sanitize_sk_copy`.
   rehost fotiek bez súhlasu; vydávať Würth tovar za nebrandované generikum.
 - Heijunka: max **20–50 SKU** / beh.
 - Env: `WURTH_B2B=1` (cena/sklad), `WURTH_MEDIA_OK=1` (fotky — len so súhlasom).
+- Fotky z verejného `eshop.wurth.ba` a `eshop.wurth-kosova.com` dopĺňa výhradne
+  photo backfill. Cudzí shop nedodáva slovenskú nákupnú cenu ani sklad.
 
 ## Skryté formátovanie (Jidoka)
 
