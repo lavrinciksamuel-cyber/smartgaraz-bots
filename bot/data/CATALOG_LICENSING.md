@@ -89,8 +89,13 @@ Skryté formátovanie: `strip_hidden_formatting` / `sanitize_sk_copy`.
   rehost fotiek bez súhlasu; vydávať Würth tovar za nebrandované generikum.
 - Heijunka: max **20–50 SKU** / beh.
 - Env: `WURTH_B2B=1` (cena/sklad), `WURTH_MEDIA_OK=1` (fotky — len so súhlasom).
-- Fotky z verejného `eshop.wurth.ba` a `eshop.wurth-kosova.com` dopĺňa výhradne
-  photo backfill. Cudzí shop nedodáva slovenskú nákupnú cenu ani sklad.
+- Fotky z verejného `eshop.wurth.ba` a `eshop.wurth-kosova.com` dopĺňa
+  photo backfill a týždenný catalog sync, len kde fotka chýba. Cudzí shop
+  nedodáva slovenskú nákupnú cenu ani sklad. Artikl, ktorý vo verejnom
+  sitemape už bol a potom chýba dva behy po sebe, sa označí ako Nedostupné,
+  nemaže sa. To, že ho verejný shop nikdy nemal, Nedostupné nespustí.
+  Nové artikle okolo auta sú koncepty bez ceny, v existujúcej kategórii.
+  Nejasná kategória ostane koncept bez kategórie. Nové kategórie sa nezakladajú.
 
 ## Skryté formátovanie (Jidoka)
 
