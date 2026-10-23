@@ -825,6 +825,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=20, help="max produktov na job (≤50)")
     ap.add_argument("--sleep", type=float, default=0.25)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--check-only", action="store_true",
+                    help="len zisti, či je výsek fronty prejdený (bez loginu/importu)")
     ap.add_argument(
         "--force-daytime",
         action="store_true",
@@ -934,19 +936,10 @@ def main() -> int:
         queue = list(WAVE3_ALL_CARS)
     else:
         queue = list(DEFAULT_QUEUE)
-    pending = [j for j in queue if _job_key(j) not in done and _job_key(j) not in failed]
-    if not pending and queue and not args.dry_run:
-        # Fronta prejdená → nový cyklus (stav sa drží medzi behmi cez actions/cache).
-        # S SG_SKIP_EXISTING=1 sa pri ďalšom prechode importujú len nové SKU.
-        qkeys = {_job_key(j) for j in queue}
-        reset = [k for k in list(done.keys()) if k in qkeys]
-        for k in reset:
-            done.pop(k, None)
-        state["_tombstones"] = list(set(state.get("_tombstones") or []) | set(reset))
-        _save_state(state)
-        pending = [j for j in queue if _job_key(j) not in failed]
-        LOGGER.info("fronta prejdená → nový cyklus, pending=%d", len(pending))
-
+    # Najprv vlastný výsek fronty (shard + účet), až potom test „prejdená“.
+    # (Predtým sa test robil na CELEJ fronte → shard s hotovým výsekom ostal
+    # navždy na pending=0 a ~4,5 h točil prázdne kolá bez nových LKQ produktov.)
+    slice_q = list(queue)
     if args.shard:
         try:
             shard_i, shard_n = (int(x) for x in args.shard.split("/", 1))
@@ -954,17 +947,49 @@ def main() -> int:
             raise SystemExit(f"Zly shard {args.shard!r}: {exc}") from exc
         if shard_n < 1 or shard_i < 0 or shard_i >= shard_n:
             raise SystemExit(f"Zly shard {args.shard!r}")
-        pending = [
-            j
-            for j in pending
+        slice_q = [
+            j for j in slice_q
             if (__import__("zlib").crc32(_job_key(j).encode("utf-8")) % shard_n) == shard_i
         ]
-        LOGGER.info("shard %s → pending=%d", args.shard, len(pending))
-
     from account_split import mine as _acct_mine, count as _acct_n
-    if _acct_n() > 1:
-        pending = [j for j in pending if _acct_mine("hv:" + _job_key(j))]
-        LOGGER.info("account split → pending=%d", len(pending))
+    if _acct_n() > 1 and not args.shard:
+        # So shardom delí účty už parita shardu (A párne, B nepárne) — druhý filter
+        # by polovicu jobov výseku nedal nikomu.
+        slice_q = [j for j in slice_q if _acct_mine("hv:" + _job_key(j))]
+    pending = [j for j in slice_q if _job_key(j) not in done and _job_key(j) not in failed]
+    LOGGER.info("shard %s → výsek=%d pending=%d", args.shard or "-", len(slice_q), len(pending))
+    if not pending and slice_q and not args.dry_run:
+        # Výsek prejdený. Nový cyklus (SG_SKIP_EXISTING=1 → len nové SKU) najskôr
+        # po SG_LKQ_RECYCLE_H hodinách; dovtedy hneď koniec → uvoľní runner slot.
+        recycle_h = float(os.environ.get("SG_LKQ_RECYCLE_H", "24") or 24)
+        now = datetime.now(timezone.utc)
+        exhausted_at = state.get("_slice_exhausted_at")
+        if not exhausted_at:
+            state["_slice_exhausted_at"] = now.isoformat()
+            _save_state(state)
+            exhausted_at = state["_slice_exhausted_at"]
+        try:
+            age_h = (now - datetime.fromisoformat(exhausted_at)).total_seconds() / 3600
+        except Exception:
+            age_h = recycle_h
+        if age_h < recycle_h or args.check_only:
+            LOGGER.info("fronta prejdená (výsek %d jobov hotový pred %.1f h; nový cyklus o %.1f h)",
+                        len(slice_q), age_h, max(0.0, recycle_h - age_h))
+            return 0
+        qkeys = {_job_key(j) for j in slice_q}
+        reset = [k for k in list(done.keys()) if k in qkeys]
+        for k in reset:
+            done.pop(k, None)
+        state.pop("_slice_exhausted_at", None)
+        state["_tombstones"] = list(set(state.get("_tombstones") or []) | set(reset))
+        _save_state(state)
+        pending = [j for j in slice_q if _job_key(j) not in failed]
+        LOGGER.info("nový cyklus fronty (len nové SKU), pending=%d", len(pending))
+    elif pending and state.pop("_slice_exhausted_at", None):
+        _save_state(state)
+    if args.check_only:
+        LOGGER.info("check-only: pending=%d", len(pending))
+        return 0
 
     covered: set = set()
     if args.skip_covered:

@@ -280,6 +280,16 @@ def main() -> int:
     if slug == "lkq" and os.environ.get("SG_LKQ_DISABLED") == "1":
         return result(False, "LKQ je dočasne vypnuté.")
 
+    # LKQ shard s prejdeným výsekom fronty: koniec ešte PRED loginom (žiadne zbytočné
+    # loginy každých 30 min, uvoľní runner slot pre Szekop/ideo/Pro-Tec).
+    if slug == "lkq" and a.mode == "full" and os.environ.get("SG_SHARD", "").strip():
+        rc0, out0 = run([sys.executable, str(ROOT / "heijunka_vehicle_parts.py"), "--check-only", "--force-daytime",
+                         "--shard", os.environ["SG_SHARD"].strip()], {**os.environ})
+        if rc0 == 0 and "fronta prejdená" in out0:
+            print("[import] lkq: všetky autá × kategórie tohto shardu sú prejdené — bez loginu, koniec", flush=True)
+            return result(True, "LKQ: tento shard má všetky autá a kategórie prejdené (nové diely z nich sú už v obchode). "
+                                "Ďalšie kolo hľadania nových dielov o ~24 h.", new=0, exhausted=True)
+
     # Lockout guard: presne JEDEN kontrolný pokus o login; pri zlyhaní koniec.
     login_used = False
     if user and pwd and code != "generic":
@@ -356,11 +366,12 @@ def main() -> int:
         idle = 0
         while True:
             rounds += 1
-            before = len(new_ids(max_id_before))
+            # Počítaj len od max ID na začiatku kola (1 stránka WC API, nie všetky nové od štartu).
+            round_max = _wc_max_id_once() or max_id_before
             rc, out = run(cmd, env)
             if slug == "lkq" and os.path.exists("/tmp/sg_lkq_login_failed"):
                 break
-            got = len(new_ids(max_id_before)) - before
+            got = len(new_ids(round_max))
             print(f"[import] kolo {rounds}: nových {got}", flush=True)
             # Shard: kolo, kde všetky joby zlyhali (rc=1, napr. LKQ nemá kategóriu), nie je koniec
             if not repeat or (rc != 0 and not (shard and rc == 1)):
