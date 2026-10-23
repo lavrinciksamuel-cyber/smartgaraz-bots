@@ -186,12 +186,15 @@ def _wc():
     return url, (ck, cs)
 
 
-def iter_drafts(url, auth, session, sleep: float):
+def iter_drafts(url, auth, session, sleep: float, state: dict):
+    """Koncepty po 100 cez offset (id asc). Zverejnené počas behu z listu draftov
+    vypadnú, preto offset = načítané − zverejnené (state["published"]) — nič sa nepreskočí."""
     from shop_guard import wait_if_slow
 
-    page = 1
+    fetched = 0
     while True:
         wait_if_slow()
+        offset = max(0, fetched - int(state.get("published", 0)))
         t = time.monotonic()
         r = None
         for attempt in range(4):
@@ -199,24 +202,24 @@ def iter_drafts(url, auth, session, sleep: float):
                 r = session.get(
                     f"{url}/wp-json/wc/v3/products",
                     auth=auth,
-                    params={"status": "draft", "per_page": 100, "page": page, "orderby": "id", "order": "asc", "_fields": FIELDS},
+                    params={"status": "draft", "per_page": 100, "offset": offset, "orderby": "id", "order": "asc", "_fields": FIELDS},
                     timeout=120,
                 )
                 if r.ok:
                     break
             except Exception as exc:
-                LOG.warning("GET page %d: %s", page, exc)
+                LOG.warning("GET offset %d: %s", offset, exc)
             time.sleep(30 * (attempt + 1))
         if r is None or not r.ok:
-            LOG.error("Stránka %d sa nenačítala — koniec listovania", page)
+            LOG.error("Offset %d sa nenačítal — koniec listovania", offset)
             return
         batch = r.json() or []
         dt = time.monotonic() - t
+        fetched += len(batch)
         for p in batch:
             yield p
         if len(batch) < 100:
             return
-        page += 1
         time.sleep(sleep if dt < 8 else (10 if dt < 15 else 30))
 
 
@@ -234,13 +237,14 @@ def main() -> int:
     import requests
 
     session = requests.Session()
+    state = {"published": 0}
     if a.from_file:
         a.dry_run = True
         src_iter = (json.loads(l) for l in open(a.from_file, encoding="utf-8") if l.strip())
         url = auth = None
     else:
         url, auth = _wc()
-        src_iter = iter_drafts(url, auth, session, a.sleep)
+        src_iter = iter_drafts(url, auth, session, a.sleep, state)
 
     from shop_guard import wait_if_slow
 
@@ -266,6 +270,7 @@ def main() -> int:
             upd = []
         ok = sum(1 for u in upd if (u or {}).get("status") == "publish")
         published += ok
+        state["published"] = published
         failed += len(chunk) - ok
         dt = time.monotonic() - t
         LOG.info("batch %d → publish %d (%.1fs), spolu %d", len(chunk), ok, dt, published)
@@ -300,13 +305,14 @@ def main() -> int:
             renamed += 1
         ready.append({"id": pid, "name": new_name or p.get("name"), "src": src})
         pending.append(upd)
-        if a.max and len(pending) >= a.max:
+        # Zverejňuj priebežne (offset v iter_drafts zohľadní zverejnené) — prerušený beh nestratí prácu.
+        if len(pending) >= a.batch:
+            flush(pending)
+            pending = []
+        if a.max and len(ready) >= a.max:
             break
-    # Zverejňuj až po prejdení všetkých konceptov — inak by sa pri stránkovaní
-    # (status=draft) posúvali stránky a časť konceptov by sa preskočila.
-    LOG.info("prejdených %d konceptov, ready %d — zverejňujem po %d", total, len(pending), a.batch)
-    for i in range(0, len(pending), a.batch):
-        flush(pending[i : i + a.batch])
+    flush(pending)
+    LOG.info("prejdených %d konceptov, ready %d, zverejnených %d", total, len(ready), published)
 
     summary = {
         "drafts_scanned": total,
