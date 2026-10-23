@@ -1,0 +1,67 @@
+name: Würth catalog sync
+# Týždenný sync verejného katalógu (eshop.wurth.ba, eshop.wurth-kosova.com).
+# Nedeľa 22:00 UTC = 23:00 zimného / 00:00 letného času. shop_guard má
+# 07:00–23:00 Europe/Bratislava prísnejšie prahy; táto hodina je mimo neho
+# v oboch sezónach a je až po heijunka (21:20 UTC).
+# Cena sa nezapisuje. Sklad len ako Nedostupné po dvoch výpadkoch po sebe,
+# a len ak artikl už vo verejnom sitemape bol. Nové koncepty max 40 na beh.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Zapísať Nedostupné, chýbajúci obsah a nové koncepty"
+        type: boolean
+        default: false
+      sample:
+        description: "Koľko verejných stránok overiť v dry-run"
+        type: number
+        default: 20
+      new_limit:
+        description: "Max nových konceptov v tomto behu"
+        type: number
+        default: 40
+  schedule:
+    - cron: "0 22 * * 0"
+concurrency:
+  group: wurth-catalog-sync
+  cancel-in-progress: false
+env:
+  SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
+  SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - uses: actions/cache/restore@v4
+        with:
+          path: bot/data/wurth_catalog_sync_state.json
+          key: wurth-catalog-${{ github.run_id }}
+          restore-keys: wurth-catalog-
+      - name: Sync
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          WURTH_MEDIA_OK: ${{ (github.event_name == 'schedule' || inputs.apply) && '1' || '0' }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.apply }}" = "true" ]; then
+            ARGS+=(--apply --new-limit "${{ inputs.new_limit || 40 }}")
+          else
+            ARGS+=(--sample "${{ inputs.sample }}")
+          fi
+          python bot/wurth_catalog_sync.py "${ARGS[@]}"
+      - if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: bot/data/wurth_catalog_sync_state.json
+          key: wurth-catalog-${{ github.run_id }}

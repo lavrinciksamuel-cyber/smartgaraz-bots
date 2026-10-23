@@ -237,6 +237,13 @@ def classify_existing(p: Dict[str, Any], m: Dict[str, Any]) -> Optional[Dict[str
     """Existujúci WC produkt (bez nového fetchu u dodávateľa)."""
     src = str(m.get("_supplier_source") or m.get("_sg_supplier") or "").lower()
     if src.startswith("wurth") or src.startswith("würth"):
+        # Verejný katalóg (BA/Kosovo) článok dva behy nenašiel. Nedostupné držíme,
+        # kým sync vlajku nezmaže. Inak by backfill z _sg_origin znova spravil „Sklad v EÚ“.
+        if str(m.get("_sg_wurth_public_absent") or "") == "1":
+            return _result(
+                "na",
+                str(m.get("_sg_avail_src") or "Würth verejný katalóg: artikl nie je vo verejných shopoch"),
+            )
         st = p.get("stock_status")
         if st == "outofstock" and m.get("_sg_avail_oos") == "1":
             st = "instock"  # outofstock sme dali my, nie Würth
