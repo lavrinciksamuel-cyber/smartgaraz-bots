@@ -484,8 +484,59 @@ _QUEUE_CORE: List[Dict[str, str]] = [
 ]
 
 # Wave 5 (imobil/kľúče) + Wave 3 (park) + VAG/core.
-DEFAULT_QUEUE: List[Dict[str, str]] = (
+_BASE_QUEUE: List[Dict[str, str]] = (
     WAVE5_IMMOB_KEYS + WAVE3_ALL_CARS + WAVE6_MOPUP + _QUEUE_CORE
+)
+
+
+def _fold_make(name: str) -> str:
+    import unicodedata
+    t = unicodedata.normalize("NFKD", name or "")
+    return "".join(c for c in t if not unicodedata.combining(c)).strip().lower()
+
+
+def full_fleet_queue() -> List[Dict[str, str]]:
+    """Plný LKQ katalóg (2026-10-23, Samuel): celý SK park z vlastnej taxonómie
+    (data/vehicle_hierarchy_sk.json: značka × model+generácia × motor) × všetky
+    LKQ kategórie, ktoré majú mapovanie v data/supplier_category_map.json
+    (lkq_needles → žiadne fallback kategórie). Poradie: značky podľa SK parku."""
+    try:
+        tree = json.loads((ROOT / "data" / "vehicle_hierarchy_sk.json").read_text(encoding="utf-8"))
+        needles = json.loads((ROOT / "data" / "supplier_category_map.json").read_text(encoding="utf-8"))["lkq_needles"]
+    except Exception as exc:  # pragma: no cover
+        LOGGER.warning("full fleet queue: %s", exc)
+        return []
+    cats = tuple(needles.keys())
+    cores: List[tuple] = []
+    seen: set = set()
+    for make, models in (tree.get("makes") or {}).items():
+        mk = _fold_make(make)
+        for model, info in (models or {}).items():
+            gens = info.get("generations") or [{"label": "", "engines": info.get("engines") or []}]
+            for g in gens:
+                mo = f"{model} {g.get('label') or ''}".strip().lower()
+                for eng in (g.get("engines") or info.get("engines") or [""]):
+                    c = (mk, mo, eng, "")
+                    if c not in seen:
+                        seen.add(c)
+                        cores.append(c)
+    return _expand_cats(cores, cats=cats)
+
+
+def _dedupe(jobs: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    out, seen = [], set()
+    for j in jobs:
+        k = "|".join(j.get(f, "") for f in ("make", "model", "engine", "kw", "category"))
+        if k not in seen:
+            seen.add(k)
+            out.append(j)
+    return out
+
+
+# Wave 5 (imobil/kľúče) + Wave 3 (park) + VAG/core, potom celý SK park × všetky
+# LKQ kategórie (SG_LKQ_FULL_FLEET=0 vypne). Hotové joby sa preskočia cez state.
+DEFAULT_QUEUE: List[Dict[str, str]] = _dedupe(
+    _BASE_QUEUE + (full_fleet_queue() if os.environ.get("SG_LKQ_FULL_FLEET", "1") != "0" else [])
 )
 
 # Cloud overnight grind (2026-08-03) — pomenované presety kategórií pre
