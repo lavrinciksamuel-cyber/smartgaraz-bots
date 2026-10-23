@@ -42,6 +42,16 @@ def _probe() -> tuple:
     return hq_dt, hq_code, api_code, api_dt
 
 
+def _is_day() -> bool:
+    """07:00–23:00 Europe/Bratislava (SG_GUARD_DAY=0 vypne, =1 vynúti)."""
+    flag = os.environ.get("SG_GUARD_DAY", "").strip()
+    if flag in ("0", "1"):
+        return flag == "1"
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    return 7 <= datetime.now(ZoneInfo("Europe/Bratislava")).hour < 23
+
+
 _lock = threading.Lock()
 _extra = 0.0  # adaptívna pauza medzi zápismi (s) — rastie pri pomalom shope, klesá pri zdravom
 
@@ -53,6 +63,13 @@ def wait_if_slow() -> None:
     every = float(os.environ.get("SG_GUARD_EVERY_S", "30"))
     slow = float(os.environ.get("SG_GUARD_SLOW_S", "3"))
     api_slow = float(os.environ.get("SG_GUARD_API_SLOW_S", "8"))
+    min_gap = 0.0
+    if _is_day():
+        # Cez deň (07–23 SK) majú prednosť zákazníci: prísnejšie prahy + min. pauza medzi zápismi.
+        every = min(every, float(os.environ.get("SG_GUARD_DAY_EVERY_S", "15")))
+        slow = min(slow, float(os.environ.get("SG_GUARD_DAY_SLOW_S", "1.5")))
+        api_slow = min(api_slow, float(os.environ.get("SG_GUARD_DAY_API_SLOW_S", "4")))
+        min_gap = float(os.environ.get("SG_GUARD_DAY_MIN_GAP_S", "3"))
     with _lock:
         if time.monotonic() - _last >= every:
             _last = time.monotonic()
@@ -72,6 +89,6 @@ def wait_if_slow() -> None:
                 LOGGER.warning("shop_guard: HQ %.1fs (%s), WC API %.1fs (%s) — pauza %ss, krok +%.0fs",
                                dt, hq_code, api_dt, api_code, pause, _extra)
                 time.sleep(pause)
-        extra = _extra
+        extra = max(_extra, min_gap)
     if extra > 0:
         time.sleep(extra)

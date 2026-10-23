@@ -14,6 +14,11 @@ on:
         required: false
         default: "290"
 
+# Max. 1 beh naraz (shop má prednosť pred importom); nový plánovaný beh počká.
+concurrency:
+  group: catalog-matrix
+  cancel-in-progress: false
+
 jobs:
   plan:
     # Rozdelenie medzi účty: repo A (SG_ACCOUNT_INDEX=0) párne shardy, repo B (1) nepárne.
@@ -21,6 +26,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.m.outputs.matrix }}
+      par: ${{ steps.m.outputs.par }}
     steps:
       - id: m
         env:
@@ -28,6 +34,9 @@ jobs:
           CNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
           LKQ_N: ${{ vars.SG_LKQ_SHARDS || '20' }}
           SZ_N: ${{ vars.SG_SZEKOP_SHARDS || '16' }}
+          # zákazníci majú prednosť: cez deň (07–23 SK) 1 shard naraz, v noci 4
+          PAR_DAY: ${{ vars.SG_MATRIX_PAR_DAY || '1' }}
+          PAR_NIGHT: ${{ vars.SG_MATRIX_PAR_NIGHT || '4' }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
@@ -38,6 +47,11 @@ jobs:
           if idx == 0:
               inc.append({"supplier": "wurth", "shard": "0/1"})
           print("matrix=" + json.dumps({"include": inc}))
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          h = datetime.now(ZoneInfo("Europe/Bratislava")).hour
+          day = 7 <= h < 23
+          print("par=" + os.environ.get("PAR_DAY" if day else "PAR_NIGHT", "1"))
           PY
   shard:
     needs: plan
@@ -49,8 +63,8 @@ jobs:
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      # repo B (index 1) nechá 3 sloty pre ideo / Pro-Tec / údržbu (prednosť)
-      max-parallel: ${{ vars.SG_ACCOUNT_INDEX == '1' && 17 || 20 }}
+      # cez deň 1, v noci 4 (plan.outputs.par) — shop rýchlosť má prednosť
+      max-parallel: ${{ fromJSON(needs.plan.outputs.par) }}
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
