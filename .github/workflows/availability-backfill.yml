@@ -1,5 +1,5 @@
 name: Availability SR / EÚ / nedostupné (backfill)
-# Dostupnosť pre všetky produkty (LKQ, Szekop, Würth): meta _sg_avail (sr|eu|na|unknown)
+# Dostupnosť pre všetky produkty (LKQ, Szekop, Würth, TSS, Pro-Tec, JLM, Metabond, Pták, ostatné): meta _sg_avail (sr|eu|na — 3 stavy legendy, nič iné)
 # + stock_status=outofstock pri „nedostupné“. Nemaže produkty. HQ load guard (shop_guard).
 # Denne preklasifikuje podľa posledných údajov z importov a overí Szekop BA/distribučný sklad.
 on:

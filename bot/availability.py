@@ -5,7 +5,8 @@ Statusy (meta `_sg_avail`):
   sr       „Skladom v SR“  — 2–3 pracovné dni
   eu       „Sklad v EÚ“    — 5–10 pracovných dní
   na       „Nedostupné“    — stock_status=outofstock (nedá sa objednať, na koniec výpisov)
-  unknown  neutrálny („Na objednávku“) — pôvod reálne nevieme, nehádame
+  (interné „unknown“ = pôvod nevieme → na webe VŽDY „Sklad v EÚ“ 5–10 dní, ak je objednateľné;
+   legenda má len 3 stavy, „Na objednávku“ sa nezobrazuje — Samuel 23.10.2026)
 
 Ako zisťujeme pôvod:
   LKQ (lkq.sk B2B, ProductList API): StorageStockAmount > 0 (+ IsStorageStock, IsOrderable)
@@ -15,7 +16,13 @@ Ako zisťujeme pôvod:
   Szekop (szekopsk.nextis.cz, `.flex-stocks`): sklad „BA“ (Bratislava) > 0 → sr;
       BA = 0 a „Distribučný sklad“ > 0 → eu; oba 0 → na.
   Würth (eshop.wurth.sk PDP, `_sg_origin` z textu „Dodávané z …“): SK → sr, DE → eu;
-      Würth nedostupné → na; bez údaja → unknown.
+      Würth nedostupné → na; bez údaja → eu (konzervatívne).
+  TSS (tssgroup.sk Žilina, katalóg z HQ): „Skladom“ → sr; „Na ceste“ (tovar je už na ceste) → eu;
+      „Na objednávku“ bez dodacej lehoty / „Nie je skladom“ → na (nesľubujeme termín, ktorý nevieme).
+  Pro-Tec Slovakia, JLM (jlmaditiva.sk), Metabond (SK výrobca), ideo (BA): skladom → sr, inak na.
+  Pták / Mopar (CZ) a ostatní: objednateľné → eu, inak na.
+  Surové texty dodávateľov („Skladom“, „Na ceste“, „Na objednávku“, „na tel. otázku“) sa na webe
+  nezobrazujú — len 3 stavy legendy (mu-plugin sg-availability.php).
 
 Backfill existujúcich produktov:  python bot/availability.py backfill [--dry-run] [--szekop-refetch N]
 Importy: ai_engine._apply_pricing_and_stock volá classify_raw() → meta + stock_status.
@@ -41,8 +48,45 @@ LABELS = {
     "sr": ("Skladom v SR", "2–3 pracovné dni"),
     "eu": ("Sklad v EÚ", "5–10 pracovných dní"),
     "na": ("Nedostupné", ""),
-    "unknown": ("Na objednávku", "5–10 pracovných dní"),
 }
+LEGEND = ("sr", "eu", "na")
+# Dodávatelia so skladom na Slovensku (skladom → sr)
+SK_SUPPLIERS = ("pro-tec", "protec", "jlm", "metabond", "ideo")
+
+
+def to_legend(av: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    """Interné „unknown“ → „eu“ (objednateľné, pôvod neoverený). Výsledok je vždy sr|eu|na."""
+    if not av or av.get("avail") in LEGEND:
+        return av
+    return _result("eu", f"{av.get('src', '')} → Sklad v EÚ (pôvod neoverený)")
+
+
+def classify_tss_text(text: str, stock_status: str = "") -> Dict[str, str]:
+    """TSS text dostupnosti → stav legendy. Bez textu podľa stock_status."""
+    t = (text or "").strip().lower()
+    if not t:
+        st = str(stock_status or "").lower()
+        if st == "instock":
+            return _result("sr", "TSS Group SK: skladom")
+        if st == "onbackorder":
+            return _result("eu", "TSS Group: na ceste")
+        return _result("na", "TSS Group: nedostupné")
+    if t.startswith("skladom") or "instock" in t:
+        return _result("sr", "TSS Group SK (Žilina): skladom")
+    if "na ceste" in t or re.search(r"\d+\s*(?:-|–)?\s*\d*\s*(?:h\b|hod|dn|dní|dni|týž|tyž|tyz)", t):
+        return _result("eu", f"TSS Group: {text.strip()[:60]}")
+    return _result("na", f"TSS Group: {text.strip()[:60]} (bez dodacej lehoty)")
+
+
+def classify_simple(supplier: str, stock_status: str) -> Dict[str, str]:
+    """Dodávatelia bez rozpisu skladov: SK sklad → sr, ostatní → eu; outofstock → na."""
+    sup = (supplier or "?").lower()
+    st = str(stock_status or "instock").lower()
+    if st == "outofstock":
+        return _result("na", f"{sup}: nedostupné")
+    if sup in SK_SUPPLIERS and st == "instock":
+        return _result("sr", f"{sup}: sklad SK")
+    return _result("eu", f"{sup}: objednateľné, dodanie 5–10 dní")
 
 _LEAD_RE = re.compile(r"bežne\s+do\s+\d+\s*(?:h|hod|dn|dní|dni|pracovn)", re.I)
 _NO_LEAD_RE = re.compile(r"na\s+tel|nedostupn|vypredan|nedodáva|ukončen", re.I)
@@ -140,12 +184,16 @@ def classify_raw(raw: Dict[str, Any]) -> Optional[Dict[str, str]]:
         return _result("na", "ideo: nedostupné")
     if src in ("wurth", "würth"):
         return classify_wurth(str(extra.get("origin") or ""), str(raw.get("stock_status") or "instock"))
+    if src == "tss":
+        return classify_tss_text(str(extra.get("stock_text") or ""), str(raw.get("stock_status") or ""))
+    if src:
+        return classify_simple(src, str(raw.get("stock_status") or "instock"))
     return None
 
 
 def apply_to_payload(payload: Dict[str, Any], raw: Dict[str, Any]) -> Optional[str]:
     """Doplní meta + stock_status do WC payloadu (import full aj fast path)."""
-    av = classify_raw(raw)
+    av = to_legend(classify_raw(raw))
     if not av:
         return None
     meta = payload.setdefault("meta_data", [])
@@ -216,7 +264,42 @@ def classify_existing(p: Dict[str, Any], m: Dict[str, Any]) -> Optional[Dict[str
         if (qty is not None and qty <= 0) or (p.get("stock_status") == "outofstock" and m.get("_sg_avail_oos") != "1"):
             return _result("na", "Szekop: 0 ks (BA aj distribučný)")
         return _result("unknown", "Szekop: rozpis BA/distribučný zatiaľ neoverený")
-    return None
+    st = p.get("stock_status")
+    if st == "outofstock" and m.get("_sg_avail_oos") == "1" and m.get("_sg_avail") != "na":
+        st = "instock"  # outofstock sme dali my
+    if src == "tss":
+        text = _tss_stock_text(m)
+        if text is None and m.get("_sg_avail") == "na" and m.get("_sg_avail_oos") == "1":
+            return {"avail": "na", "src": str(m.get("_sg_avail_src") or "TSS Group: nedostupné")}
+        return classify_tss_text(text or "", st)
+    if src in ("", "?"):
+        return None
+    return classify_simple(src, st)
+
+
+_TSS_CAT: Optional[Dict[str, str]] = None
+
+
+def _tss_stock_text(m: Dict[str, Any]) -> Optional[str]:
+    """Aktuálny TSS text skladu z HQ katalógu (hosting ho obnovuje 3× denne); None ak nevieme."""
+    global _TSS_CAT
+    if _TSS_CAT is None:
+        _TSS_CAT = {}
+        tok = os.environ.get("HQ_SYNC_TOKEN", "")
+        if tok:
+            try:
+                import requests
+                hq = os.getenv("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+                r = requests.get(f"{hq}/api/sync/tss-catalog", timeout=180,
+                                 headers={"Authorization": f"Bearer {tok}", "User-Agent": "smartgaraz-bot"})
+                if r.status_code == 200:
+                    for u, it in (r.json().get("items") or {}).items():
+                        _TSS_CAT[u.split("#")[0]] = str(it.get("stock") or "")
+            except Exception as exc:  # noqa: BLE001
+                LOG.warning("TSS katalóg z HQ: %s", exc)
+        LOG.info("TSS katalóg: %d položiek", len(_TSS_CAT))
+    url = str(m.get("supplier_url") or "").split("#")[0]
+    return _TSS_CAT.get(url) if url else None
 
 
 def _szekop_refetch(url: str, http) -> Optional[Dict[str, str]]:
@@ -309,21 +392,22 @@ def backfill(args) -> int:
                 time.sleep(args.szekop_delay)
                 if got:
                     av = got
+            av = to_legend(av)
             if not av:
                 counts[sup]["(iný dodávateľ)"] += 1
                 continue
             counts[sup][av["avail"]] += 1
             if p.get("status") == "publish" and av["avail"] not in examples[sup]:
                 examples[sup][av["avail"]] = p.get("permalink", "")
-            if m.get("_sg_avail") == av["avail"] and m.get("_sg_avail_src") == av["src"] and not args.force:
+            consistent = (av["avail"] == "na") == (p.get("stock_status") == "outofstock")
+            if m.get("_sg_avail") == av["avail"] and m.get("_sg_avail_src") == av["src"] and consistent and not args.force:
                 continue
             body: Dict[str, Any] = {"id": p["id"], "meta_data": meta_rows(av)}
             stock_payload(body, av["avail"], p)
             if av["avail"] == "sr" and m.get("_sg_avail_oos") == "1" and p.get("stock_status") == "outofstock":
                 body["stock_status"] = "instock"
-            if av["avail"] in ("unknown",) and m.get("_sg_avail_oos") == "1":
+            if av["avail"] == "eu" and m.get("_sg_avail_oos") == "1" and p.get("stock_status") == "outofstock":
                 body["stock_status"] = "instock"
-                body["meta_data"].append({"key": "_sg_avail_oos", "value": ""})
             pending.append(body)
             changed += 1
             if len(pending) >= args.batch:
@@ -340,9 +424,9 @@ def backfill(args) -> int:
     summ = os.environ.get("GITHUB_STEP_SUMMARY")
     if summ:
         with open(summ, "a", encoding="utf-8") as fh:
-            fh.write("## Dostupnosť (SR / EÚ / nedostupné)\n\n| Dodávateľ | sr | eu | na | unknown |\n|---|---|---|---|---|\n")
+            fh.write("## Dostupnosť (SR / EÚ / nedostupné)\n\n| Dodávateľ | sr | eu | na |\n|---|---|---|---|\n")
             for k, v in sorted(counts.items()):
-                fh.write(f"| {k} | {v.get('sr',0)} | {v.get('eu',0)} | {v.get('na',0)} | {v.get('unknown',0)} |\n")
+                fh.write(f"| {k} | {v.get('sr',0)} | {v.get('eu',0)} | {v.get('na',0)} |\n")
             fh.write(f"\nZmenených: {changed}, Szekop refetch: {refetched}\n")
     return 0
 
