@@ -6,11 +6,12 @@
 full   = nové produkty + obsah z verejných/bežných ciest bota; opakuje dávky
          (heijunka) kým sú nové produkty alebo kým neminie časový rozpočet.
 prices = len cena + sklad existujúcich produktov dodávateľa.
-Login vždy z HQ. Lockout guard: jeden pokus o login; pri zlyhaní koniec behu.
+Login vždy z HQ. Lockout guard: shardy sa prihlasujú s rozostupom; pri odmietnutí NAJVIAC
+jeden ďalší pokus po náhodných 2–5 min, potom koniec behu (nikdy viac — lockout).
 Na konci riadok `SG_RESULT {json}` – HQ ho číta a ukazuje stav po slovensky.
 """
 from __future__ import annotations
-import argparse, json, os, subprocess, sys, time
+import argparse, json, os, random, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -80,15 +81,98 @@ def run(cmd, env, timeout=None) -> tuple[int, str]:
     return (rc if rc is not None else p.returncode), "".join(tail)
 
 
-def wc_max_id() -> int:
+def _wc_max_id_once() -> int:
     import requests
     url = os.environ.get("WC_URL", "").rstrip("/")
     try:
-        r = requests.get(f"{url}/wp-json/wc/v3/products", params={"per_page": 1, "status": "any", "orderby": "id", "order": "desc"},
+        r = requests.get(f"{url}/wp-json/wc/v3/products", params={"per_page": 1, "status": "any", "orderby": "id", "order": "desc", "_fields": "id"},
                          auth=(os.environ.get("WC_CONSUMER_KEY", ""), os.environ.get("WC_CONSUMER_SECRET", "")), timeout=60)
-        return int(r.json()[0]["id"]) if r.ok and r.json() else 0
-    except Exception:
+        if not r.ok:
+            print(f"[import] WC max id: HTTP {r.status_code}", flush=True)
+            return 0
+        d = r.json()
+        return int(d[0]["id"]) if d else 0
+    except Exception as exc:
+        print(f"[import] WC max id: {type(exc).__name__}", flush=True)
         return 0
+
+
+def _hq_max_id_once() -> int:
+    """HQ zrkadlo wc_products (/api/sync/existing-skus → max_id). Môže mierne zaostávať — OK ako spodná hranica."""
+    import requests
+    tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
+    if not tok:
+        return 0
+    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    try:
+        r = requests.get(f"{hq}/api/sync/existing-skus", timeout=60,
+                         headers={"Authorization": f"Bearer {tok}", "Accept-Encoding": "gzip", "User-Agent": "smartgaraz-bot"})
+        if not r.ok:
+            print(f"[import] HQ max id: HTTP {r.status_code}", flush=True)
+            return 0
+        return int(r.json().get("max_id") or 0)
+    except Exception as exc:
+        print(f"[import] HQ max id: {type(exc).__name__}", flush=True)
+        return 0
+
+
+def wc_max_id() -> int:
+    """Najvyššie ID produktu pred importom. Prechodné výpadky (508/timeout) → opakuj
+    s backoffom (~4 min): WC REST, potom HQ zrkadlo. 0 = všetko zlyhalo → bezpečnostný stop."""
+    waits = [int(x) for x in os.environ.get("SG_MAXID_WAITS", "0,30,75,120").split(",")]
+    for n, wait in enumerate(waits, 1):
+        if wait:
+            w = wait + random.uniform(0, 15)
+            print(f"[import] existujúce produkty: pokus {n}/{len(waits)} o {w:.0f}s", flush=True)
+            time.sleep(w)
+        mid = _wc_max_id_once()
+        if mid:
+            return mid
+        mid = _hq_max_id_once()
+        if mid:
+            print("[import] max id z HQ (WC REST neodpovedal)", flush=True)
+            return mid
+    return 0
+
+
+def _shard_index() -> int:
+    try:
+        return int(os.environ.get("SG_SHARD", "").split("/")[0])
+    except Exception:
+        return -1
+
+
+def login_stagger(slug: str) -> None:
+    """Shardy sa neprihlasujú naraz (dodávateľ môže odmietnuť súbežné loginy)."""
+    i = _shard_index()
+    if i < 0 or os.environ.get("SG_LOGIN_STAGGER", "1") == "0":
+        return
+    w = min(120.0, i * 5.0) + random.uniform(0, 8)
+    print(f"[import] {slug}: login o {w:.0f}s (rozostup shardov)", flush=True)
+    time.sleep(w)
+
+
+def try_login(sup) -> bool:
+    try:
+        return bool(sup.ensure_login())
+    except Exception as exc:
+        print(f"[import] login: {type(exc).__name__}", flush=True)
+        return False
+
+
+def reset_login_guard(slug: str, sup) -> None:
+    """Pred JEDINÝM opakovaním: zmaž guard marker z prvého pokusu (inak by ensure_login hneď vrátil False)."""
+    for f in {os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed"), f"/tmp/sg_{slug}_login_failed",
+              os.environ.get("SG_LKQ_COOKIE_FILE", "/tmp/sg_lkq_session.pkl")}:
+        try:
+            os.remove(f)
+        except Exception:
+            pass
+    try:
+        sup._logged_in = False
+        sup.http.session.cookies.clear()
+    except Exception:
+        pass
 
 
 def new_ids(max_id_before: int) -> list:
@@ -205,10 +289,16 @@ def main() -> int:
             print(f"[import] {slug}: verejný režim (bez prihlásenia)", flush=True)
         elif hasattr(sup, "ensure_login"):
             login_used = True
-            try:
-                ok = sup.ensure_login()
-            except Exception as exc:
-                ok, why = False, type(exc).__name__
+            login_stagger(slug)
+            ok = try_login(sup)
+            if not ok and slug != "wurth":
+                # Súbežné loginy shardov dodávateľ občas odmietne aj pri správnom hesle →
+                # NAJVIAC JEDEN ďalší pokus po náhodných 2–5 min (viac nie — lockout).
+                w = random.uniform(120, 300)
+                print(f"[import] {slug}: login odmietnutý — jediný ďalší pokus o {w:.0f}s", flush=True)
+                time.sleep(w)
+                reset_login_guard(slug, sup)
+                ok = try_login(sup)
             if not ok:
                 # Würth: eshop často vráti anti-bot Challenge Validation namiesto login formu.
                 # Credentials v HQ sú OK — pokračuj public katalógom do konceptov (B2B ceny neskôr).
@@ -222,13 +312,15 @@ def main() -> int:
                 else:
                     Path("/tmp/sg_lkq_login_failed" if slug == "lkq" else f"/tmp/sg_{slug}_login_failed").write_text("x")
                     return result(False, "Nesprávne meno alebo heslo – skontroluj prihlásenie v HQ. "
-                                         "Ďalší pokus som nerobil, aby sa účet nezablokoval.", login=True)
+                                         "Skúsil som to 2× (druhý pokus o pár minút); ďalší pokus som nerobil, "
+                                         "aby sa účet nezablokoval.", login=True)
             else:
                 print(f"[import] {slug}: prihlásenie OK", flush=True)
 
     max_id_before = wc_max_id()
     if a.mode == "full" and not max_id_before:
-        return result(False, "Nepodarilo sa zistiť existujúce produkty vo WooCommerce – import som nespustil, aby som nesiahol na existujúce produkty.")
+        return result(False, "Nepodarilo sa zistiť existujúce produkty vo WooCommerce ani v HQ (4 pokusy za ~4 min) – "
+                             "import som nespustil, aby som nesiahol na existujúce produkty. Skúsi sa ďalší beh.", transient=True)
     start = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     env = {**os.environ, "SG_SKIP_EXISTING": "1" if a.mode == "full" else "0", "SG_DAYTIME_QUIET": "force_run", "AI_MODE": os.environ.get("AI_MODE", "cheap")}
     py = sys.executable

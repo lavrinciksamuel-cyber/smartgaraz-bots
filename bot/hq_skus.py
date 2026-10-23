@@ -5,7 +5,7 @@ rýchle a nezaťažuje WC REST. Doplníme len produkty s ID > HQ max_id (1–2 s
 Fallback: pôvodné stránkovanie WC REST, ak HQ zlyhá.
 """
 from __future__ import annotations
-import json, logging, os, time
+import json, logging, os, random, time
 from typing import Optional, Set, Tuple
 
 LOGGER = logging.getLogger("hq_skus")
@@ -49,12 +49,19 @@ def _wc_full() -> Set[str]:
     url = os.environ.get("WC_URL", "").rstrip("/")
     out, page = set(), 1
     while page < 2000:
-        try:
-            r = requests.get(f"{url}/wp-json/wc/v3/products", auth=_wc_auth(), timeout=90,
-                             params={"per_page": 100, "page": page, "status": "any", "_fields": "sku"})
-        except Exception:
-            break
-        if not r.ok:
+        r = None
+        for wait in (0, 15, 45):  # prechodný 508/timeout na jednej stránke → neukonči celý zoznam
+            if wait:
+                time.sleep(wait + random.uniform(0, 5))
+            try:
+                r = requests.get(f"{url}/wp-json/wc/v3/products", auth=_wc_auth(), timeout=90,
+                                 params={"per_page": 100, "page": page, "status": "any", "_fields": "sku"})
+                if r.ok:
+                    break
+            except Exception:
+                r = None
+        if r is None or not r.ok:
+            LOGGER.warning("WC SKU stránka %d zlyhala aj po opakovaní — zoznam neúplný (import robí živú kontrolu SKU)", page)
             break
         rows = r.json()
         out |= {str(x.get("sku") or "").strip() for x in rows if x.get("sku")}
@@ -81,7 +88,11 @@ def existing(max_age_s: float = 600) -> Tuple[Set[str], Set[str], str]:
     tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
     hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
     skus: Set[str] = set(); urls: Set[str] = set(); src = "wc"
-    if tok:
+    # HQ je rýchle a šetrí WC REST → pri prechodnej chybe skús HQ ešte 2× (backoff), až potom WC.
+    hq_waits = [int(x) for x in os.environ.get("SG_HQ_SKUS_WAITS", "0,20,60").split(",")] if tok else []
+    for n, wait in enumerate(hq_waits, 1):
+        if wait:
+            time.sleep(wait + random.uniform(0, 10))
         try:
             t = time.time()
             r = requests.get(f"{hq}/api/sync/existing-skus", params={"urls": 1}, timeout=60,
@@ -92,10 +103,12 @@ def existing(max_age_s: float = 600) -> Tuple[Set[str], Set[str], str]:
                 _wc_since(int(d.get("max_id") or 0), skus, urls)
                 src = "hq"
                 LOGGER.info("HQ existujúce SKU: %d (+URL %d) za %.1fs", len(skus), len(urls), time.time() - t)
-            else:
-                LOGGER.warning("HQ existing-skus HTTP %s → fallback WC", r.status_code)
+                break
+            LOGGER.warning("HQ existing-skus HTTP %s (pokus %d/%d)", r.status_code, n, len(hq_waits))
         except Exception as exc:
-            LOGGER.warning("HQ existing-skus zlyhalo (%s) → fallback WC", type(exc).__name__)
+            LOGGER.warning("HQ existing-skus zlyhalo (%s, pokus %d/%d)", type(exc).__name__, n, len(hq_waits))
+    if tok and src != "hq":
+        LOGGER.warning("HQ existing-skus nedostupné → fallback WC")
     if src != "hq":
         skus = _wc_full()
         LOGGER.info("WC existujúce SKU (fallback): %d", len(skus))
