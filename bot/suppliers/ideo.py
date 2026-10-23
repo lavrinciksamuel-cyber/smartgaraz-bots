@@ -36,17 +36,26 @@ SEEDS = (
 L1 = "Autokozmetika & Detail"
 # Poradie = priorita. Bez zhody → žiadna kategória (žiadny fallback).
 RULES: Tuple[Tuple[str, str], ...] = (
+    # Náradie na odstraňovanie fólií/emblémov (nie chémia) — pred „odstraňovač“ v chémii.
+    (r"odstra[ňn]ova[čc] (f[óo]li|embl)|kot[úu][čc]ov[ýy] odstra|gumovac[íi] kot|eraser\b|3m grs|"
+     r"(plastov[ýy]|pet) rozpra[šs]ova[čc]|rozpra[šs]ova[čc] pet|mini500|vrec(e|ia) na odpad|[šs]pongi[ae] na nan[áa][šs]an", "Detailingové náradie"),
+    # Stierky a filcové náhrady (aj „z mikrovlákna“) = náradie, nie utierky.
+    (r"stier(k|ok)|filc|squeeg", "Detailingové náradie"),
+    (r"sachet|ipa utierk", "Chémia pre fólie & PPF"),
     (r"microfib|mikrovl|utierk|handri|cloth|towel", "Mikrovlákno & utierky"),
-    (r"avery[- ]?clean|avery\b.*(?:[čc]isti[čc]|cleaner)|wrap care.*clean", "Chémia pre fólie & PPF"),
-    (r"[čc]isti[čc] skl|glass clean", "Exteriér & umývanie"),
-    (r"riwax|vosk|wax|sealant(?!.*edge)|clay|lešt|polish|compound|pad\b", "Leštenie & vosky"),
+    (r"avery[- ]?clean|avery\b.*(?:[čc]isti[čc]|cleaner)|wrap care", "Chémia pre fólie & PPF"),
+    (r"[čc]isti[čc] (skl|skiel|sklen)|glass clean", "Exteriér & umývanie"),
+    (r"lamin[aá]ci", "Chémia pre fólie & PPF"),
+    (r"\bclay\b|hlina na [čc]isten", "Exteriér & umývanie"),
     (r"primer|adhesion promoter|aplika[čc]n[ýy] gel|ppf.*gel|edge seal|seal-it|3950|ipa sealant|"
-     r"isoprop|alkohol|adhesive remover|odstra[ňn]ova|vhb cleaner|industry cleaner|wrap care", "Chémia pre fólie & PPF"),
-    (r"odstra[ňn]ova[čc] (lepid|zvy[šs]k)|surface prep|montážn|aplika[čc]n[áa] (chémia|tekut)|šampón na aplik|slide-?on|film-?on|right ?o(n|ff)|ad-gel|industrial cleaner", "Chémia pre fólie & PPF"),
+     r"isoprop|alkohol|adhesive remover|odstra[ňn]ova|vhb (surface )?cleaner|industry cleaner", "Chémia pre fólie & PPF"),
+    (r"odstra[ňn]ova[čc] (lepid|zvy[šs]k)|surface prep|montážn|aplika[čc]n[áa] (chémia|tekut)|šampón na aplik|slide-?on|film-?on|right ?o(n|ff)|ad-gel|industrial cleaner|pred apli", "Chémia pre fólie & PPF"),
+    (r"riwax|vosk|wax|sealant(?!.*edge)|lešt|polish|compound", "Leštenie & vosky"),
     (r"cleaner|[čc]isti[čc]|power clean", "Exteriér & umývanie"),
-    (r"stierk|squeeg|aplik[áa]tor|roller|handroller|tweezer|pinzet|cutter|n[ôo][žz]|[čc]epel|blade|"
+    (r"aplik[áa]tor|[šs]pongi|roller|handroller|tweezer|pinzet|cutter|n[ôo][žz]|[čc]epel|blade|"
      r"reza[čc]|olfa|knifeless|edge finisher|wrapstick|gecko|wrapdragon|yellotwin|rubberlift|angelracer|"
-     r"sassercut|škrabk|skrabk|rukavic|^rozpra[šs]ova|striekačk|jetspray|pravítk|pravitk|filcov|nožnic|noznic", "Detailingové náradie"),
+     r"sassercut|škrabk|skrabk|rukavic|^rozpra[šs]ova|striekačk|jetspray|pravítk|pravitk|nožnic|noznic|"
+     r"[čc]istiac(i|eho) pad|\bpad\b|žilet|zilet", "Detailingové náradie"),
 )
 
 

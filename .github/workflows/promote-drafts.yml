@@ -1,0 +1,46 @@
+name: Promote drafts (zverejni hotové koncepty)
+# Každé 4 h prejde všetky koncepty a zverejní tie, ktoré spĺňajú pravidlá kvality
+# (konkrétna a sediaca kategória, OE číslo pri hlavných dieloch, cena > 0, slovenský
+# názov, stav skladu). Fotky nie sú podmienka. Ceny ani importy nemení.
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "Argumenty (napr. --dry-run, --max 500)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "40 */4 * * *"
+concurrency:
+  group: promote-drafts
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - run: pip install -r bot/requirements.txt
+      - name: Promote
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          SG_GUARD_API_SLOW_S: "8"
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python bot/promote_drafts.py --batch 100 --out promote-report.json ${{ github.event.inputs.args }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: promote-report
+          path: promote-report.json
+          if-no-files-found: ignore
+          retention-days: 7
