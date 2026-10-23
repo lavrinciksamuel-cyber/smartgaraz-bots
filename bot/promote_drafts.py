@@ -109,6 +109,10 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
         reasons.append("no_price")
     elif cost and cost > 0 and price + 0.009 < cost:
         reasons.append("below_cost")
+    elif cost and cost > 0 and price > 0:
+        from pricing import bad_cost_reason
+        if bad_cost_reason(cost, price, supplier=src, name=name, sku=sku) == "cost_outlier":
+            reasons.append("cost_outlier")
 
     # kategória
     cats = [(c.get("name") or "").replace("&amp;", "&").strip() for c in (p.get("categories") or [])]

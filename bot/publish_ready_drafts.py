@@ -142,6 +142,14 @@ def qa_reasons(p: dict, max_price: float, require_in_stock: bool = True) -> list
         reasons.append("no_cost")
     elif price + 0.009 < cost_f:
         reasons.append("below_cost")
+    else:
+        from pricing import bad_cost_reason
+        if bad_cost_reason(
+            cost_f, price,
+            supplier=str(meta.get("_supplier_source") or ""),
+            name=name, sku=sku,
+        ) == "cost_outlier":
+            reasons.append("cost_outlier")
     # Oleje 4–5 L bežne 80–150 €. Autodiely (kotúče, strmene, filtre…) môžu byť
     # stovky € — default strop je len proti absurdným outlierom, nie proti dielom.
     oilish = bool(re.search(r"\b\d+w[-\s]?\d+\b|motorov[ýy]\s+olej", name, re.I))

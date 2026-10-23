@@ -676,6 +676,20 @@ class WurthSupplier(LoginMixin, GenericSupplier):
             # Verejná/guest cena môže ísť len ako retail hint, nie ako cost.
             retail_hint = retail_hint or price
 
+        host = (urlparse(final_url).hostname or "").lower()
+        slovak_dealer = host == "eshop.wurth.sk" or host.endswith(".eshop.wurth.sk")
+        # Cudzí verejný Würth (Kosovo, BA, RS, …) = len obsah. Cena a sklad SK/DE sa nehádajú.
+        content_only = not slovak_dealer
+        if content_only:
+            cost = None
+            retail_hint = None
+            pack_price = None
+            pack_verified = False
+            origin = {"origin": "", "origin_text": ""}
+            stock_status = ""
+            stock_text = ""
+            b2b = {}
+
         media_ok = wurth_media_allowed()
         images: List[str] = []
         if img and media_ok:
@@ -731,7 +745,8 @@ class WurthSupplier(LoginMixin, GenericSupplier):
                 "_sg_supplier_art_no": sku,
                 "pack_qty": pack_qty,
                 "pack_price": pack_price,
-                "unit_cost": round(pack_price / pack_qty, 4) if pack_verified else None,
+                "unit_cost": round(pack_price / pack_qty, 4) if pack_verified and pack_price else None,
+                "content_only": content_only,
                 "price_basis": price_basis,
                 "pack_verified": pack_verified,
                 "origin": origin.get("origin"),

@@ -220,12 +220,13 @@ PRICE_LOG: List[Dict[str, Any]] = []
 
 
 def price_floor_update(p: Dict[str, Any], m: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Würth floor: (netto + 6,80 € poplatok) × 1,23 DPH + min. zisk, ,90. Len NAHOR.
+    """Würth: len NAHOR na calculate_retail (DPH + marža, fee floor, min. 20 %).
 
-    Bez falošných akcií: sale_price sa nenastavuje (a ak by bola pod floor, zmaže sa),
-    takže „Najnižšia cena za 30 dní“ ostáva pravdivá.
+    Zdvihne produkt, ktorý je pod fee floorom alebo pod 20 % z ceny s DPH.
+    Cenu už nad oboma prahmi nenechá skočiť len preto, že 35 % marža by bola vyššia.
+    Stav sa nemení. Zlý náklad sa nepreceňuje.
     """
-    from pricing import wurth_price_floor
+    from pricing import _f, bad_cost_reason, calculate_retail, cost_with_vat_for, wurth_price_floor
     sku = (p.get("sku") or "").strip()
     if sku in KEEP_PRICE_SKUS:
         return None
@@ -243,14 +244,22 @@ def price_floor_update(p: Dict[str, Any], m: Dict[str, Any]) -> Optional[Dict[st
         sale = 0.0
     floor = wurth_price_floor(cost)
     eff = sale if 0 < sale < cur else cur
-    if eff + 0.004 >= floor:
+    if bad_cost_reason(cost, eff, supplier="wurth", name=p.get("name") or "", sku=sku):
         return None
-    new = max(floor, cur)
+    gross = cost_with_vat_for(cost, "wurth", p.get("name") or "", "Würth")
+    below_20 = gross > 0 and eff + 1e-9 < gross * _f("MIN_PROFIT_FACTOR", 1.20)
+    if eff + 0.004 >= floor and not below_20:
+        return None
+    res = calculate_retail(cost, supplier="wurth", name=p.get("name") or "", brand="Würth", sku=sku)
+    target = float(res.retail_price)
+    if eff + 0.004 >= target:
+        return None
+    new = max(target, cur)
     PRICE_LOG.append({"id": p["id"], "sku": sku, "before": eff, "after": new, "net_cost": cost,
                       "status": p.get("status")})
     upd: Dict[str, Any] = {"id": p["id"], "regular_price": f"{new:.2f}", "meta_data": [
         {"key": "_sg_price_before_floor", "value": f"{eff:.2f}"},
-        {"key": "_sg_price_rule", "value": "wurth_floor: (netto + 6,80) × 1,23 + min. zisk"},
+        {"key": "_sg_price_rule", "value": "wurth: netto×1,23, potom marža / fee floor / min. 20 %"},
     ]}
     if sale:
         upd["sale_price"] = ""

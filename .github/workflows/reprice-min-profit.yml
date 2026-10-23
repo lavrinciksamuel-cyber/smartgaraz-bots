@@ -1,0 +1,31 @@
+name: Reprice below 20 percent
+# Jednorazový / ručný prepočet existujúcich cien pod nákup s DPH × 1,20.
+# Pro-Tec sa tu nepreceňuje, kým nemá _sg_protec_parser=pcode-v1 (živé sync).
+# Default je náhľad. Stav produktov sa nemení.
+on:
+  workflow_dispatch:
+    inputs:
+      args:
+        description: "Prázdne = náhľad. Zápis: --apply"
+        required: false
+        default: ""
+
+jobs:
+  reprice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - run: pip install -r bot/requirements.txt
+      - name: Reprice
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          PYTHONUNBUFFERED: "1"
+        run: python bot/reprice_min_profit.py ${{ github.event.inputs.args }}
