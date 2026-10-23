@@ -239,6 +239,7 @@ def main() -> int:
 
     seen = set()
     reasons = Counter()
+    primary = Counter()
     by_src = Counter()
     ready: list[dict] = []
     held: dict = {}
@@ -271,6 +272,8 @@ def main() -> int:
             continue
         seen.add(pid)
         total += 1
+        if total % 2000 == 0:
+            LOG.info("prejdených %d konceptov, zatiaľ ready %d", total, len(pending))
         rs, new_name = evaluate(p)
         meta = _meta(p)
         src = str(meta.get("_supplier_source") or meta.get("_sg_supplier") or "?").lower()
@@ -278,6 +281,7 @@ def main() -> int:
             for r_ in rs:
                 reasons[r_] += 1
             key = rs[0]
+            primary[key] += 1
             held.setdefault(key, [])
             if len(held[key]) < 15:
                 held[key].append(f"#{pid} {(p.get('name') or '')[:70]}")
@@ -305,6 +309,7 @@ def main() -> int:
         "renamed_cz_to_sk": renamed,
         "ready_by_supplier": dict(by_src),
         "held_reasons": dict(reasons.most_common()),
+        "held_primary": dict(primary.most_common()),
         "held_examples": held,
         "dry_run": a.dry_run,
     }
