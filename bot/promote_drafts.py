@@ -109,6 +109,9 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
         reasons.append("no_price")
     elif cost and cost > 0 and price + 0.009 < cost:
         reasons.append("below_cost")
+    # Pro-Tec: parser/ceny sa opravujú — zverejni len so známou nákupnou cenou a cenou nad ňou.
+    if src == "pro-tec" and price > 0 and not (cost and cost > 0 and price > cost + 0.009):
+        reasons.append("protec_price_not_above_cost")
 
     # kategória
     cats = [(c.get("name") or "").replace("&amp;", "&").strip() for c in (p.get("categories") or [])]
