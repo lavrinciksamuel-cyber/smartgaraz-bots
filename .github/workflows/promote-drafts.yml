@@ -15,6 +15,12 @@ concurrency:
   group: promote-drafts
   cancel-in-progress: false
 
+env:
+  # Public repo: logs are world-readable → redact purchase prices, margins,
+  # supplier URLs and search terms in every Python process (bot/log_redact.py).
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+
 jobs:
   promote:
     runs-on: ubuntu-latest
@@ -37,10 +43,8 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: |
           python bot/promote_drafts.py --batch 100 --out promote-report.json ${{ github.event.inputs.args }}
-      - uses: actions/upload-artifact@v4
+      # Public repo: no artifacts (world-readable; reports hold supplier URLs
+      # and product lists). Print a redacted counts-only summary instead.
+      - name: Report summary (redacted)
         if: always()
-        with:
-          name: promote-report
-          path: promote-report.json
-          if-no-files-found: ignore
-          retention-days: 7
+        run: python bot/public_report_summary.py promote-report.json || true

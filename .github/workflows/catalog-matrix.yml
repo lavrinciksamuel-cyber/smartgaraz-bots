@@ -19,6 +19,12 @@ concurrency:
   group: catalog-matrix
   cancel-in-progress: false
 
+env:
+  # Public repo: logs are world-readable → redact purchase prices, margins,
+  # supplier URLs and search terms in every Python process (bot/log_redact.py).
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+
 jobs:
   plan:
     # Rozdelenie medzi účty: repo A (SG_ACCOUNT_INDEX=0) párne shardy, repo B (1) nepárne.

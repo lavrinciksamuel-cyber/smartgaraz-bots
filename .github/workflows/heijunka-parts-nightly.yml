@@ -20,6 +20,10 @@ on:
         default: "20"
 
 env:
+  # Public repo: logs are world-readable → redact purchase prices, margins,
+  # supplier URLs and search terms in every Python process (bot/log_redact.py).
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
   SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
   SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
   # LKQ zapnuté 13.10.2026 (login fix ae8494c); "1" = vypnúť
@@ -98,13 +102,12 @@ jobs:
           python bot/publish_ready_drafts.py --limit 40 || true
           python bot/site_eval.py || true
 
-      - name: Upload reports
+      # Public repo: no artifacts (world-readable; reports hold supplier URLs
+      # and product lists). Print a redacted counts-only summary instead.
+      - name: Report summary (redacted)
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: parts-heijunka-reports
-          path: |
-            bot/reports/ops-parts-import-ready-*.md
-            bot/reports/ops-heijunka-vehicle-*.md
-            bot/reports/site-eval-*.md
-          if-no-files-found: ignore
+        run: >-
+          python bot/public_report_summary.py
+          'bot/reports/ops-parts-import-ready-*.md'
+          'bot/reports/ops-heijunka-vehicle-*.md'
+          'bot/reports/site-eval-*.md' || true

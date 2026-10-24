@@ -25,6 +25,10 @@ on:
         default: "2"
 
 env:
+  # Public repo: logs are world-readable → redact purchase prices, margins,
+  # supplier URLs and search terms in every Python process (bot/log_redact.py).
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
   SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
   SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
   # LKQ zapnuté 13.10.2026 (login fix ae8494c); "1" = vypnúť
@@ -94,14 +98,13 @@ jobs:
           SG_SZEKOP_EXPAND: "1"
         run: bash bot/run_evening_strong_import.sh --now
 
-      - name: Upload reports
+      # Public repo: no artifacts (world-readable; reports hold supplier URLs
+      # and product lists). Print a redacted counts-only summary instead.
+      - name: Report summary (redacted)
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: evening-strong-reports
-          path: |
-            bot/reports/ops-heijunka-vehicle-*.md
-            bot/reports/ops-heijunka-szekop-*.md
-            bot/reports/ops-parts-import-ready-*.md
-            bot/reports/site-eval-*.md
-          if-no-files-found: ignore
+        run: >-
+          python bot/public_report_summary.py
+          'bot/reports/ops-heijunka-vehicle-*.md'
+          'bot/reports/ops-heijunka-szekop-*.md'
+          'bot/reports/ops-parts-import-ready-*.md'
+          'bot/reports/site-eval-*.md' || true
