@@ -1,0 +1,99 @@
+{
+    "_comment": "Záložný zoznam webov, keď HQ neodpovie. Hlavný zoznam sa spravuje v HQ → Bezpečnosť → Nastavenia → Weby.",
+    "sites": [
+        {
+            "slug": "smartgaraz",
+            "url": "https://www.smartgaraz.sk/",
+            "kind": "wordpress",
+            "cfg": {
+                "hosts": [
+                    "www.smartgaraz.sk",
+                    "smartgaraz.sk"
+                ],
+                "domain": "smartgaraz.sk",
+                "expect_text": "SmartGar",
+                "login_paths": [
+                    "/wp-login.php",
+                    "/oscar"
+                ]
+            }
+        },
+        {
+            "slug": "hq",
+            "url": "https://hq.smartgaraz.sk/",
+            "kind": "hq",
+            "cfg": {
+                "hosts": [
+                    "hq.smartgaraz.sk"
+                ],
+                "domain": "smartgaraz.sk",
+                "skip": [
+                    "wp",
+                    "blacklist"
+                ]
+            }
+        },
+        {
+            "slug": "kvapkame",
+            "url": "https://kvapkame.sk/",
+            "kind": "wordpress",
+            "cfg": {
+                "hosts": [
+                    "kvapkame.sk",
+                    "www.kvapkame.sk"
+                ],
+                "domain": "kvapkame.sk",
+                "login_paths": [
+                    "/wp-login.php"
+                ]
+            }
+        },
+        {
+            "slug": "lavro",
+            "url": "https://lavro.sk/",
+            "kind": "redirect",
+            "cfg": {
+                "hosts": [
+                    "lavro.sk",
+                    "www.lavro.sk"
+                ],
+                "domain": "lavro.sk",
+                "expect_redirect": "https://www.google.com/",
+                "skip": [
+                    "exposed",
+                    "wp"
+                ]
+            }
+        },
+        {
+            "slug": "dokonalaefaktura",
+            "url": "https://dokonalaefaktura.sk/",
+            "kind": "nextjs",
+            "cfg": {
+                "hosts": [
+                    "dokonalaefaktura.sk",
+                    "www.dokonalaefaktura.sk"
+                ],
+                "domain": "dokonalaefaktura.sk",
+                "skip": [
+                    "wp"
+                ]
+            }
+        },
+        {
+            "slug": "todos-car-studio",
+            "url": "https://todos-car-studio.vercel.app/",
+            "kind": "nextjs",
+            "cfg": {
+                "hosts": [
+                    "todos-car-studio.vercel.app"
+                ],
+                "skip": [
+                    "wp",
+                    "dns",
+                    "blacklist"
+                ]
+            }
+        }
+    ]
+}

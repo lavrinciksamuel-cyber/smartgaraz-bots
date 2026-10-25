@@ -1,0 +1,45 @@
+name: Security monitor (všetky weby)
+# Externé bezpečnostné kontroly všetkých webov každých 15 min → HQ (hq.smartgaraz.sk → Bezpečnosť).
+# Dostupnosť, SSL, DNS, hlavičky, obsah/defacement; ~1× za hodinu aj odhalené súbory, WordPress, čierne listiny.
+# Len štandardná knižnica Pythonu (žiadny pip). Výsledky vyhodnocuje HQ, upozornenia posiela HQ.
+#
+# PUBLIC REPO: log obsahuje len počty (žiadne nálezy, cesty, IP ani tajomstvá); žiadne artefakty ani commity.
+# Odhad: 4 behy/h × ~1 min = ~2 900 min/mesiac – vo verejnom repe zadarmo.
+# Secrets: SEC_SCANNER_SECRET (= sec_scanner_secret v sghq-config.php), voliteľne SEC_HQ_URL.
+# Bez SEC_SCANNER_SECRET beh skončí za pár sekúnd s „preskakujem“.
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: security-monitor
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            security
+            bot/public_ci
+            bot/log_redact.py
+          sparse-checkout-cone-mode: false
+      - name: Scan
+        env:
+          SEC_SCANNER_SECRET: ${{ secrets.SEC_SCANNER_SECRET }}
+          SEC_HQ_URL: ${{ secrets.SEC_HQ_URL }}
+        run: python3 security/monitor.py
