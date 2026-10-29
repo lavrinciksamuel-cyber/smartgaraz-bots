@@ -241,9 +241,13 @@ def own_new(by_src: dict, code: str) -> int:
 
 
 def wurth_blocked_result(**kw) -> int:
-    return result(False, "Würth blokuje automatický prístup (ochrana webu challenge/403) – "
+    # Blokácia Würthu nie je chyba bota (neobchádzame ju) – shard skončí ako „preskočený“
+    # s varovaním, nie ako zlyhaný beh. Würth katalóg rieši týždenný wurth-catalog-sync.
+    print("::warning::Würth blokuje automatický prístup – shard preskočený (bez obchádzania).", flush=True)
+    result(False, "Würth blokuje automatický prístup (ochrana webu challenge/403) – "
                          "shard som hneď ukončil, nič sa neimportovalo. Neobchádzame to; skúsi sa ďalší beh.",
                   blocked=True, **kw)
+    return 0
 
 
 def main() -> int:

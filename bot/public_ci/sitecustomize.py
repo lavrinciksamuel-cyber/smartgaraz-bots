@@ -6,6 +6,13 @@ search terms never reach the world-readable Actions log. See bot/log_redact.py.
 import os
 import sys
 
+try:  # Woo batch odpovede majú pri publish 2× Set-Cookie na produkt (>100 hlavičiek)
+    import http.client
+
+    http.client._MAXHEADERS = max(getattr(http.client, "_MAXHEADERS", 100), 2000)
+except Exception:
+    pass
+
 _BOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 try:
     if _BOT not in sys.path:

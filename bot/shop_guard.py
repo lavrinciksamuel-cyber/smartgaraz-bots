@@ -7,7 +7,12 @@ Pri 508 (Resource Limit Is Reached) hneď dlhá pauza, aby účet nesuspendovali
 Inak pauza 30/60/120/240 s, kým sa HQ aj API nespamätajú.
 """
 from __future__ import annotations
-import logging, os, threading, time
+import http.client, logging, os, threading, time
+
+# WooCommerce Tracks (Jetpack) pridá pri každom zverejnenom produkte Set-Cookie tk_ai,
+# takže batch 100 produktov vráti >200 hlavičiek a http.client spadne na
+# "got more than 100 headers" (zápis prebehol, odpoveď sa však stratila).
+http.client._MAXHEADERS = max(getattr(http.client, "_MAXHEADERS", 100), 2000)
 
 LOGGER = logging.getLogger("shop_guard")
 _last = 0.0

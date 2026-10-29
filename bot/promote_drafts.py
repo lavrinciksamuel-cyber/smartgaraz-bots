@@ -235,6 +235,7 @@ def main() -> int:
     a = ap.parse_args()
 
     import requests
+    import shop_guard  # noqa: F401  (zvýši http.client._MAXHEADERS)
 
     session = requests.Session()
     state = {"published": 0}
