@@ -237,9 +237,31 @@ def peer() -> None:
         return
     last = next((ts(r["created_at"]) for r in rs if r["conclusion"] == "success"), None)
     log(f"peer watchdog {p}: posledný úspech {sk(last)}")
-    if rs and (last is None or NOW - last > timedelta(hours=14)):
+    ref = last or (ts(rs[-1]["created_at"]) if rs else None)  # nový peer: počítaj od jeho prvého behu
+    if ref and NOW - ref > timedelta(hours=14):
         alert("watchdog.yml", "Strážca botov v druhom repozitári nebeží",
               f"{p.split('/')[-1]}: posledný úspešný beh {sk(last)}.", f"https://github.com/{p}/actions")
+
+
+def tss_fresh() -> None:
+    """TSS: cenník + sklad sťahuje hosting cron do HQ; bot z neho importuje. Starý súbor = cron stojí."""
+    if os.environ.get("SG_CHECK_TSS", "") != "1" or not os.environ.get("HQ_SYNC_TOKEN"):
+        return
+    import gzip
+    try:
+        req = urllib.request.Request(HQ_URL + "/api/sync/tss-catalog", headers={
+            "Authorization": "Bearer " + os.environ["HQ_SYNC_TOKEN"], "Accept-Encoding": "gzip", "User-Agent": "sg-watchdog"})
+        with urllib.request.urlopen(req, timeout=60) as f:
+            raw = f.read()
+        data = json.loads(gzip.decompress(raw) if raw[:2] == b"\x1f\x8b" else raw)
+        gen = ts(str(data.get("generated_at") or ""))
+    except Exception as e:
+        log(f"TSS katalóg v HQ: nedá sa prečítať ({type(e).__name__}) – skúsim neskôr")
+        return
+    log(f"TSS katalóg v HQ: {sk(gen)} · {data.get('count')} položiek")
+    if gen is None or NOW - gen > timedelta(hours=36):
+        alert("tss-hq-cron", "TSS cenník sa neaktualizuje",
+              f"Posledné stiahnutie TSS v HQ: {sk(gen)}. Hosting cron asi stojí.")
 
 
 def main() -> int:
@@ -261,6 +283,7 @@ def main() -> int:
             except Exception as e:
                 log(f"{f}: kontrola zlyhala ({type(e).__name__}: {e})")
     keepalive(wfs)
+    tss_fresh()
     peer()
     return 0
 
