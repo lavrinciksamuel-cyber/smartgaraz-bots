@@ -26,3 +26,10 @@ except Exception as _exc:  # never break the interpreter
     if os.environ.get("SG_PUBLIC_LOGS", "").strip() in {"1", "true", "yes"}:
         sys.__stderr__.flush()
         os._exit(3)
+
+try:  # self-healing HTTP: retry transient 5xx/timeouts/odd headers with backoff (bot/http_retry.py)
+    import http_retry  # noqa: E402
+
+    http_retry.install()
+except Exception as _exc:  # never break the interpreter
+    sys.__stderr__.write(f"[sitecustomize] http retry not active: {_exc}\n")

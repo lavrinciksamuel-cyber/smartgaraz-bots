@@ -41,6 +41,8 @@ jobs:
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
           SG_PRIORITY_SKUS: "43201,33179,22202,X6000-5"
+          # 160 min < timeout 180: skript skončí sám ako „čiastočne hotovo“, nie zrušený GitHubom
+          SG_IMPORT_BUDGET_S: "9600"
           PYTHONUNBUFFERED: "1"
         run: |
           LIMIT="${{ github.event.inputs.limit }}"

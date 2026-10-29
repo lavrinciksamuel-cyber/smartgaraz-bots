@@ -9,6 +9,12 @@ on:
         description: "Prázdne = náhľad. Zápis: --apply"
         required: false
         default: ""
+  # Týždenne v noci (ut 03:00 SK): zdvihne ceny pod nákup s DPH × 1,20 (len zdvih, stav sa nemení).
+  schedule:
+    - cron: "0 2 * * 2"
+concurrency:
+  group: reprice-min-profit
+  cancel-in-progress: false
 
 env:
   # Public repo: logs are world-readable → redact purchase prices, margins,
@@ -34,4 +40,4 @@ jobs:
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           PYTHONUNBUFFERED: "1"
-        run: python bot/reprice_min_profit.py ${{ github.event.inputs.args }}
+        run: python bot/reprice_min_profit.py ${{ github.event_name == 'schedule' && '--apply' || github.event.inputs.args }}

@@ -1,0 +1,36 @@
+name: Bot watchdog
+# Stráži ostatné boty bez človeka: zaseknuté behy zruší, zlyhaný/stojaci bot 1× znova
+# spustí (ťažké len v noci 23–07), a keď ani to nepomôže, pošle upozornenie do HQ
+# (push na telefón, max 1× denne na bota). Denne aj keepalive proti 60-dňovému vypnutiu.
+# Len stdlib Python, ~1 min / beh.
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Len výpis, nič nespúšťať ani neposielať"
+        type: boolean
+        default: false
+permissions:
+  actions: write
+  contents: read
+concurrency:
+  group: watchdog
+  cancel-in-progress: true
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: bot/watchdog.py
+          sparse-checkout-cone-mode: false
+      - name: Watchdog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          SG_PEER_REPO: Lavro2/smartgaraz-bots-2
+          SG_WATCHDOG_DRY: ${{ inputs.dry && '1' || '0' }}
+        run: python3 bot/watchdog.py

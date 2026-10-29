@@ -64,15 +64,34 @@ def run(cmd, env, timeout=None) -> tuple[int, str]:
                          text=True, bufsize=1)
     tail: list = []
     rc = None
-    for line in p.stdout:
-        sys.stdout.write(line)
-        tail.append(line)
-        if len(tail) > 4000:
-            del tail[:1000]
-        if time.time() > end:
+    # Tvrdý limit aj keď krok mlčí (napr. shop_guard čaká na pomalý web) – inak GitHub
+    # job zabije po timeout-minutes a beh skončí ako „cancelled“ bez výsledku.
+    import threading
+    expired = threading.Event()
+
+    def _expire():
+        expired.set()
+        try:
             p.terminate()
-            rc = 124
-            break
+        except Exception:
+            pass
+
+    timer = threading.Timer(max(1, end - time.time()), _expire)
+    timer.daemon = True
+    timer.start()
+    try:
+        for line in p.stdout:
+            sys.stdout.write(line)
+            tail.append(line)
+            if len(tail) > 4000:
+                del tail[:1000]
+            if time.time() > end:
+                _expire()
+                break
+    finally:
+        timer.cancel()
+    if expired.is_set():
+        rc = 124
     try:
         p.wait(timeout=60)
     except subprocess.TimeoutExpired:
@@ -430,6 +449,10 @@ def main() -> int:
                 # nestihne všetko – to nie je chyba, ďalší beh pokračuje. Varovanie, nie zlyhanie.
                 print("::warning::Aktualizácia cien nestihla všetko v časovom limite (shop_guard brzdí kvôli rýchlosti webu) – pokračuje ďalší beh.", flush=True)
                 return result(True, f"Čiastočne hotovo ({slug}, ceny): {why}", partial=True, **counts)
+            if a.mode == "full" and created > 0:
+                # Nočný full import pokračuje ďalší beh (skip existujúcich SKU) – časť hotová = varovanie.
+                print("::warning::Import nestihol celý katalóg v časovom limite – pokračuje ďalší beh.", flush=True)
+                return result(True, f"Čiastočne hotovo ({slug}): {created} nových, zvyšok ďalší beh.", partial=True, **counts)
         return result(False, f"Import skončil chybou: {why}", **counts)
     return result(True, f"Hotovo ({slug}): {counts['new'] or 0} nových produktov" + (f", zverejnených {pub['published']}, na kontrolu {pub['held']}." if pub else "."), **counts)
 
