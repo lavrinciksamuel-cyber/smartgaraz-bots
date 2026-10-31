@@ -43,6 +43,9 @@ jobs:
           # zákazníci majú prednosť: cez deň (07–23 SK) 1 shard naraz, v noci 4
           PAR_DAY: ${{ vars.SG_MATRIX_PAR_DAY || '1' }}
           PAR_NIGHT: ${{ vars.SG_MATRIX_PAR_NIGHT || '4' }}
+          # režim údržby obchodu (zákazníci vidia 503) → všetky shardy naraz
+          PAR_MAINT: ${{ vars.SG_MATRIX_PAR_MAINT || '20' }}
+          WC_URL: ${{ secrets.WC_URL }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
@@ -57,7 +60,14 @@ jobs:
           from zoneinfo import ZoneInfo
           h = datetime.now(ZoneInfo("Europe/Bratislava")).hour
           day = 7 <= h < 23
-          print("par=" + os.environ.get("PAR_DAY" if day else "PAR_NIGHT", "1"))
+          maint = False
+          try:
+              import urllib.request
+              u = os.environ.get("WC_URL", "").rstrip("/") + "/wp-json/sg/v1/maintenance"
+              maint = bool(json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "SmartGarazBot-plan"}), timeout=15)).get("on"))
+          except Exception:
+              maint = False
+          print("par=" + os.environ.get("PAR_MAINT" if maint else ("PAR_DAY" if day else "PAR_NIGHT"), "1"))
           PY
   shard:
     needs: plan
@@ -106,6 +116,11 @@ jobs:
           SG_DEFER_IMAGES: "1"
           PYTHONUNBUFFERED: "1"
           SG_LKQ_JOBS: "4"
+          # Úplnosť katalógu (repo variables, default v zátvorke):
+          SG_CRAWL_CAP: ${{ vars.SG_CRAWL_CAP || '1500' }}            # riadkov listingu na auto × kategóriu (bolo 400)
+          SG_LKQ_RECYCLE_H: ${{ vars.SG_LKQ_RECYCLE_H || '24' }}      # nový cyklus LKQ po h
+          SG_SZEKOP_RECYCLE_H: ${{ vars.SG_SZEKOP_RECYCLE_H || '48' }}
+          SG_SZEKOP_ALL_MAKES: ${{ vars.SG_SZEKOP_ALL_MAKES || '1' }}  # všetky značky, nie len 36 prioritných
           SG_IMPORT_BUDGET_S: ${{ format('{0}', (github.event.inputs.budget_min || '290')) }}
         run: |
           export SG_IMPORT_BUDGET_S=$(( SG_IMPORT_BUDGET_S * 60 ))
