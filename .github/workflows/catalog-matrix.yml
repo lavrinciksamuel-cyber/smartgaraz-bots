@@ -46,6 +46,7 @@ jobs:
           # režim údržby obchodu (zákazníci vidia 503) → všetky shardy naraz
           PAR_MAINT: ${{ vars.SG_MATRIX_PAR_MAINT || '20' }}
           WC_URL: ${{ secrets.WC_URL }}
+          FORCE_MAINT: ${{ vars.SG_MAINTENANCE || '' }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
@@ -64,9 +65,15 @@ jobs:
           try:
               import urllib.request
               u = os.environ.get("WC_URL", "").rstrip("/") + "/wp-json/sg/v1/maintenance"
-              maint = bool(json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "SmartGarazBot-plan"}), timeout=15)).get("on"))
-          except Exception:
+              maint = bool(json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "SmartGarazBot-plan", "Accept": "application/json"}), timeout=15)).get("on"))
+          except Exception as exc:
+              import sys
+              print(f"maintenance check failed: {str(exc)[:200]}", file=sys.stderr)
               maint = False
+          if os.environ.get("FORCE_MAINT", "") in ("0", "1"):
+              maint = os.environ["FORCE_MAINT"] == "1"
+          import sys
+          print(f"maintenance={maint}", file=sys.stderr)
           print("par=" + os.environ.get("PAR_MAINT" if maint else ("PAR_DAY" if day else "PAR_NIGHT"), "1"))
           PY
   shard:

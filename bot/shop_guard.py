@@ -79,7 +79,11 @@ def maintenance_on() -> bool:
             r = requests.get(f"{wc}/wp-json/sg/v1/maintenance", timeout=15,
                              headers={"User-Agent": "SmartGarazBot-guard", "Cache-Control": "no-cache"})
             on = bool(r.ok and (r.json() or {}).get("on"))
-        except Exception:
+            if not r.ok and not _maint.get("warned"):
+                LOGGER.warning("shop_guard: maintenance endpoint HTTP %s", r.status_code); _maint["warned"] = True
+        except Exception as exc:
+            if not _maint.get("warned"):
+                LOGGER.warning("shop_guard: maintenance endpoint error %s", str(exc)[:150]); _maint["warned"] = True
             on = False
     if on != _maint["on"]:
         LOGGER.warning("shop_guard: režim údržby %s", "ZAPNUTÝ → plná rýchlosť" if on else "vypnutý → bežné brzdenie")
