@@ -56,6 +56,8 @@ jobs:
           if [ "$CLS" = "off" ]; then echo "classifier off"; exit 0; fi
           if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --max "$CMAX" --out classify-report.json || true
           else python bot/draft_classifier.py --dry-run --out classify-report.json || true; fi
+          # zverejnené produkty v dump kategóriách (Auto chémia/Nezaradené) – len kategória
+          if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --published || true; fi
       - name: Promote
         env:
           WC_URL: ${{ secrets.WC_URL }}

@@ -331,6 +331,37 @@ def category_index(session, url, auth) -> Dict[Tuple[str, ...], int]:
     return {path(c): c["id"] for c in rows}
 
 
+def iter_published_dump(url, auth, session):
+    """Zverejnené produkty v generických kategóriách (Auto chémia, Nezaradené…)."""
+    from promote_drafts import GENERIC_CATS
+    from shop_guard import wait_if_slow
+
+    r = session.get(f"{url}/wp-json/wc/v3/products/categories", auth=auth, params={"per_page": 100, "search": ""}, timeout=120)
+    ids = []
+    page = 1
+    while True:
+        r = session.get(f"{url}/wp-json/wc/v3/products/categories", auth=auth,
+                        params={"per_page": 100, "page": page, "_fields": "id,name"}, timeout=120)
+        rows = r.json() if r.ok else []
+        ids += [c["id"] for c in rows if (c.get("name") or "").replace("&amp;", "&").strip().lower() in GENERIC_CATS]
+        if len(rows) < 100:
+            break
+        page += 1
+    for cid in ids:
+        page = 1
+        while True:
+            wait_if_slow()
+            r = session.get(f"{url}/wp-json/wc/v3/products", auth=auth, timeout=120,
+                            params={"status": "publish", "category": cid, "per_page": 100, "page": page,
+                                    "_fields": "id,name,sku,status,price,regular_price,categories,stock_status,meta_data"})
+            rows = r.json() if r.ok else []
+            for p in rows:
+                yield p
+            if len(rows) < 100:
+                break
+            page += 1
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)-7s | %(message)s")
     ap = argparse.ArgumentParser()
@@ -339,6 +370,8 @@ def main() -> int:
     ap.add_argument("--max", type=int, default=0, help="max zaradených za beh (0 = bez limitu)")
     ap.add_argument("--from-file", default="", help="JSONL konceptov (offline)")
     ap.add_argument("--out", default="")
+    ap.add_argument("--published", action="store_true",
+                    help="zverejnené produkty v dump kategóriách (Auto chémia/Nezaradené) – len kategória, názov sa nemení")
     a = ap.parse_args()
     apply = a.apply and not a.dry_run
 
@@ -355,7 +388,7 @@ def main() -> int:
     else:
         url, auth = _wc()
         cat_ids = category_index(session, url, auth)
-        drafts = iter_drafts(url, auth, session, 0.5, {"published": 0})
+        drafts = iter_published_dump(url, auth, session) if a.published else iter_drafts(url, auth, session, 0.5, {"published": 0})
 
     st = Counter()
     by_path: Counter = Counter()
@@ -385,8 +418,8 @@ def main() -> int:
         src = str(meta.get("_supplier_source") or "?").lower()
         name = (p.get("name") or "").strip()
         upd: Dict = {}
-        # SK názov
-        if is_czech(name):
+        # SK názov (zverejnené názvy nemeníme)
+        if is_czech(name) and not a.published:
             fixed = to_sk(sk_name(name))
             if fixed != name and not is_czech(fixed):
                 upd["name"] = fixed
