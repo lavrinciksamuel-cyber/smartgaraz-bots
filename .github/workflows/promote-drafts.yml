@@ -47,7 +47,7 @@ jobs:
           CLS: ${{ github.event.inputs.classify || 'apply' }}
         run: |
           if [ "$CLS" = "off" ]; then echo "classifier off"; exit 0; fi
-          if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --max 5000 --out classify-report.json || true
+          if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --max 1500 --out classify-report.json || true
           else python bot/draft_classifier.py --dry-run --out classify-report.json || true; fi
       - name: Promote
         env:

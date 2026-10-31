@@ -1,0 +1,230 @@
+make;make_sg;model;model_sg;group;powertrain;eu_market_from;year_to;priority;market;note
+MG;sgv-make-mg;ZS;sgv-model-mg-zs;SAIC;ICE/HEV/BEV;2017;;A;EU;
+BYD;sgv-make-byd;Seal U;sgv-model-byd-seal-u;BYD;BEV/PHEV;2023;;A;EU;
+MG;sgv-make-mg;3;sgv-model-mg-3;SAIC;ICE/HEV;2018;;A;EU;
+Jaecoo;sgv-make-jaecoo;7;sgv-model-jaecoo-7;Chery;ICE/PHEV;2024;;A;EU;
+MG;sgv-make-mg;HS;sgv-model-mg-hs;SAIC;ICE/HEV/PHEV;2019;;A;EU;
+BYD;sgv-make-byd;Atto 2;sgv-model-byd-atto-2;BYD;BEV/PHEV;2025;;A;EU;
+Leapmotor;sgv-make-leapmotor;T03;sgv-model-leapmotor-t03;Leapmotor/Stellantis;BEV;2024;;A;EU;
+Omoda;sgv-make-omoda;5;sgv-model-omoda-5;Chery;ICE;2023;;A;EU;
+BYD;sgv-make-byd;Seal;sgv-model-byd-seal;BYD;BEV;2023;;A;EU;
+MG;sgv-make-mg;4;sgv-model-mg-4;SAIC;BEV;2022;;A;EU;
+BYD;sgv-make-byd;Dolphin Surf;sgv-model-byd-dolphin-surf;BYD;BEV;2025;;A;EU;
+BYD;sgv-make-byd;Atto 3;sgv-model-byd-atto-3;BYD;BEV;2022;;A;EU;
+Xpeng;sgv-make-xpeng;G6;sgv-model-xpeng-g6;Xpeng;BEV;2024;;A;EU;
+BYD;sgv-make-byd;Dolphin;sgv-model-byd-dolphin;BYD;BEV;2023;;A;EU;
+Leapmotor;sgv-make-leapmotor;B10;sgv-model-leapmotor-b10;Leapmotor/Stellantis;BEV;2025;;A;EU;
+BYD;sgv-make-byd;Sealion 7;sgv-model-byd-sealion-7;BYD;BEV;2024;;A;EU;
+Jaecoo;sgv-make-jaecoo;5;sgv-model-jaecoo-5;Chery;ICE/HEV/BEV;2025;;A;EU;
+Leapmotor;sgv-make-leapmotor;C10;sgv-model-leapmotor-c10;Leapmotor/Stellantis;BEV/EREV;2024;;A;EU;
+Omoda;sgv-make-omoda;9;sgv-model-omoda-9;Chery;PHEV;2025;;A;EU;
+MG;sgv-make-mg;RX6 (KBA označenie);sgv-model-mg-rx6;SAIC;neoverené;;;A;EU;"KBA uvádza RX6; HS v KBA chýba – pravdepodobne ide o MG HS, overiť"
+Polestar;sgv-make-polestar;4;sgv-model-polestar-4;Geely;BEV;2024;;B;EU;
+Polestar;sgv-make-polestar;2;sgv-model-polestar-2;Geely;BEV;2020;;B;EU;
+Lynk & Co;sgv-make-lynk-co;01;sgv-model-lynk-co-01;Geely;PHEV;2021;;B;EU;
+Ebro;sgv-make-ebro;S700;sgv-model-ebro-s700;Ebro (licencia Chery);ICE/PHEV;2024;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Ebro;sgv-make-ebro;S400;sgv-model-ebro-s400;Ebro (licencia Chery);ICE/HEV;2025;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Geely;sgv-make-geely;Starray;sgv-model-geely-starray;Geely;PHEV;2025;;B;EU;
+Xpeng;sgv-make-xpeng;G9;sgv-model-xpeng-g9;Xpeng;BEV;2022;;B;EU;
+smart;sgv-make-smart;#1;sgv-model-smart-1;Geely+Mercedes;BEV;2022;;B;EU;
+DR;sgv-make-dr;5.0;sgv-model-dr-5-0;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+BYD;sgv-make-byd;Seal 6;sgv-model-byd-seal-6;BYD;PHEV;2025;;B;EU;
+smart;sgv-make-smart;#5;sgv-model-smart-5;Geely+Mercedes;BEV;2025;;B;EU;
+MG;sgv-make-mg;S5;sgv-model-mg-s5;SAIC;BEV;2024;;B;EU;
+Omoda;sgv-make-omoda;7;sgv-model-omoda-7;Chery;PHEV (odhad);2026;;B;EU;
+smart;sgv-make-smart;#3;sgv-model-smart-3;Geely+Mercedes;BEV;2023;;B;EU;
+DR;sgv-make-dr;5;sgv-model-dr-5;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;B;EU;"nová generácia (odlišná od 5.0/6.0) – odhad; rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu"
+EVO;sgv-make-evo;6;sgv-model-evo-6;DR Automobiles;neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+MG;sgv-make-mg;5;sgv-model-mg-5;SAIC;BEV;2020;;B;EU;
+EVO;sgv-make-evo;5;sgv-model-evo-5;DR Automobiles;neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Lynk & Co;sgv-make-lynk-co;08;sgv-model-lynk-co-08;Geely;PHEV;2025;;B;EU;
+Ebro;sgv-make-ebro;S800;sgv-model-ebro-s800;Ebro (licencia Chery);ICE/PHEV;2024;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Deepal;sgv-make-deepal;S05;sgv-model-deepal-s05;Changan;BEV/EREV;2025;;B;EU;
+Polestar;sgv-make-polestar;3;sgv-model-polestar-3;Geely;BEV;2024;;B;EU;
+Dongfeng;sgv-make-dongfeng;Box;sgv-model-dongfeng-box;Dongfeng;BEV;2024;;B;EU;
+Zeekr;sgv-make-zeekr;7X;sgv-model-zeekr-7x;Geely;BEV;2024;;B;EU;
+DR;sgv-make-dr;3.0;sgv-model-dr-3-0;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Omoda;sgv-make-omoda;E5 (5 EV);sgv-model-omoda-e5;Chery;BEV;2024;;B;EU;
+MG;sgv-make-mg;S9;sgv-model-mg-s9;SAIC;PHEV;2025;;B;EU;
+EVO;sgv-make-evo;4;sgv-model-evo-4;DR Automobiles;neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+BYD;sgv-make-byd;Dolphin G;sgv-model-byd-dolphin-g;BYD;PHEV (odhad);2026;;B;EU;
+Lynk & Co;sgv-make-lynk-co;02;sgv-model-lynk-co-02;Geely;BEV;2025;;B;EU;
+Jaecoo;sgv-make-jaecoo;8;sgv-model-jaecoo-8;Chery;PHEV;2026;;B;EU;
+EMC;sgv-make-emc;Sei;sgv-model-emc-sei;EMC (IT importér);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DR;sgv-make-dr;G3;sgv-model-dr-g3;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Zeekr;sgv-make-zeekr;001;sgv-model-zeekr-001;Geely;BEV;2023;;B;EU;
+Ebro;sgv-make-ebro;S900;sgv-model-ebro-s900;Ebro (licencia Chery);PHEV;2025;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Sportequipe;sgv-make-sportequipe;6GT;sgv-model-sportequipe-6gt;DR Automobiles;neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+MG;sgv-make-mg;Cyberster;sgv-model-mg-cyberster;SAIC;BEV;2024;;B;EU;
+EVO;sgv-make-evo;3;sgv-model-evo-3;DR Automobiles;neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+MG;sgv-make-mg;S6;sgv-model-mg-s6;SAIC;BEV;2025;;B;EU;
+DFSK;sgv-make-dfsk;E5;sgv-model-dfsk-e5;Dongfeng-Sokon;PHEV;2023;;B;EU;
+Xpeng;sgv-make-xpeng;P7;sgv-model-xpeng-p7;Xpeng;BEV;2022;;B;EU;
+Forthing;sgv-make-forthing;T5 EVO;sgv-model-forthing-t5-evo;Dongfeng;ICE/HEV;2023;;B;EU;
+BAIC;sgv-make-baic;X55;sgv-model-baic-x55;BAIC;ICE;2024;;B;EU;
+Seres;sgv-make-seres;3;sgv-model-seres-3;Seres;BEV;2021;;B;EU;
+Zeekr;sgv-make-zeekr;X;sgv-model-zeekr-x;Geely;BEV;2023;;B;EU;
+MG;sgv-make-mg;4 Urban;sgv-model-mg-4-urban;SAIC;BEV;2026;;B;EU;
+ICH-X;sgv-make-ich-x;K3;sgv-model-ich-x-k3;DR Automobiles;neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DR;sgv-make-dr;6;sgv-model-dr-6;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;B;EU;"nová generácia (odlišná od 5.0/6.0) – odhad; rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu"
+EMC;sgv-make-emc;Wave3;sgv-model-emc-wave3;EMC (IT importér);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+EMC;sgv-make-emc;6;sgv-model-emc-6;EMC (IT importér);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Zeekr;sgv-make-zeekr;7GT;sgv-model-zeekr-7gt;Geely;BEV;2025;;B;EU;
+EMC;sgv-make-emc;Wave2;sgv-model-emc-wave2;EMC (IT importér);neoverené;;;B;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Geely;sgv-make-geely;Coolray;sgv-model-geely-coolray;Geely;ICE;2024;;B;EU;
+Forthing;sgv-make-forthing;U-Tour;sgv-model-forthing-u-tour;Dongfeng;ICE;2024;;B;EU;
+BYD;sgv-make-byd;Tang;sgv-model-byd-tang;BYD;BEV;2022;;C;EU;
+Leapmotor;sgv-make-leapmotor;B05;sgv-model-leapmotor-b05;Leapmotor/Stellantis;BEV;2025;;C;EU;
+Geely;sgv-make-geely;E5;sgv-model-geely-e5;Geely;BEV;2025;;C;EU;
+Tiger;sgv-make-tiger;Six;sgv-model-tiger-six;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DR;sgv-make-dr;7.0;sgv-model-dr-7-0;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+SWM;sgv-make-swm;G03F;sgv-model-swm-g03f;Brilliance/Shineray (odhad);neoverené;;;C;EU;
+GWM;sgv-make-gwm;Ora 03;sgv-model-gwm-ora-03;Great Wall;BEV;2022;;C;EU;
+BAIC;sgv-make-baic;X35;sgv-model-baic-x35;BAIC;ICE;2024;;C;EU;
+Dongfeng;sgv-make-dongfeng;Shine;sgv-model-dongfeng-shine;Dongfeng;neoverené;;;C;EU;
+SWM;sgv-make-swm;G01;sgv-model-swm-g01;Brilliance/Shineray (odhad);neoverené;;;C;EU;
+GWM;sgv-make-gwm;Wey 05;sgv-model-gwm-wey-05;Great Wall;PHEV;2022;;C;EU;
+Deepal;sgv-make-deepal;S07;sgv-model-deepal-s07;Changan;BEV;2025;;C;EU;
+SWM;sgv-make-swm;G05;sgv-model-swm-g05;Brilliance/Shineray (odhad);neoverené;;;C;EU;
+MG;sgv-make-mg;Marvel R;sgv-model-mg-marvel-r;SAIC;BEV;2021;;C;EU;
+Sportequipe;sgv-make-sportequipe;7GTW;sgv-model-sportequipe-7gtw;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+BAIC;sgv-make-baic;X75;sgv-model-baic-x75;BAIC;ICE;2024;;C;EU;
+Leapmotor;sgv-make-leapmotor;B03X;sgv-model-leapmotor-b03x;Leapmotor/Stellantis;BEV;2026;;C;EU;
+EMC;sgv-make-emc;4;sgv-model-emc-4;EMC (IT importér);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DR;sgv-make-dr;EQ1;sgv-model-dr-eq1;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Geely;sgv-make-geely;E2;sgv-model-geely-e2;Geely;BEV;2026;;C;EU;
+DFSK;sgv-make-dfsk;500;sgv-model-dfsk-500;Dongfeng-Sokon;neoverené;;;C;EU;
+Livan;sgv-make-livan;X3;sgv-model-livan-x3;Geely;neoverené;;;C;EU;
+NIO;sgv-make-nio;ET5;sgv-model-nio-et5;NIO;BEV;2022;;C;EU;
+Dongfeng;sgv-make-dongfeng;Mage;sgv-model-dongfeng-mage;Dongfeng;neoverené;;;C;EU;
+BAW;sgv-make-baw;212 T01;sgv-model-baw-212-t01;BAIC (odhad);neoverené;;;C;EU;
+Sportequipe;sgv-make-sportequipe;8GT;sgv-model-sportequipe-8gt;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DR;sgv-make-dr;6.0;sgv-model-dr-6-0;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DFSK;sgv-make-dfsk;600;sgv-model-dfsk-600;Dongfeng-Sokon;neoverené;;;C;EU;
+GWM;sgv-make-gwm;Ora 5;sgv-model-gwm-ora-5;Great Wall;ICE/HEV/BEV;2025;;C;EU;
+Aiways;sgv-make-aiways;U5;sgv-model-aiways-u5;Aiways;BEV;2020;;C;EU;
+DR;sgv-make-dr;1.0;sgv-model-dr-1-0;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Lotus;sgv-make-lotus;Eletre;sgv-model-lotus-eletre;Geely;BEV;2023;;C;EU;
+Elaris;sgv-make-elaris;Beo;sgv-model-elaris-beo;Elaris (DE importér);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+NIO;sgv-make-nio;ET7;sgv-model-nio-et7;NIO;BEV;2021;;C;EU;
+NIO;sgv-make-nio;EL6;sgv-model-nio-el6;NIO;BEV;2023;;C;EU;
+Tiger;sgv-make-tiger;Eight;sgv-model-tiger-eight;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Voyah;sgv-make-voyah;Free;sgv-model-voyah-free;Dongfeng;BEV/EREV;2022;;C;EU;
+EVO;sgv-make-evo;7;sgv-model-evo-7;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+SWM;sgv-make-swm;G01 Pro;sgv-model-swm-g01-pro;Brilliance/Shineray (odhad);neoverené;;;C;EU;
+Xpeng;sgv-make-xpeng;X9;sgv-model-xpeng-x9;Xpeng;BEV;2025;;C;EU;
+Sportequipe;sgv-make-sportequipe;6;sgv-model-sportequipe-6;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+GWM;sgv-make-gwm;Wey 03;sgv-model-gwm-wey-03;Great Wall;PHEV;2023;;C;EU;
+Bestune;sgv-make-bestune;T77;sgv-model-bestune-t77;FAW;neoverené;;;C;EU;
+Geely;sgv-make-geely;EX5;sgv-model-geely-ex5;Geely;BEV;2025;;C;EU;
+ICH-X;sgv-make-ich-x;K2;sgv-model-ich-x-k2;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Seres;sgv-make-seres;5;sgv-model-seres-5;Seres;BEV;2024;;C;EU;
+Hongqi;sgv-make-hongqi;eHS7;sgv-model-hongqi-ehs7;FAW;BEV;2025;;C;EU;
+NIO;sgv-make-nio;Firefly;sgv-model-nio-firefly;NIO;BEV;2025;;C;EU;
+MG;sgv-make-mg;IM6;sgv-model-mg-im6;SAIC;BEV;2025;;C;EU;
+DR;sgv-make-dr;6 Stilnovo;sgv-model-dr-6-stilnovo;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+EMC;sgv-make-emc;212;sgv-model-emc-212;EMC (IT importér);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DFSK;sgv-make-dfsk;580;sgv-model-dfsk-580;Dongfeng-Sokon;neoverené;;;C;EU;
+MG;sgv-make-mg;IM5;sgv-model-mg-im5;SAIC;BEV;2025;;C;EU;
+Maxus;sgv-make-maxus;Euniq 6;sgv-model-maxus-euniq-6;SAIC;BEV;2021;;C;EU;
+Voyah;sgv-make-voyah;Courage;sgv-model-voyah-courage;Dongfeng;BEV;2025;;C;EU;
+Xpeng;sgv-make-xpeng;P7+;sgv-model-xpeng-p7-plus;Xpeng;BEV;2025;;C;EU;
+EMC;sgv-make-emc;Sette;sgv-model-emc-sette;EMC (IT importér);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Sportequipe;sgv-make-sportequipe;7;sgv-model-sportequipe-7;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Hongqi;sgv-make-hongqi;eHS9;sgv-model-hongqi-ehs9;FAW;BEV;2022;;C;EU;
+BYD;sgv-make-byd;Sealion 5;sgv-model-byd-sealion-5;BYD;PHEV (odhad);2026;;C;EU;
+Dongfeng;sgv-make-dongfeng;Huge;sgv-model-dongfeng-huge;Dongfeng;neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;1;sgv-model-cirelli-1;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+BYD;sgv-make-byd;Han;sgv-model-byd-han;BYD;BEV;2022;;C;EU;
+EVO;sgv-make-evo;Spazio;sgv-model-evo-spazio;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Livan;sgv-make-livan;X6;sgv-model-livan-x6;Geely;neoverené;;;C;EU;
+Lotus;sgv-make-lotus;Emeya;sgv-model-lotus-emeya;Geely;BEV;2024;;C;EU;
+EMC;sgv-make-emc;7;sgv-model-emc-7;EMC (IT importér);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+NIO;sgv-make-nio;EL8;sgv-model-nio-el8;NIO;BEV;2023;;C;EU;
+Maxus;sgv-make-maxus;Mifa 9;sgv-model-maxus-mifa-9;SAIC;BEV;2022;;C;EU;
+GWM;sgv-make-gwm;Haval Jolion;sgv-model-gwm-haval-jolion;Great Wall;HEV;2024;;C;EU;
+DFSK;sgv-make-dfsk;i5;sgv-model-dfsk-i5;Dongfeng-Sokon;neoverené;;;C;EU;
+Bestune;sgv-make-bestune;Yueyi;sgv-model-bestune-yueyi;FAW;neoverené;;;C;EU;
+Polestar;sgv-make-polestar;5;sgv-model-polestar-5;Geely;BEV;2025;;C;EU;
+DR;sgv-make-dr;5 Stilnovo;sgv-model-dr-5-stilnovo;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Hongqi;sgv-make-hongqi;eH7;sgv-model-hongqi-eh7;FAW;BEV;2024;;C;EU;
+Sportequipe;sgv-make-sportequipe;S8GT;sgv-model-sportequipe-s8gt;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+JAC;sgv-make-jac;e-JS4;sgv-model-jac-e-js4;JAC;neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;2;sgv-model-cirelli-2;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+GAC Aion;sgv-make-gac-aion;V;sgv-model-gac-aion-v;GAC;BEV;2025;;C;EU;
+Bestune;sgv-make-bestune;T90;sgv-model-bestune-t90;FAW;neoverené;;;C;EU;
+Yudo;sgv-make-yudo;3 Max;sgv-model-yudo-3-max;Yudo/Jiangling (odhad);neoverené;;;C;EU;
+GWM;sgv-make-gwm;Ora 07;sgv-model-gwm-ora-07;Great Wall;BEV;2023;;C;EU;
+Chery;sgv-make-chery;Tiggo 8;sgv-model-chery-tiggo-8;Chery;ICE/PHEV;2025;;C;EU;
+DFSK;sgv-make-dfsk;Yatch;sgv-model-dfsk-yatch;Dongfeng-Sokon;neoverené;;;C;EU;
+Bestune;sgv-make-bestune;B70;sgv-model-bestune-b70;FAW;neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;6;sgv-model-cirelli-6;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Chery;sgv-make-chery;Tiggo 7;sgv-model-chery-tiggo-7;Chery;ICE/PHEV;2025;;C;EU;
+BAIC;sgv-make-baic;BJ30;sgv-model-baic-bj30;BAIC;neoverené;;;C;EU;
+DFSK;sgv-make-dfsk;F5;sgv-model-dfsk-f5;Dongfeng-Sokon;neoverené;;;C;EU;
+Sportequipe;sgv-make-sportequipe;8;sgv-model-sportequipe-8;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Chery;sgv-make-chery;Tiggo 4;sgv-model-chery-tiggo-4;Chery;ICE/HEV;2025;;C;EU;
+GAC Aion;sgv-make-gac-aion;UT;sgv-model-gac-aion-ut;GAC;BEV;2025;;C;EU;
+Lepas;sgv-make-lepas;L8;sgv-model-lepas-l8;Chery;neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;5;sgv-model-cirelli-5;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Maxus;sgv-make-maxus;Euniq 5;sgv-model-maxus-euniq-5;SAIC;BEV;2021;;C;EU;
+Skywell;sgv-make-skywell;ET5;sgv-model-skywell-et5;Skywell;neoverené;;;C;EU;
+Denza;sgv-make-denza;Z9GT;sgv-model-denza-z9gt;BYD;BEV/PHEV;2025;;C;EU;
+Forthing;sgv-make-forthing;Friday;sgv-model-forthing-friday;Dongfeng;neoverené;;;C;EU;
+NIO;sgv-make-nio;EL7;sgv-model-nio-el7;NIO;BEV;2022;;C;EU;
+Yudo;sgv-make-yudo;K3;sgv-model-yudo-k3;Yudo/Jiangling (odhad);neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;3;sgv-model-cirelli-3;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Voyah;sgv-make-voyah;Dream;sgv-model-voyah-dream;Dongfeng;BEV/PHEV;2023;;C;EU;
+Li Auto;sgv-make-li-auto;i6;sgv-model-li-auto-i6;Li Auto;neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;3Zero3;sgv-model-cirelli-3zero3;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+BAIC;sgv-make-baic;BJ60;sgv-model-baic-bj60;BAIC;neoverené;;;C;EU;
+Denza;sgv-make-denza;D9;sgv-model-denza-d9;BYD;BEV;2025;;C;EU;
+DFSK;sgv-make-dfsk;Shine;sgv-model-dfsk-shine;Dongfeng-Sokon;neoverené;;;C;EU;
+Dongfeng;sgv-make-dongfeng;Vigo;sgv-model-dongfeng-vigo;Dongfeng;neoverené;;;C;EU;
+Yudo;sgv-make-yudo;2 Pro;sgv-model-yudo-2-pro;Yudo/Jiangling (odhad);neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;4;sgv-model-cirelli-4;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Cirelli;sgv-make-cirelli;7Zero7;sgv-model-cirelli-7zero7;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+DR;sgv-make-dr;7;sgv-model-dr-7;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Maxus;sgv-make-maxus;eDeliver 9;sgv-model-maxus-edeliver-9;SAIC;neoverené;;;C;EU;
+Chery;sgv-make-chery;Tiggo 9;sgv-model-chery-tiggo-9;Chery;PHEV;2025;;C;EU;
+Cirelli;sgv-make-cirelli;7;sgv-model-cirelli-7;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Denza;sgv-make-denza;Z9;sgv-model-denza-z9;BYD;neoverené;;;C;EU;
+Cirelli;sgv-make-cirelli;Sport Coupé;sgv-model-cirelli-sport-coupe;Cirelli (IT importér, odhad);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Forthing;sgv-make-forthing;9 HEV;sgv-model-forthing-9-hev;Dongfeng;neoverené;;;C;EU;
+M-Hero;sgv-make-m-hero;1;sgv-model-m-hero-1;Dongfeng;neoverené;;;C;EU;
+M-Hero;sgv-make-m-hero;917;sgv-model-m-hero-917;Dongfeng;neoverené;;;C;EU;
+Yudo;sgv-make-yudo;4;sgv-model-yudo-4;Yudo/Jiangling (odhad);neoverené;;;C;EU;
+Zhidou;sgv-make-zhidou;D2S;sgv-model-zhidou-d2s;Zhidou;neoverené;;;C;EU;
+Changan;sgv-make-changan;Uni-K;sgv-model-changan-uni-k;Changan;neoverené;;;C;EU;
+Chery;sgv-make-chery;Tiggo 9 Pro;sgv-model-chery-tiggo-9-pro;Chery;PHEV;2026;;C;EU;
+DR;sgv-make-dr;4;sgv-model-dr-4;DR Automobiles (IT, rebadge Chery/JAC/BAIC);neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Exlantix;sgv-make-exlantix;ES;sgv-model-exlantix-es;Chery;neoverené;;;C;EU;
+Exlantix;sgv-make-exlantix;ET;sgv-model-exlantix-et;Chery;neoverené;;;C;EU;
+Galloper;sgv-make-galloper;SUV;sgv-model-galloper-suv;neoverené;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Geely;sgv-make-geely;Monjaro;sgv-model-geely-monjaro;Geely;PHEV;2026;;C;EU;
+Itala;sgv-make-itala;35;sgv-model-itala-35;neoverené;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+NIO;sgv-make-nio;ES8;sgv-model-nio-es8;NIO;BEV;2025;;C;EU;
+OSCA;sgv-make-osca;MT6;sgv-model-osca-mt6;neoverené;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+OSCA;sgv-make-osca;MT8;sgv-model-osca-mt8;neoverené;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Seres;sgv-make-seres;7;sgv-model-seres-7;Seres;neoverené;;;C;EU;
+Tiger;sgv-make-tiger;Nine;sgv-model-tiger-nine;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+BAIC;sgv-make-baic;BJ40 Pro;sgv-model-baic-bj40-pro;BAIC;neoverené;;;C;EU;
+Changan;sgv-make-changan;CS35 Plus;sgv-model-changan-cs35-plus;Changan;neoverené;;;C;EU;
+DFSK;sgv-make-dfsk;7;sgv-model-dfsk-7;Dongfeng-Sokon;neoverené;;;C;EU;
+Dongfeng;sgv-make-dongfeng;007;sgv-model-dongfeng-007;Dongfeng;neoverené;;;C;EU;
+GWM;sgv-make-gwm;Tank 300;sgv-model-gwm-tank-300;Great Wall;neoverené;;;C;EU;
+Itala;sgv-make-itala;56;sgv-model-itala-56;neoverené;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Itala;sgv-make-itala;61;sgv-model-itala-61;neoverené;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+JAC;sgv-make-jac;iEV7S;sgv-model-jac-iev7s;JAC;neoverené;;;C;EU;
+M-Hero;sgv-make-m-hero;817;sgv-model-m-hero-817;Dongfeng;neoverené;;;C;EU;
+Maxus;sgv-make-maxus;Deliver 7;sgv-model-maxus-deliver-7;SAIC;neoverené;;;C;EU;
+Maxus;sgv-make-maxus;Deliver 9;sgv-model-maxus-deliver-9;SAIC;neoverené;;;C;EU;
+Skywell;sgv-make-skywell;BE11;sgv-model-skywell-be11;Skywell;neoverené;;;C;EU;
+Sportequipe;sgv-make-sportequipe;S5;sgv-model-sportequipe-s5;DR Automobiles;neoverené;;;C;EU;rebadge čínskeho modelu – diely hľadať podľa pôvodného modelu
+Buick;sgv-make-buick;Envision;sgv-model-buick-envision;GM / SAIC-GM (Čína);ICE;;2026;C (US);US;"US: China-built, predáva sa; výroba v USA od 2028 (Reuters 22.1.2026)"
+Lincoln;sgv-make-lincoln;Nautilus;sgv-model-lincoln-nautilus;Ford / Changan-Ford (Čína);ICE/HEV;;;C (US);US;"US: China-built, clo 52,5 %; presun výroby do USA od 2030 (Reuters 12.8.2026)"
+Polestar;sgv-make-polestar;2 (US);sgv-model-polestar-2-us;Geely;BEV;;;C (US);US;"US: objednávky MY2026 zastavené 4/2025; servis pokračuje"
+Polestar;sgv-make-polestar;3 (US);sgv-model-polestar-3-us;Geely;BEV;;;C (US);US;"US: predaj nových končí od MY2027 (Reuters 25.6.2026); vyrába sa aj v Južnej Karolíne"
+Polestar;sgv-make-polestar;4 (US);sgv-model-polestar-4-us;Geely;BEV;;;C (US);US;"US: predaj nových končí od MY2027; len sklad a servis"
+Lotus;sgv-make-lotus;Eletre (US);sgv-model-lotus-eletre-us;Geely;BEV;;2025;C (US);US;US: len do MY2025 (China-built)
+Volvo;sgv-make-volvo;EX30 (US);sgv-model-volvo-ex30-us;Geely Holding;BEV;;2026;C (US);US;US: vyrába sa v Belgicku, v US končí po MY2026

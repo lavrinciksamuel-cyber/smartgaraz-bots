@@ -508,7 +508,10 @@ def full_fleet_queue() -> List[Dict[str, str]]:
         return []
     cats = tuple(needles.keys())
     cores: List[tuple] = []
+    prio: List[tuple] = []
     seen: set = set()
+    # pohon bez objemu (BEV/PHEV…) → LKQ motor „ľubovoľný“ (prvý v Garage)
+    any_eng = {"bev", "ev", "phev", "hybrid", "reev", "benzín", "benzin"}
     for make, models in (tree.get("makes") or {}).items():
         mk = _fold_make(make)
         for model, info in (models or {}).items():
@@ -516,10 +519,14 @@ def full_fleet_queue() -> List[Dict[str, str]]:
             for g in gens:
                 mo = f"{model} {g.get('label') or ''}".strip().lower()
                 for eng in (g.get("engines") or info.get("engines") or [""]):
+                    if str(eng).strip().lower() in any_eng:
+                        eng = ""
                     c = (mk, mo, eng, "")
                     if c not in seen:
                         seen.add(c)
-                        cores.append(c)
+                        # nové priority-A modely (seed) idú na začiatok fronty
+                        (prio if info.get("priority") == "A" else cores).append(c)
+    cores = prio + cores
     return _expand_cats(cores, cats=cats)
 
 

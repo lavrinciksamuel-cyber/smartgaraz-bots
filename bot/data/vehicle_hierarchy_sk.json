@@ -246,6 +246,46 @@
         "SSANGYONG",
         "ssangyong"
       ]
+    },
+    "MG": {
+      "sg_id": "sgv-make-mg",
+      "aliases": [
+        "mg"
+      ]
+    },
+    "BYD": {
+      "sg_id": "sgv-make-byd",
+      "aliases": [
+        "byd"
+      ]
+    },
+    "Jaecoo": {
+      "sg_id": "sgv-make-jaecoo",
+      "aliases": [
+        "JAECOO",
+        "jaecoo"
+      ]
+    },
+    "Leapmotor": {
+      "sg_id": "sgv-make-leapmotor",
+      "aliases": [
+        "LEAPMOTOR",
+        "leapmotor"
+      ]
+    },
+    "Omoda": {
+      "sg_id": "sgv-make-omoda",
+      "aliases": [
+        "OMODA",
+        "omoda"
+      ]
+    },
+    "Xpeng": {
+      "sg_id": "sgv-make-xpeng",
+      "aliases": [
+        "XPENG",
+        "xpeng"
+      ]
     }
   },
   "makes": {
@@ -6850,6 +6890,222 @@
             ]
           }
         ]
+      }
+    },
+    "MG": {
+      "ZS": {
+        "sg_id": "sgv-model-mg-zs",
+        "engines": [
+          "1.0 T-GDI",
+          "1.5 VTi",
+          "1.5 Hybrid+",
+          "BEV"
+        ],
+        "year_from": 2017,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "3": {
+        "sg_id": "sgv-model-mg-3",
+        "engines": [
+          "1.5 VTi",
+          "1.5 Hybrid+"
+        ],
+        "year_from": 2018,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "HS": {
+        "sg_id": "sgv-model-mg-hs",
+        "engines": [
+          "1.5 T-GDI",
+          "1.5 PHEV",
+          "1.5 Hybrid+"
+        ],
+        "year_from": 2019,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "4": {
+        "sg_id": "sgv-model-mg-4",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2022,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      }
+    },
+    "BYD": {
+      "Seal U": {
+        "sg_id": "sgv-model-byd-seal-u",
+        "engines": [
+          "1.5 DM-i",
+          "BEV"
+        ],
+        "year_from": 2023,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "Atto 2": {
+        "sg_id": "sgv-model-byd-atto-2",
+        "engines": [
+          "BEV",
+          "1.5 DM-i"
+        ],
+        "year_from": 2025,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "Seal": {
+        "sg_id": "sgv-model-byd-seal",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2023,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "Dolphin Surf": {
+        "sg_id": "sgv-model-byd-dolphin-surf",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2025,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "Atto 3": {
+        "sg_id": "sgv-model-byd-atto-3",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2022,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "Dolphin": {
+        "sg_id": "sgv-model-byd-dolphin",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2023,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "Sealion 7": {
+        "sg_id": "sgv-model-byd-sealion-7",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2024,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      }
+    },
+    "Jaecoo": {
+      "7": {
+        "sg_id": "sgv-model-jaecoo-7",
+        "engines": [
+          "1.6 T-GDI",
+          "1.5 PHEV"
+        ],
+        "year_from": 2024,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "5": {
+        "sg_id": "sgv-model-jaecoo-5",
+        "engines": [
+          "1.6 T-GDI",
+          "Hybrid",
+          "BEV"
+        ],
+        "year_from": 2025,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      }
+    },
+    "Leapmotor": {
+      "T03": {
+        "sg_id": "sgv-model-leapmotor-t03",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2024,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "B10": {
+        "sg_id": "sgv-model-leapmotor-b10",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2025,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "C10": {
+        "sg_id": "sgv-model-leapmotor-c10",
+        "engines": [
+          "BEV",
+          "REEV"
+        ],
+        "year_from": 2024,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      }
+    },
+    "Omoda": {
+      "5": {
+        "sg_id": "sgv-model-omoda-5",
+        "engines": [
+          "1.6 T-GDI",
+          "1.5 T-GDI",
+          "BEV"
+        ],
+        "year_from": 2023,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      },
+      "9": {
+        "sg_id": "sgv-model-omoda-9",
+        "engines": [
+          "1.5 PHEV"
+        ],
+        "year_from": 2025,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
+      }
+    },
+    "Xpeng": {
+      "G6": {
+        "sg_id": "sgv-model-xpeng-g6",
+        "engines": [
+          "BEV"
+        ],
+        "year_from": 2024,
+        "year_to": 2026,
+        "priority": "A",
+        "provenance": "SG kurácia – verejné trhové fakty (seed vehicle_seed_cn.csv)"
       }
     }
   }
