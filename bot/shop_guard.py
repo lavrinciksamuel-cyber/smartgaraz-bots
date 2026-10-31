@@ -61,39 +61,71 @@ _lock = threading.Lock()
 _extra = 0.0  # adaptívna pauza medzi zápismi (s) — rastie pri pomalom shope, klesá pri zdravom
 
 
+def _probe_best(slow: float = 3.0, api_slow: float = 8.0) -> tuple:
+    """Pri pomalej odpovedi zmeraj ešte raz po 5 s a ber lepšiu (jeden výkyv servera ≠ pauza)."""
+    a = _probe()
+    if a[0] <= slow and a[3] <= api_slow and a[1] not in BAD and a[2] not in BAD:
+        return a
+    time.sleep(5)
+    b = _probe()
+    if 508 in (a[1], a[2]) and 508 in (b[1], b[2]):
+        return b
+    return min(a, b, key=lambda x: (x[1] in BAD or x[2] in BAD, x[0] + x[3]))
+
+
+waited_s = 0.0  # súčet pauz guardu v tomto procese (na súhrn v logu)
+
+
 def wait_if_slow() -> None:
-    """HQ = tvrdá brzda (TTFB > 3 s / 5xx). WC API > SG_GUARD_API_SLOW_S (8 s) / 5xx = backoff.
+    """HQ = brzda (TTFB nad prahom / 5xx), WC API nad prahom / 5xx = backoff.
+    Deň 07–23 SK: prísne prahy, pauzy 30/60/120/240 s (zákazníci majú prednosť).
+    Noc 23–07: voľnejšie prahy (6 s / 12 s) a najviac 30+60 s čakania na jednu kontrolu,
+    potom bot pokračuje spomalene (+20 s medzi zápismi) — nočné behy už nestoja hodiny.
     Lock: kým jeden worker čaká, ostatné workery jobu stoja tiež (adaptívna súbežnosť)."""
-    global _last, _extra
+    global _last, _extra, waited_s
+    day = _is_day()
     every = float(os.environ.get("SG_GUARD_EVERY_S", "30"))
-    slow = float(os.environ.get("SG_GUARD_SLOW_S", "3"))
-    api_slow = float(os.environ.get("SG_GUARD_API_SLOW_S", "8"))
+    slow = float(os.environ.get("SG_GUARD_SLOW_S", "3" if day else "6"))
+    api_slow = float(os.environ.get("SG_GUARD_API_SLOW_S", "8" if day else "12"))
     min_gap = 0.0
-    if _is_day():
-        # Cez deň (07–23 SK) majú prednosť zákazníci: prísnejšie prahy + min. pauza medzi zápismi.
+    pauses = (30, 60, 120, 240)
+    if day:
         every = min(every, float(os.environ.get("SG_GUARD_DAY_EVERY_S", "15")))
         slow = min(slow, float(os.environ.get("SG_GUARD_DAY_SLOW_S", "1.5")))
         api_slow = min(api_slow, float(os.environ.get("SG_GUARD_DAY_API_SLOW_S", "4")))
         min_gap = float(os.environ.get("SG_GUARD_DAY_MIN_GAP_S", "3"))
+    else:
+        pauses = (30, 60)
     with _lock:
         if time.monotonic() - _last >= every:
             _last = time.monotonic()
-            for pause in (30, 60, 120, 240, 240, 240, 240):
-                dt, hq_code, api_code, api_dt = _probe()
+            healthy = False
+            hits508 = 0
+            for pause in pauses:
+                dt, hq_code, api_code, api_dt = _probe_best(slow, api_slow)
                 if 508 in (hq_code, api_code):
+                    hits508 += 1
                     LOGGER.error("shop_guard: hosting hlási limit zdrojov (508) — pauza 600s")
                     time.sleep(600)
+                    waited_s += 600
+                    if hits508 >= 2:
+                        break
                     continue
                 hq_ok = dt <= slow and hq_code not in BAD
                 api_ok = api_code not in BAD and api_dt <= api_slow
                 if hq_ok and api_ok:
                     # pomalší, ale ešte OK shop → mierne pribrzdi; zdravý → povoľ
                     _extra = min(20.0, _extra + 2.0) if api_dt > api_slow / 2 else max(0.0, _extra - 2.0)
+                    healthy = True
                     break
                 _extra = min(20.0, _extra + 5.0)
                 LOGGER.warning("shop_guard: HQ %.1fs (%s), WC API %.1fs (%s) — pauza %ss, krok +%.0fs",
                                dt, hq_code, api_dt, api_code, pause, _extra)
                 time.sleep(pause)
+                waited_s += pause
+            if not healthy:
+                # Pauzy vyčerpané → nepozastavuj donekonečna, pokračuj spomalene.
+                _extra = 20.0
         extra = max(_extra, min_gap)
     if extra > 0:
         time.sleep(extra)
