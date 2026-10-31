@@ -39,6 +39,10 @@ B, F, M, CH, N, R, S, V, E, K = (
     "Spojka & prevodovka", "Výfuk & DPF diely", "Elektro & senzory", "Karoséria & svetlá")
 
 # (regex na normalizovaný názov, cesta). Normalizácia: malé písmená, bez diakritiky.
+ENGINE_INT = "Motor – piesty, ložiská a kľuka"
+# Nové kategórie schválené Samuelom; vytvoria sa (len pri --apply), ak chýbajú. Iné sa nezakladajú.
+APPROVED_NEW_CATS: List[Tuple[str, ...]] = [("Náhradné diely", "Motor & sanie", ENGINE_INT)]
+
 RULES: List[Tuple[str, Optional[List[str]]]] = [
     # vedome bez kategórie (spojovací materiál, generické OE názvy, sudy)
     (r"^originalny diel \w+ nahradny diel|^originalni dil", None),
@@ -180,6 +184,14 @@ RULES: List[Tuple[str, Optional[List[str]]]] = [
     (r"pruzinov\w* (misa|tanier)|miska pruzin|tanier pruzin", [ND, N, "Tlmiče & pružiny"]),
     (r"protimrazov\w* zatk|mrazov\w* zatk", [ND, M, "Tesnenia motora & sania"]),
     (r"regulator brzd\w* (sily|tlaku)", [ND, B, "Brzdové hadice & valčeky"]),
+    # 2026-10-31 Samuel schválil novú kategóriu pre vnútro motora
+    (r"(pist|piest)\w*.{0,25}brzd|brzd\w*.{0,25}(pist|piest)", [ND, B, "Brzdové strmene"]),
+    (r"\bpist(?!ol)\w*|\bpiest(?!ol)\w*|ojnic|klikov\w* hridel|kluk\w* hriadel|hlavn\w* lozisk|lozisk\w*,? (klikov|kluk)|vlozk\w* valc|pistn\w* (krouzk|kruzk)", [ND, M, ENGINE_INT]),
+    # lišty / klipy (do existujúcich kategórií)
+    (r"vodic\w* list\w*|list\w*,? vodic|vodiaca lista|list\w* (retez|retaz)", [ND, M, "Rozvody & remene"]),
+    (r"klip\w*.{0,25}(interier|podlah|oplast|obloz|calun|vypln)|(interier|podlah|oplast|obloz)\w*.{0,10}klip", [ND, K, "Interiér & obloženie"]),
+    (r"(mask|mriez)\w*.{0,20}list|list\w*.{0,20}(mask|mriez)", [ND, K, "Blatníky & mriežky"]),
+    (r"ozdobn\w*.{0,15}list|ochrann\w* list|list\w*,? (dver|blatnik|naraznik|prah|bocn|strech|okn)|bocn\w* list|\blist[ay]\b|\blista\b|\blistu\b|klip,? (ozdob|ochran)|lisovan\w* list", [ND, K, "Nárazníky & držiaky"]),
 ]
 _RX = [(re.compile(rx), path) for rx, path in RULES]
 
@@ -335,7 +347,7 @@ def _wc():
     return url, (ck, cs)
 
 
-def category_index(session, url, auth) -> Dict[Tuple[str, ...], int]:
+def category_index(session, url, auth, create: bool = False) -> Dict[Tuple[str, ...], int]:
     """Cesta (názvy od koreňa) → term id, len existujúce kategórie."""
     rows, page = [], 1
     while True:
@@ -357,7 +369,20 @@ def category_index(session, url, auth) -> Dict[Tuple[str, ...], int]:
             c = by_id.get(c.get("parent") or 0)
         return tuple(reversed(out))
 
-    return {path(c): c["id"] for c in rows}
+    idx = {path(c): c["id"] for c in rows}
+    if create:
+        for want in APPROVED_NEW_CATS:
+            parent = idx.get(tuple(want[:-1]))
+            if want in idx or not parent:
+                continue
+            r = session.post(f"{url}/wp-json/wc/v3/products/categories", auth=auth, timeout=60,
+                             json={"name": want[-1], "parent": parent})
+            if r.ok:
+                idx[want] = r.json()["id"]
+                LOG.info("vytvorená schválená kategória %s (id %s)", " > ".join(want), idx[want])
+            else:
+                LOG.warning("kategóriu %s sa nepodarilo vytvoriť: HTTP %s", want[-1], r.status_code)
+    return idx
 
 
 def iter_published_dump(url, auth, session):
@@ -416,7 +441,7 @@ def main() -> int:
         url = auth = None
     else:
         url, auth = _wc()
-        cat_ids = category_index(session, url, auth)
+        cat_ids = category_index(session, url, auth, create=apply)
         drafts = iter_published_dump(url, auth, session) if a.published else iter_drafts(url, auth, session, 0.5, {"published": 0})
 
     st = Counter()
