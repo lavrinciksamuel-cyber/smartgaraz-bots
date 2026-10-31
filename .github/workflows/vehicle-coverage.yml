@@ -1,0 +1,40 @@
+name: Vehicle coverage (SG hierarchia + fronta LKQ)
+# Rozšíri vlastnú SG hierarchiu vozidiel zo seedu bot/data/vehicle_seed_cn.csv
+# (verejné trhové fakty, žiadne TecDoc / dodávateľské ID – VEHICLE_TAXONOMY_POLICY.md),
+# zvaliduje a commitne. Nové modely sa automaticky dostanú na začiatok LKQ fronty
+# (catalog-matrix / heijunka) → import dielov s fitmentom _sg_fit_* pre tieto autá.
+on:
+  workflow_dispatch:
+    inputs:
+      priority:
+        description: "Priority zo seedu (A | A,B | A,B,C)"
+        required: false
+        default: "A"
+  schedule:
+    - cron: "5 5 * * 1"
+permissions:
+  contents: write
+concurrency:
+  group: vehicle-coverage
+  cancel-in-progress: false
+jobs:
+  extend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Extend hierarchy
+        run: |
+          P="${{ github.event.inputs.priority }}"; P="${P:-${{ vars.SG_VEHICLE_SEED_PRIORITY || 'A' }}}"
+          python bot/extend_vehicle_hierarchy.py --apply --priority "$P"
+          python bot/validate_vehicle_hierarchy.py
+      - name: Commit
+        run: |
+          if git diff --quiet -- bot/data/vehicle_hierarchy_sk.json; then echo "bez zmeny"; exit 0; fi
+          git config user.name "sg-vehicle-bot"; git config user.email "actions@users.noreply.github.com"
+          git add bot/data/vehicle_hierarchy_sk.json
+          git commit -m "vehicle hierarchy: doplnené modely zo seedu (public facts)"
+          git push

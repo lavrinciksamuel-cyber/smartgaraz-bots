@@ -118,7 +118,7 @@ jobs:
           SG_LKQ_JOBS: "4"
           # Úplnosť katalógu (repo variables, default v zátvorke):
           SG_CRAWL_CAP: ${{ vars.SG_CRAWL_CAP || '1500' }}            # riadkov listingu na auto × kategóriu (bolo 400)
-          SG_LKQ_RECYCLE_H: ${{ vars.SG_LKQ_RECYCLE_H || '24' }}      # nový cyklus LKQ po h
+          SG_LKQ_RECYCLE_H: ${{ vars.SG_LKQ_RECYCLE_H || '6' }}      # nový cyklus LKQ po h
           SG_SZEKOP_RECYCLE_H: ${{ vars.SG_SZEKOP_RECYCLE_H || '48' }}
           SG_SZEKOP_ALL_MAKES: ${{ vars.SG_SZEKOP_ALL_MAKES || '1' }}  # všetky značky, nie len 36 prioritných
           SG_IMPORT_BUDGET_S: ${{ format('{0}', (github.event.inputs.budget_min || '290')) }}
