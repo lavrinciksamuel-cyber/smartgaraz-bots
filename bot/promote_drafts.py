@@ -43,7 +43,7 @@ VALID_STOCK = {"instock", "outofstock", "onbackorder"}
 # České znaky / slová, ktoré v slovenčine nie sú (po preklade sk_part_names).
 CZ_CHARS = re.compile(r"[řůěŘŮĚ]")
 CZ_WORDS = re.compile(
-    r"\b(filtr|sada\s+filtr\w*|kotouč\w*|tlumič\w*|čidlo|snímač\s+otáček|světl\w*|převod\w*|"
+    r"\b(filtr|sada\s+filtr(?!ov)\w*|kotouč\w*|tlumič\w*|čidlo|snímač\s+otáček|světl\w*|převod\w*|"
     r"vzduchový\s+filtr|olejový\s+filtr|palivový\s+filtr|brzdové\s+destičky|destičk\w*|"
     r"těsnění|ložisko\s+kola|zapalovací|svíčk\w*|žhavicí|chladič\s+motoru|motoru|"
     r"vodní|spojka\s+kompletní|lambda\s+sonda\s+zadní|řemen\w*|klínov\w*|"
