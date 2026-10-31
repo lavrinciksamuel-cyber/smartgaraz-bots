@@ -1,7 +1,9 @@
 name: Promote drafts (zverejni hotové koncepty)
 # Každé 4 h prejde všetky koncepty a zverejní tie, ktoré spĺňajú pravidlá kvality
 # (konkrétna a sediaca kategória, OE číslo pri hlavných dieloch, cena > 0, slovenský
-# názov, stav skladu). Fotky nie sú podmienka. Ceny ani importy nemení.
+# názov, stav skladu). Fotky nie sú podmienka. Pri zverejnení overí nákup (prítomný,
+# rozumný), predaj ≥ nákup s DPH × 1,20 (TSS/ideo +30 %) – inak cenu zdvihne na floor –
+# a dostupnosť (Skladom v SR / Sklad v EÚ / Nedostupné). Držané dostanú meta _sg_hold_reason.
 on:
   workflow_dispatch:
     inputs:
@@ -9,6 +11,10 @@ on:
         description: "Zaradiť koncepty do kategórií pred zverejnením (apply | dry-run | off)"
         required: false
         default: "apply"
+      classify_max:
+        description: "Max. zaradených konceptov za beh"
+        required: false
+        default: "1500"
       args:
         description: "Argumenty (napr. --dry-run, --max 500)"
         required: false
@@ -45,9 +51,10 @@ jobs:
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           PYTHONUNBUFFERED: "1"
           CLS: ${{ github.event.inputs.classify || 'apply' }}
+          CMAX: ${{ github.event.inputs.classify_max || '1500' }}
         run: |
           if [ "$CLS" = "off" ]; then echo "classifier off"; exit 0; fi
-          if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --max 1500 --out classify-report.json || true
+          if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --max "$CMAX" --out classify-report.json || true
           else python bot/draft_classifier.py --dry-run --out classify-report.json || true; fi
       - name: Promote
         env:
@@ -58,7 +65,7 @@ jobs:
           SG_GUARD_API_SLOW_S: "8"
           PYTHONUNBUFFERED: "1"
         run: |
-          python bot/promote_drafts.py --batch 100 --out promote-report.json ${{ github.event.inputs.args }}
+          python bot/promote_drafts.py --batch 100 --tag-held --out promote-report.json ${{ github.event.inputs.args }}
       # Public repo: no artifacts (world-readable; reports hold supplier URLs
       # and product lists). Print a redacted counts-only summary instead.
       - name: Report summary (redacted)

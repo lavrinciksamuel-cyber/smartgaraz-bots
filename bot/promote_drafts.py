@@ -36,7 +36,7 @@ if str(ROOT) not in sys.path:
 
 LOG = logging.getLogger("promote_drafts")
 
-FIELDS = "id,name,sku,status,price,regular_price,categories,stock_status,meta_data"
+FIELDS = "id,name,sku,status,price,regular_price,sale_price,categories,stock_status,manage_stock,stock_quantity,meta_data"
 # Dump / fallback kategórie — produkt v nich = bez kategórie.
 GENERIC_CATS = {"auto chémia", "nezaradené", "uncategorized", "náhradné diely", "ostatné", "iné"}
 VALID_STOCK = {"instock", "outofstock", "onbackorder"}
@@ -126,7 +126,7 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
             from taxonomy import match_keyword_category
 
             raw = {"name": name, "sku": sku, "brand": "", "description": ""}
-            expected = None if src == "ideo" else match_keyword_category(raw)
+            expected = None if src in ("ideo", "tss") else match_keyword_category(raw)  # TSS/ideo: kategória z mapy dodávateľa
             ok = not expected or any(
                 (node in cats) or any(node in c or c in node for c in cats) for node in expected
             )
@@ -145,7 +145,7 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
     try:
         from oe_publish_rule import has_oe_numbers, needs_oe
 
-        if needs_oe(name, meta) and not has_oe_numbers(meta, sku):
+        if src not in ("tss", "ideo") and needs_oe(name, meta) and not has_oe_numbers(meta, sku):  # príslušenstvo bez OE
             reasons.append("no_oe")
     except Exception:
         pass
@@ -174,6 +174,52 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
     if not sku:
         reasons.append("no_sku")
     return reasons, new_name
+
+
+def publish_checks(p: dict, meta: dict, src: str) -> tuple[list[str], dict]:
+    """Kontroly pri zverejnení (Samuel 2026-10-31): nákupná cena prítomná a rozumná,
+    predaj ≥ nákup s DPH × 1,20 (Würth: najprv DPH; TSS/ideo: nákup s DPH + 30 %),
+    sklad/dostupnosť (Skladom v SR / Sklad v EÚ / Nedostupné) konzistentné.
+    Vráti (dôvody na držanie, opravy do payloadu). Opravy = cena na floor, dostupnosť."""
+    from pricing import calculate_retail_ideo, cost_with_vat_for, min_profit_price
+
+    reasons: list[str] = []
+    fix: dict = {}
+    name = p.get("name") or ""
+    cost = _f(meta.get("_cost_price")) or _f(meta.get("_sg_unit_cost")) or 0.0
+    price = _f(p.get("regular_price")) or _f(p.get("price")) or 0.0
+    if cost <= 0:
+        reasons.append("no_cost")
+    elif price > 0:
+        cwv = cost_with_vat_for(cost, supplier=src, name=name)
+        floor = calculate_retail_ideo(cwv).retail_price if src in ("tss", "ideo") else min_profit_price(cwv)
+        if floor > 0 and price + 0.009 < floor:
+            if floor > price * 1.6:
+                reasons.append("price_far_below_cost")  # podozrivé dáta – nech pozrie človek
+            else:
+                fix["regular_price"] = f"{floor:.2f}"
+        sale = _f(p.get("sale_price")) or 0.0
+        if floor > 0 and sale > 0 and sale + 0.009 < floor:
+            fix["sale_price"] = ""
+    try:
+        from availability import classify_existing, meta_rows, stock_payload
+
+        av = classify_existing(p, meta)
+    except Exception:
+        av = None
+    if not av or av.get("avail") not in ("sr", "eu", "na", "unknown"):
+        reasons.append("no_availability")
+    else:
+        want_oos = av["avail"] == "na"
+        is_oos = (p.get("stock_status") or "") == "outofstock"
+        norm = lambda x: "eu" if x == "unknown" else x  # noqa: E731  (web: neznámy pôvod = Sklad v EÚ)
+        if norm(meta.get("_sg_avail")) != norm(av["avail"]) or want_oos != is_oos:
+            pay: dict = {"meta_data": meta_rows(av)}
+            stock_payload(pay, "eu" if av["avail"] == "unknown" else av["avail"], current=p)
+            if av["avail"] == "unknown":
+                pay["meta_data"] = [m for m in pay["meta_data"] if m["key"] != "_sg_avail_oos"] + [{"key": "_sg_avail_oos", "value": ""}]
+            fix.update(pay)
+    return reasons, fix
 
 
 def _wc():
@@ -231,6 +277,8 @@ def main() -> int:
     ap.add_argument("--sleep", type=float, default=1.0)
     ap.add_argument("--from-file", default="", help="JSONL konceptov (offline, bez zápisu)")
     ap.add_argument("--out", default="", help="zapíš JSON so zoznamom ready id + dôvodmi")
+    ap.add_argument("--no-checks", action="store_true", help="vypni kontroly ceny/nákupu/dostupnosti (neodporúča sa)")
+    ap.add_argument("--tag-held", action="store_true", help="zapíš dôvod držania do meta _sg_hold_reason")
     a = ap.parse_args()
 
     import requests
@@ -276,6 +324,24 @@ def main() -> int:
         LOG.info("batch %d → publish %d (%.1fs), spolu %d", len(chunk), ok, dt, published)
         time.sleep(30 if dt > 8 else a.sleep)
 
+    fixes_by = Counter()
+    by_sup = Counter()
+    tag_chunk: list[dict] = []
+    tagged = 0
+
+    def tag_flush():
+        nonlocal tagged
+        if not tag_chunk:
+            return
+        wait_if_slow()
+        try:
+            r = session.post(f"{url}/wp-json/wc/v3/products/batch", auth=auth, json={"update": list(tag_chunk)}, timeout=180)
+            if r.ok:
+                tagged += len(tag_chunk)
+        except Exception as exc:
+            LOG.warning("tag batch: %s", exc)
+        tag_chunk.clear()
+
     pending: list[dict] = []
     total = 0
     for p in src_iter:
@@ -289,6 +355,17 @@ def main() -> int:
         rs, new_name = evaluate(p)
         meta = _meta(p)
         src = str(meta.get("_supplier_source") or meta.get("_sg_supplier") or "?").lower()
+        fix: dict = {}
+        if not a.no_checks:
+            rs2, fix = publish_checks(p, meta, src)
+            rs = rs + [r_ for r_ in rs2 if r_ not in rs]
+            if fix:
+                fixes_by[("price_fixed" if "regular_price" in fix else "") or "avail_fixed"] += 1
+        by_sup[(src, rs[0] if rs else "ready")] += 1
+        if rs and a.tag_held and not a.dry_run and meta.get("_sg_hold_reason") != ",".join(rs):
+            tag_chunk.append({"id": pid, "meta_data": [{"key": "_sg_hold_reason", "value": ",".join(rs)}]})
+            if len(tag_chunk) >= 100:
+                tag_flush()
         if rs:
             for r_ in rs:
                 reasons[r_] += 1
@@ -299,7 +376,9 @@ def main() -> int:
                 held[key].append(f"#{pid} {(p.get('name') or '')[:70]}")
             continue
         by_src[src] += 1
-        upd = {"id": pid, "status": "publish"}
+        upd = {"id": pid, "status": "publish", **fix}
+        if meta.get("_sg_hold_reason"):
+            upd.setdefault("meta_data", []).append({"key": "_sg_hold_reason", "value": ""})
         if new_name:
             upd["name"] = new_name
             renamed += 1
@@ -312,6 +391,7 @@ def main() -> int:
         if a.max and len(ready) >= a.max:
             break
     flush(pending)
+    tag_flush()
     LOG.info("prejdených %d konceptov, ready %d, zverejnených %d", total, len(ready), published)
 
     summary = {
@@ -323,6 +403,9 @@ def main() -> int:
         "ready_by_supplier": dict(by_src),
         "held_reasons": dict(reasons.most_common()),
         "held_primary": dict(primary.most_common()),
+        "fixes": dict(fixes_by),
+        "held_tagged": tagged,
+        "by_supplier": {f"{k[0]}:{k[1]}": v for k, v in sorted(by_sup.items(), key=lambda x: -x[1])},
         "held_examples": held,
         "dry_run": a.dry_run,
     }
