@@ -48,14 +48,43 @@ def _probe() -> tuple:
 
 
 def _is_day() -> bool:
-    """07:00–23:00 Europe/Bratislava (SG_GUARD_DAY=0 vypne, =1 vynúti)."""
+    """07:00–23:00 Europe/Bratislava (SG_GUARD_DAY=0 vypne, =1 vynúti). Počas údržby = noc."""
     flag = os.environ.get("SG_GUARD_DAY", "").strip()
     if flag in ("0", "1"):
         return flag == "1"
+    if maintenance_on():
+        return False
     from datetime import datetime
     from zoneinfo import ZoneInfo
     return 7 <= datetime.now(ZoneInfo("Europe/Bratislava")).hour < 23
 
+
+
+_maint = {"t": 0.0, "on": False}
+
+
+def maintenance_on() -> bool:
+    """Obchod v režime údržby (zákazníci vidia 503) → boty idú naplno.
+    GET {WC_URL}/wp-json/sg/v1/maintenance, cache 120 s. SG_MAINTENANCE=0/1 vynúti."""
+    flag = os.environ.get("SG_MAINTENANCE", "").strip()
+    if flag in ("0", "1"):
+        return flag == "1"
+    if time.monotonic() - _maint["t"] < 120 and _maint["t"]:
+        return _maint["on"]
+    on = False
+    wc = os.environ.get("WC_URL", "").rstrip("/")
+    if wc:
+        try:
+            import requests
+            r = requests.get(f"{wc}/wp-json/sg/v1/maintenance", timeout=15,
+                             headers={"User-Agent": "SmartGarazBot-guard", "Cache-Control": "no-cache"})
+            on = bool(r.ok and (r.json() or {}).get("on"))
+        except Exception:
+            on = False
+    if on != _maint["on"]:
+        LOGGER.warning("shop_guard: režim údržby %s", "ZAPNUTÝ → plná rýchlosť" if on else "vypnutý → bežné brzdenie")
+    _maint.update(t=time.monotonic(), on=on)
+    return on
 
 _lock = threading.Lock()
 _extra = 0.0  # adaptívna pauza medzi zápismi (s) — rastie pri pomalom shope, klesá pri zdravom
@@ -83,6 +112,20 @@ def wait_if_slow() -> None:
     potom bot pokračuje spomalene (+20 s medzi zápismi) — nočné behy už nestoja hodiny.
     Lock: kým jeden worker čaká, ostatné workery jobu stoja tiež (adaptívna súbežnosť)."""
     global _last, _extra, waited_s
+    if maintenance_on():
+        # Zákazníci nevidia obchod → žiadne brzdenie kvôli rýchlosti, len ochrana hostingu (508/5xx API).
+        with _lock:
+            if time.monotonic() - _last >= 60:
+                _last = time.monotonic()
+                for pause in (60, 120, 300):
+                    _, _, api_code, _ = _probe()
+                    if api_code not in (508, 503, 502, 504, 429):
+                        break
+                    LOGGER.error("shop_guard: WC API %s počas údržby — pauza %ss", api_code, pause)
+                    time.sleep(pause)
+                    waited_s += pause
+        _extra = 0.0
+        return
     day = _is_day()
     every = float(os.environ.get("SG_GUARD_EVERY_S", "30"))
     slow = float(os.environ.get("SG_GUARD_SLOW_S", "3" if day else "6"))

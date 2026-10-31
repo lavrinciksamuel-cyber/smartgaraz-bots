@@ -648,6 +648,9 @@ def _save_state(state: Dict[str, Any]) -> None:
                     "failed": failed,
                     "url_cache": cache,
                     "updated_at": state["updated_at"],
+                    # Bez tohto kľúča sa „výsek hotový pred X h“ pri každom behu nuloval (0.0 h)
+                    # → nový cyklus (hľadanie nových dielov) nenastal nikdy.
+                    "_slice_exhausted_at": state.get("_slice_exhausted_at"),
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -1023,9 +1026,12 @@ def main() -> int:
             age_h = (now - datetime.fromisoformat(exhausted_at)).total_seconds() / 3600
         except Exception:
             age_h = recycle_h
-        if age_h < recycle_h or args.check_only:
+        if age_h < recycle_h:
             LOGGER.info("fronta prejdená (výsek %d jobov hotový pred %.1f h; nový cyklus o %.1f h)",
                         len(slice_q), age_h, max(0.0, recycle_h - age_h))
+            return 0
+        if args.check_only:
+            LOGGER.info("check-only: výsek prejdený pred %.1f h → nový cyklus je na rade (pending=%d)", age_h, len(slice_q))
             return 0
         qkeys = {_job_key(j) for j in slice_q}
         reset = [k for k in list(done.keys()) if k in qkeys]

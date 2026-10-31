@@ -5,12 +5,17 @@ name: Promote drafts (zverejni hotové koncepty)
 on:
   workflow_dispatch:
     inputs:
+      classify:
+        description: "Zaradiť koncepty do kategórií pred zverejnením (apply | dry-run | off)"
+        required: false
+        default: "apply"
       args:
         description: "Argumenty (napr. --dry-run, --max 500)"
         required: false
         default: ""
   schedule:
-    - cron: "40 */4 * * *"
+    # každú hodinu (koncepty z nočných importov sa zaradia a zverejnia v ten istý deň)
+    - cron: "40 * * * *"
 concurrency:
   group: promote-drafts
   cancel-in-progress: false
@@ -33,6 +38,17 @@ jobs:
           cache: pip
           cache-dependency-path: bot/requirements.txt
       - run: pip install -r bot/requirements.txt
+      - name: Classify drafts (pravidlá podľa názvu, bez AI)
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          PYTHONUNBUFFERED: "1"
+          CLS: ${{ github.event.inputs.classify || 'apply' }}
+        run: |
+          if [ "$CLS" = "off" ]; then echo "classifier off"; exit 0; fi
+          if [ "$CLS" = "apply" ]; then python bot/draft_classifier.py --apply --max 5000 --out classify-report.json || true
+          else python bot/draft_classifier.py --dry-run --out classify-report.json || true; fi
       - name: Promote
         env:
           WC_URL: ${{ secrets.WC_URL }}

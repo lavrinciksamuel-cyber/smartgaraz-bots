@@ -11,7 +11,7 @@ Pravidlá (všetky musia platiť):
     ak po preklade ostanú české slová, produkt ostáva koncept;
   * stav skladu nastavený (Skladom v SR / Sklad v EÚ / Nedostupné = stock_status);
   * Würth len s overeným balením + pôvodom (rovnaké pravidlo ako publish_ready_drafts);
-  * TSS ostáva koncept (nový dodávateľ, ceny sa ešte overujú); ručné zadržanie (_sg_manual_hold) sa rešpektuje.
+  * TSS sa zverejňuje priamo pri splnení pravidiel; ručné zadržanie (_sg_manual_hold) sa rešpektuje.
 Fotky NIE sú podmienka (fáza 2).
 
   python bot/promote_drafts.py --dry-run
@@ -99,8 +99,7 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
 
     if str(meta.get("_sg_manual_hold") or "").strip() not in ("", "0"):
         return ["manual_hold"], None
-    if src.startswith("tss") or sku.upper().startswith("TSS-"):
-        return ["tss_hold"], None
+    # TSS: zverejňuje sa priamo (nákup s DPH +30 %), rovnaké pravidlá ako ostatní (Samuel 2026-10-31).
 
     # cena
     price = _f(p.get("regular_price")) or _f(p.get("price")) or 0.0

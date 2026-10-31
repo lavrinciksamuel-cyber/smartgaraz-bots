@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Zaradenie konceptov bez kategórie (dump „Auto chémia“ / Nezaradené) podľa NÁZVU — pravidlá, bez AI.
+
+* Pravidlá = regexy na názov bez diakritiky (CZ aj SK tvary TecDoc názvov), poradie = priorita
+  (špecifické pred všeobecnými). Cieľ = len EXISTUJÚCA kategória obchodu (nové sa nevytvárajú —
+  nové kategórie schvaľuje Samuel v HQ).
+* CZ → SK názov: slovník fráz (CZ_SK). Premenuje sa len keď po náhrade nezostane české slovo
+  (promote_drafts.is_czech); inak názov ostane a promote ho nechá ako koncept.
+* Stav (draft) sa nemení; zverejnenie robí promote_drafts.py podľa svojich pravidiel
+  (OE číslo, cena ≥ nákup, sklad, …). Ceny sa nemenia. Do logu idú len počty.
+
+  python bot/draft_classifier.py --dry-run            # report, čo by sa zaradilo
+  python bot/draft_classifier.py --apply --max 2000   # zapíš kategórie (+SK názvy)
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+import re
+import sys
+import time
+import unicodedata
+from collections import Counter
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+LOG = logging.getLogger("draft_classifier")
+
+ND = "Náhradné diely"
+B, F, M, CH, N, R, S, V, E, K = (
+    "Brzdy", "Filtre", "Motor & sanie", "Chladenie & kúrenie", "Náprava & podvozok", "Riadenie",
+    "Spojka & prevodovka", "Výfuk & DPF diely", "Elektro & senzory", "Karoséria & svetlá")
+
+# (regex na normalizovaný názov, cesta). Normalizácia: malé písmená, bez diakritiky.
+RULES: List[Tuple[str, Optional[List[str]]]] = [
+    # vedome bez kategórie (spojovací materiál, generické OE názvy, sudy)
+    (r"^originalny diel \w+ nahradny diel|^originalni dil", None),
+    (r"\b(skrutka|sroub|matica|matice|podlozka|spona|nit|klip)\b(?!.*(brzd|kol|vypust|odvzdus|ventil))", None),
+    # svetlá pred zrkadlami (blikač v zrkadle)
+    (r"blikac|smerov[ey] svet|odrazk|denne svetlo|denni svic|svetlomet|svetlomet|hlavn\w* svetl|zadn\w* svetl|"
+     r"koncov\w* svetl|hmlov|mlhov|\bsvetlo\b|\bsvetla\b|osvetleni|osvetlenie|lampa", [ND, K, "Svetlomety & svetlá"]),
+    (r"zrkadl|zrcatk|zpetn\w* zrc", [ND, K, "Spätné zrkadlá"]),
+    (r"stierac|sterac|stieraci|wiper|aerotwin|\btwin \d+", [ND, K, "Stierače"]),
+    (r"\b\d{2,3} ?ah\b|akumulator|autobateri|startovaci bateri|\bbateria\b|\bbaterie\b", [ND, E, "Autobatérie"]),
+    # brzdy
+    (r"(prislusenstv|sada prislus|montaz\w* dil|pruzin).{0,40}(celist|celust)", [ND, B, "Bubnové brzdy & čeluste"]),
+    (r"(prislusenstv|sada prislus).{0,40}(desti|dosti)", [ND, B, "Brzdové doštičky"]),
+    (r"cidlo opotreb|snimac opotreb|varovny kontakt|vystrazny kontakt|kontakt opotreb", [ND, B, "ABS senzory & čidlá"]),
+    (r"brzdov\w* (desti|dosti)|\bdesticky\b|\bdosticky\b|sada brzdovych (desti|dosti)", [ND, B, "Brzdové doštičky"]),
+    (r"brzdov\w* kotou|brzdov\w* kotuc|\bkotouc\w* brzd", [ND, B, "Brzdové kotúče"]),
+    (r"strmen|trmen|odvzdusn\w* (sroub|ventil|skrutk)|odvetr\w* (sroub|ventil)|ventilacn\w* skrutk", [ND, B, "Brzdové strmene"]),
+    (r"brzdov\w* hadic|hadick\w* brzd|brzdov\w* potrub|hlavn\w* brzdov\w* val|kolov\w* brzdov\w* val|"
+     r"brzdov\w* valec|brzdov\w* valc|valec kolov\w* brzd|brzd\.? hadic|nadrz\w* brzd", [ND, B, "Brzdové hadice & valčeky"]),
+    (r"celist|celust|brzdov\w* bub|\bbuben\b|bubnov", [ND, B, "Bubnové brzdy & čeluste"]),
+    (r"lank\w*.{0,20}brzd|lano.{0,25}brzd|tazn\w* lano|brzdov\w* (lank|lano|kabel)|parkovac\w* brzd|"
+     r"rucn\w* brzd|park\.? ?brzd|park s taznym", [ND, B, "Ručná brzda & laná"]),
+    (r"\babs\b|snimac otac|snimac pocet otac|otackov\w* (snimac|senzor|cidl)|snimac, pocet", [ND, E, "ABS / otáčkové senzory"]),
+    # filtre
+    (r"olejov\w* filt|filtr oleje|filter oleja", [ND, F, "Olejové filtre"]),
+    (r"kabinov|vnutorn\w* (vzduch|priestor)|vnitrni prostor|pylov|pelov|filtr, vzduch vnitr|filter, vnutorny", [ND, F, "Kabínové filtre"]),
+    (r"vzduchov\w* filt|vzduchoveho filtr|filtr vzduchu|vlozka vzduch", [ND, F, "Vzduchové filtre"]),
+    (r"palivov\w* filt|naftov\w* filt|filtr paliva|filter paliva", [ND, F, "Palivové filtre"]),
+    (r"vysousec|vysusovac|susic|susicka klim", [ND, F, "Filter sušiča klimatizácie"]),
+    (r"hydraul\w* filt|filtr\w*.{0,20}automat|prevodov\w* filt|filtr prevodov", [ND, F, "Hydraulické / prevodové filtre"]),
+    # výfuk (pred tlmičmi podvozku)
+    (r"katalyz", [ND, V, "Katalyzátory"]),
+    (r"filtr pevnych|filter pevnych|\bdpf\b|\bfap\b|filtr sazi|filter sadzi|filter castic", [ND, V, "DPF / FAP filtre"]),
+    (r"lambda", [ND, V, "Lambda sondy"]),
+    (r"\bnox\b", [ND, E, "Lambda & NOx senzory"]),
+    (r"(koncov|stredn|predn|zadn)\w* tlumic(?! perov)|tlumic vyfuk|tlmic vyfuk|vyfukov\w* tlmic|vyfukov\w* tlumic", [ND, V, "Tlmiče výfuku"]),
+    (r"vyfuk", [ND, V, "Výfukové tesnenia & pružiny"]),
+    # podvozok
+    (r"lozisk\w* kol|lozisko kola|sada lozisk\w* kol|naboj kol|nabe kol|lozisk\w* naboj", [ND, N, "Ložiská kolies"]),
+    (r"(spojovac\w* tyc|tyc\w*|tyck\w*|spojk\w*|drzak|ulozen\w*|pouzdr\w*|silentblok\w*|guma).{0,25}stabiliz", [ND, N, "Spojové tyče"]),
+    (r"stabiliz", [ND, N, "Stabilizátory"]),
+    (r"tlumic perov|tlmic perov|tlmic|tlumic|pruzin\w* (podvoz|napr)|vinut\w* pruz|pneumatick\w* pero|"
+     r"vzduchov\w* pruz|ulozen\w* tlumic|doraz|prachovk\w* tlumic|horne ulozenie|lozisko ulozeni tlum|pruzina", [ND, N, "Tlmiče & pružiny"]),
+    (r"(nosny|kloubov|gulov|zaves\w*) (klb|kloub|cep|cap)|kulov\w* cep|guľov", [ND, N, "Guľové čapy & spoje"]),
+    (r"silentblok|uloženi ramen|ulozeni ramen|ulozenie ramen|pouzdro ramen|ulozeni, ridic|ulozenie, riad", [ND, N, "Silentbloky"]),
+    (r"rameno|ramena|ridic\w* pak|riadiac\w* rameno|vzpera napr|priecne rameno|pricne rameno|nahon\w* rameno", [ND, N, "Ramena & čapy"]),
+    # riadenie
+    (r"axialn\w* (kloub|klb|cep)|hlav\w* (pricne|priecne|spojovac)|spojovac\w* tyc|tyc riad|koncovk\w* (spojov|tyce)|"
+     r"riadiac\w* tyc", [ND, R, "Riadiace tyče & čapy"]),
+    (r"(manzet|mech|prachovk)\w*.{0,20}(riad|rizen)", [ND, R, "Manžety riadenia"]),
+    (r"hreben|prevodk\w* rizen|riadiac\w* (mechan|prevod)|rizeni$", [ND, R, "Hrebene riadenia"]),
+    (r"cerpadl\w* posil|servocerpad|hydraul\w* cerpadl\w*.{0,15}(riz|riad)", [ND, R, "Čerpadlá posilňovača"]),
+    # spojka / prevodovka
+    (r"(manzet|mech|prachovk)\w*.{0,30}(hridel|poloos|klb|kloub)", [ND, S, "Manžety poloosí"]),
+    (r"hnac\w* hridel|poloos|homokinet|kloub hnac|klb hnac|sada klubu|sada kloubu", [ND, S, "Poloosi & kĺby"]),
+    (r"setrvacnik|zotrvacnik", [ND, S, "Zotrvačníky"]),
+    (r"vypinac\w* lozisk|vysuvac\w* lozisk|centraln\w* vypinac|pracovn\w* valec\w* spojk|vypinaci valec", [ND, S, "Vysúvacie ložiská"]),
+    (r"spojk\w* sad|sada spojk|spojka komplet", [ND, S, "Spojkové sady"]),
+    (r"pritlacn|lamela spojk|spojkov\w* (kotou|lamel)|kotouc spojk", [ND, S, "Prítlačné taniere & kotúče"]),
+    # motor
+    (r"klinov\w* reme|drazkov\w* reme|ozuben\w* klinov|poly-?v|\b\d pk\b|\d+pk\d+", [ND, M, "Klinové remene"]),
+    (r"rozvod|ozuben\w* reme|napinac\w* (rem|klad|jednot)|vratn\w* klad|vodic\w* klad|napinak|retaz rozvod|rozvodov", [ND, M, "Rozvody & remene"]),
+    (r"vodn\w* (cerpadl|pump)", [ND, M, "Vodné pumpy"]),
+    (r"olejov\w* (cerpadl|pump)|vypust\w* (sroub|skrut|zatk)|olejov\w* vypust", [ND, M, "Oleové pumpy & vypúšťacie skrutky"]),
+    (r"(ulozen|zaves|drzak|silentblok|uchyc)\w* (motor|prevodov)", [ND, M, "Uloženie motora"]),
+    (r"zapalovac\w* civk|zapalovac\w* ciev|zapalovac\w* modul", [ND, E, "Zapaľovacie cievky"]),
+    (r"svick|svieck|zhavic", [ND, M, "Sviečky & zapaľovanie"]),
+    (r"\begr\b|skrtic|skrtiac|recirkulac", [ND, M, "EGR / škrtiaca klapka"]),
+    (r"turbo|dmychadl|sacie potrub|sani\b|sacieho|nasavan|plnic\w* (vzduch|potrub)", [ND, M, "Turbá & sanie"]),
+    (r"vstrik|vstrek|trysk|palivov\w* (cerpadl|pump)|vysokotlak", [ND, M, "Palivové čerpadlá & vstreky"]),
+    (r"tesnen|tesnic|gufer|hridelov\w* kruh|semerink|o-krouzek|krouzek tesn", [ND, M, "Tesnenia motora & sania"]),
+    # chladenie
+    (r"chladic,? chlazen|chladic motor|chladic chlad|radiator|chladic, chlad", [ND, CH, "Chladiče motora"]),
+    (r"termostat", [ND, CH, "Termostaty"]),
+    (r"odpor,? (vnitr|ventil)|predradn\w* odpor", [ND, CH, "Kúrenie & výparníky"]),
+    (r"ventilator|vetrak|visko|spojka ventil", [ND, CH, "Ventilátory & spojky"]),
+    (r"hadic\w* chlad|chladic\w* hadic|hadice chlad|hadica chlad", [ND, CH, "Hadice chladenia"]),
+    (r"vyrovnav\w* nadr|expanzn\w* nadob|vyrovnavaci", [ND, CH, "Expanzné nádoby"]),
+    (r"kompresor,? klim|kondenzator|klimatiz|expanzn\w* ventil", [ND, CH, "Diely klimatizácie"]),
+    (r"vymenik tepla|vymennik tepla|vyparnik|topen|kurenia|ohrivac|odpor,? ventil|predradn\w* odpor|ventilator vnitr", [ND, CH, "Kúrenie & výparníky"]),
+    # elektro
+    (r"starter|spoustec|alternator|generator|regulator generat|volnobezn\w* (spojk|klad)\w* generat", [ND, E, "Štartéry & alternátory"]),
+    (r"\brele\b|\brelé\b|pojistk|poistk", [ND, E, "Relé & poistky"]),
+    (r"snimac teplot|cidlo teplot|cidlo, teplot|tlakov\w* (cidl|spinac|snimac)|snimac tlak|snimac plnic|cidlo tlak|snimac, tlak|snimac, teplot", [ND, E, "Teplotné & tlakové čidlá"]),
+    (r"ridic\w* jednotk|riadiac\w* jednotk", [ND, E, "Riadiace jednotky"]),
+    (r"kabel|konektor|svazek|zvazok|kabelaz|kabelov", [ND, E, "Káble & konektory"]),
+    # karoséria
+    (r"plynov\w* (vzper|pruz|pist)|elektrick\w* vzper|vzpera (dveri|kufr|kapot|batozin)|vzpera, (kufr|zavazad)|teleskopick\w* vzp", [ND, K, "Plynové vzpery"]),
+    (r"naraznik", [ND, K, "Nárazníky & držiaky"]),
+    (r"blatnik|mrizk|mriezk|podbeh|lem blatn", [ND, K, "Blatníky & mriežky"]),
+    (r"zvedac\w* okn|stahovac\w* okn|mechanizm\w* okn|zdvihac\w* okn", [ND, K, "Sťahovače okien"]),
+    (r"celn\w* sklo|autosklo|zadn\w* sklo|bocn\w* sklo", [ND, K, "Autosklá"]),
+    (r"zamek|zamok|zamk|klic|kluc|centraln\w* zamyk", [ND, K, "Zámky & kľúče"]),
+]
+_RX = [(re.compile(rx), path) for rx, path in RULES]
+
+# CZ → SK frázy (TecDoc generické názvy). Dlhšie frázy prvé. Bez diakritických variantov sa matchuje case-insensitive.
+CZ_SK = [
+    ("Sada příslušenství, brzdové čelisti", "Sada príslušenstva, brzdové čeľuste"),
+    ("Sada prislusenstvi, brzdove celisti", "Sada príslušenstva, brzdové čeľuste"),
+    ("Sada příslušenství, obložení kotoučové brzdy", "Sada príslušenstva, brzdové doštičky"),
+    ("Sada příslušenství, brzdový třmen", "Sada príslušenstva, brzdový strmeň"),
+    ("Sada montážních dílu čelistí", "Montážna sada brzdových čeľustí"),
+    ("Sada montážních dílů čelistí", "Montážna sada brzdových čeľustí"),
+    ("Sada vodicích pouzder, brzdový třmen", "Sada vodiacich puzdier, brzdový strmeň"),
+    ("Měch, vodítko brzdového třmenu", "Manžeta, vedenie brzdového strmeňa"),
+    ("Odvětrávací šroub/ventil, brzdový třmen", "Odvzdušňovacia skrutka/ventil, brzdový strmeň"),
+    ("Vodicí čep, brzdový třmen", "Vodiaci čap, brzdový strmeň"),
+    ("Nastavení-sada, brzdový třmen", "Opravná sada, brzdový strmeň"),
+    ("Opravná sada, brzdový třmen", "Opravná sada, brzdový strmeň"),
+    ("Brzdový třmen", "Brzdový strmeň"),
+    ("Brzdové destičky sada", "Sada brzdových doštičiek"),
+    ("Sada brzdových destiček, kotoučová brzda", "Sada brzdových doštičiek, kotúčová brzda"),
+    ("Brzdový kotouč", "Brzdový kotúč"),
+    ("Sada brzdových čelistí", "Sada brzdových čeľustí"),
+    ("Brzdový buben", "Brzdový bubon"),
+    ("Brzdová hadice", "Brzdová hadica"),
+    ("Brzdový váleček kola", "Brzdový valček kolesa"),
+    ("Hlavní brzdový válec", "Hlavný brzdový valec"),
+    ("Výstražný kontakt, opotřebení obložení", "Výstražný kontakt opotrebenia doštičiek"),
+    ("Čidlo opotřebení", "Snímač opotrebenia"),
+    ("Tažné lanko, parkovací brzda", "Lanko ručnej brzdy"),
+    ("Snímač, počet otáček kol", "Snímač otáčok kolesa"),
+    ("Snímač, počet otáček", "Snímač otáčok"),
+    ("Chladič, chlazení motoru", "Chladič motora"),
+    ("Termostat, chladivo", "Termostat chladiacej kvapaliny"),
+    ("Hadice chladiče", "Hadica chladiča"),
+    ("Vyrovnávací nádrž, chladicí kapalina", "Vyrovnávacia nádržka chladiacej kvapaliny"),
+    ("Vodní čerpadlo", "Vodné čerpadlo"),
+    ("Ozubený klínový řemen", "Drážkový klinový remeň"),
+    ("ozubený klínový řemen", "drážkový klinový remeň"),
+    ("Klínový řemen", "Klinový remeň"),
+    ("Ozubený řemen", "Ozubený remeň"),
+    ("Sada ozubeného řemene", "Sada rozvodového remeňa"),
+    ("Napínací kladka, ozubený řemen", "Napínacia kladka rozvodového remeňa"),
+    ("Vratná/vodicí kladka, ozubený řemen", "Vratná/vodiaca kladka rozvodového remeňa"),
+    ("Napínák, žebrovaný klínový řemen", "Napínač drážkového remeňa"),
+    ("Zavěšení motoru", "Uloženie motora"),
+    ("Uložení motoru", "Uloženie motora"),
+    ("Uložení, řídicí mechanismus", "Uloženie riadiaceho ramena"),
+    ("Uložení, řídící mechanismus", "Uloženie riadiaceho ramena"),
+    ("Řídicí páka, zavěšení kol", "Rameno zavesenia kolesa"),
+    ("Rameno, zavěšení kol", "Rameno zavesenia kolesa"),
+    ("Tyč/vzpěra, stabilizátor", "Tyčka stabilizátora"),
+    ("Tyč/Vzpěra, stabilizátor", "Tyčka stabilizátora"),
+    ("Uložení, stabilizátor", "Uloženie stabilizátora"),
+    ("Ložisko, stabilizátor", "Uloženie stabilizátora"),
+    ("Axiální kloub, příčné táhlo řízení", "Axiálny kĺb riadenia"),
+    ("Hlava příčného táhla řízení", "Koncovka tyče riadenia"),
+    ("Příčné táhlo řízení", "Tyč riadenia"),
+    ("Sada měchů, řízení", "Sada manžiet riadenia"),
+    ("Podpora-/ Kloub", "Guľový čap"),
+    ("Podpora-/ kloub", "Guľový čap"),
+    ("Tlumič pérování", "Tlmič pruženia"),
+    ("Pružina podvozku", "Pružina podvozku"),
+    ("Ložisko pružné vzpěry", "Ložisko uloženia tlmiča"),
+    ("Ložisko kola", "Ložisko kolesa"),
+    ("Sada ložisek kol", "Sada ložísk kolesa"),
+    ("Sada ložisek kola", "Sada ložísk kolesa"),
+    ("Náboj kola", "Náboj kolesa"),
+    ("Kloubová hlava, hnací hřídel", "Kĺb hnacieho hriadeľa"),
+    ("Sada kloubů, hnací hřídel", "Sada kĺbov hnacieho hriadeľa"),
+    ("Sada měchů, hnací hřídel", "Sada manžiet hnacieho hriadeľa"),
+    ("Hnací hřídel", "Hnací hriadeľ"),
+    ("Spojková sada", "Spojková sada"),
+    ("Setrvačník", "Zotrvačník"),
+    ("Vypínací ložisko", "Vysúvacie ložisko"),
+    ("Olejový filtr", "Olejový filter"),
+    ("Vzduchový filtr", "Vzduchový filter"),
+    ("Palivový filtr", "Palivový filter"),
+    ("Filtr, vzduch v interiéru", "Kabínový filter"),
+    ("Filtr, vzduch v interiéru", "Kabínový filter"),
+    ("Zapalovací svíčka", "Zapaľovacia sviečka"),
+    ("Žhavicí svíčka", "Žeraviaca sviečka"),
+    ("Zapalovací cívka", "Zapaľovacia cievka"),
+    ("Lambda sonda", "Lambda sonda"),
+    ("Startér", "Štartér"),
+    ("Generátor", "Alternátor"),
+    ("Snímač, teplota chladicí kapaliny", "Snímač teploty chladiacej kvapaliny"),
+    ("Snímač, tlak v sacím potrubí", "Snímač tlaku v sacom potrubí"),
+    ("Pneumatická pružina, zavazadlový/nákladní prostor", "Plynová vzpera kufra"),
+    ("Plynová vzpěra, kufr/nákladový prostor", "Plynová vzpera kufra"),
+    ("Těsnění, hlava válce", "Tesnenie hlavy valcov"),
+    ("Těsnění, kryt hlavy válce", "Tesnenie veka ventilov"),
+    ("Těsnicí kroužek, vypouštěcí šroub oleje", "Tesniaci krúžok vypúšťacej skrutky"),
+    ("Těsnění", "Tesnenie"),
+    ("Vstřikovací ventil", "Vstrekovací ventil"),
+    ("Turbodmychadlo", "Turbodúchadlo"),
+    ("Kompresor, klimatizace", "Kompresor klimatizácie"),
+    ("Kondenzátor, klimatizace", "Kondenzátor klimatizácie"),
+    ("Výměník tepla, vytápění vnitřního prostoru", "Výmenník tepla kúrenia"),
+    ("Spínač, světla zpátečky", "Spínač cúvacích svetiel"),
+    ("Zpětné zrcátko", "Spätné zrkadlo"),
+    ("Sklo zrcátka", "Sklo spätného zrkadla"),
+    ("Lišta stěrače", "Stierač"),
+    ("Stírací lišta", "Stierač"),
+    ("Hlavní světlomet", "Hlavný svetlomet"),
+    ("Koncové světlo", "Zadné svetlo"),
+    ("Mlhový světlomet", "Hmlový svetlomet"),
+    ("Směrové světlo", "Smerové svetlo"),
+    ("Chladič plnicího vzduchu", "Chladič plniaceho vzduchu"),
+    ("Ventilátor, chlazení motoru", "Ventilátor chladenia motora"),
+    ("Odpor, vnitřní tlakový ventilátor", "Predradný odpor ventilátora kúrenia"),
+    ("sada", "sada"),
+]
+_CZ_SK = [(re.compile(re.escape(a), re.I), b) for a, b in sorted(CZ_SK, key=lambda x: -len(x[0])) if a.lower() != b.lower()]
+
+
+def norm(s: str) -> str:
+    s = unicodedata.normalize("NFKD", (s or "").lower())
+    return "".join(c for c in s if not unicodedata.combining(c))
+
+
+def classify(name: str) -> Optional[List[str]]:
+    n = norm(name)
+    for rx, path in _RX:
+        if rx.search(n):
+            return path
+    return None
+
+
+def to_sk(name: str) -> str:
+    out = name
+    for rx, sk in _CZ_SK:
+        out = rx.sub(sk, out)
+    return out
+
+
+def _wc():
+    url = (os.environ.get("WC_URL") or "").rstrip("/")
+    ck = os.environ.get("WC_CONSUMER_KEY") or ""
+    cs = os.environ.get("WC_CONSUMER_SECRET") or ""
+    if not (url and ck and cs):
+        raise SystemExit("Chýba WC_URL / WC_CONSUMER_KEY / WC_CONSUMER_SECRET")
+    return url, (ck, cs)
+
+
+def category_index(session, url, auth) -> Dict[Tuple[str, ...], int]:
+    """Cesta (názvy od koreňa) → term id, len existujúce kategórie."""
+    rows, page = [], 1
+    while True:
+        r = session.get(f"{url}/wp-json/wc/v3/products/categories", auth=auth, timeout=60,
+                        params={"per_page": 100, "page": page, "_fields": "id,name,parent"})
+        r.raise_for_status()
+        batch = r.json() or []
+        rows += batch
+        if len(batch) < 100:
+            break
+        page += 1
+    by_id = {c["id"]: c for c in rows}
+
+    def path(c):
+        out, seen = [], set()
+        while c and c["id"] not in seen:
+            seen.add(c["id"])
+            out.append(c["name"].replace("&amp;", "&").strip())
+            c = by_id.get(c.get("parent") or 0)
+        return tuple(reversed(out))
+
+    return {path(c): c["id"] for c in rows}
+
+
+def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)-7s | %(message)s")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--max", type=int, default=0, help="max zaradených za beh (0 = bez limitu)")
+    ap.add_argument("--from-file", default="", help="JSONL konceptov (offline)")
+    ap.add_argument("--out", default="")
+    a = ap.parse_args()
+    apply = a.apply and not a.dry_run
+
+    from promote_drafts import GENERIC_CATS, evaluate, is_czech, iter_drafts, sk_name
+    import requests
+    import shop_guard  # noqa: F401
+    from shop_guard import wait_if_slow
+
+    session = requests.Session()
+    cat_ids: Dict[Tuple[str, ...], int] = {}
+    if a.from_file:
+        drafts = (json.loads(l) for l in open(a.from_file, encoding="utf-8") if l.strip())
+        url = auth = None
+    else:
+        url, auth = _wc()
+        cat_ids = category_index(session, url, auth)
+        drafts = iter_drafts(url, auth, session, 0.5, {"published": 0})
+
+    st = Counter()
+    by_path: Counter = Counter()
+    by_src: Counter = Counter()
+    pending: List[dict] = []
+
+    def flush():
+        if not pending:
+            return
+        wait_if_slow()
+        try:
+            r = session.post(f"{url}/wp-json/wc/v3/products/batch", auth=auth, json={"update": pending}, timeout=180)
+            if r.ok:
+                st["written"] += len(pending)
+            else:
+                st["write_failed"] += len(pending)
+        except Exception:
+            st["write_failed"] += len(pending)
+        pending.clear()
+        time.sleep(1)
+
+    for p in drafts:
+        st["drafts"] += 1
+        cats = [(c.get("name") or "").replace("&amp;", "&").strip() for c in (p.get("categories") or [])]
+        specific = [c for c in cats if c.lower() not in GENERIC_CATS and not c.lower().startswith("[orphan]")]
+        meta = {m.get("key"): m.get("value") for m in (p.get("meta_data") or []) if isinstance(m, dict)}
+        src = str(meta.get("_supplier_source") or "?").lower()
+        name = (p.get("name") or "").strip()
+        upd: Dict = {}
+        # SK názov
+        if is_czech(name):
+            fixed = to_sk(sk_name(name))
+            if fixed != name and not is_czech(fixed):
+                upd["name"] = fixed
+                st["sk_renamed"] += 1
+            else:
+                st["czech_left"] += 1
+        if not specific:
+            st["no_category"] += 1
+            path = classify(upd.get("name") or name) or classify(name)
+            if path:
+                tid = cat_ids.get(tuple(path)) if cat_ids else -1
+                if tid:
+                    upd["categories"] = [{"id": tid}] if tid > 0 else []
+                    st["classified"] += 1
+                    by_path[" > ".join(path[1:])] += 1
+                    by_src[src] += 1
+                    cats = [path[-1]]
+                else:
+                    st["path_missing_in_shop"] += 1
+            else:
+                st["no_rule"] += 1
+        if upd:
+            # Odhad: prejde po zaradení pravidlami promote_drafts?
+            q = dict(p)
+            if "name" in upd:
+                q["name"] = upd["name"]
+            if "categories" in upd:
+                q["categories"] = [{"name": c} for c in cats]
+            reasons, _ = evaluate(q)
+            if not reasons:
+                st["would_promote"] += 1
+            if apply and url:
+                pending.append({"id": p["id"], **upd})
+                if len(pending) >= 50:
+                    flush()
+        if a.max and st["classified"] >= a.max:
+            break
+    if apply and url:
+        flush()
+    res = {"applied": apply, **st, "classified_by_supplier": dict(by_src), "top_paths": dict(by_path.most_common(25))}
+    if a.out:
+        Path(a.out).write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("SG_RESULT " + json.dumps(res, ensure_ascii=False), flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

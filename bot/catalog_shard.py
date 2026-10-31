@@ -136,7 +136,7 @@ def _links(http, url: str, prefix: str) -> List[tuple]:
 def szekop_engines(sup, sh: Shard) -> List[Dict[str, str]]:
     """Make → model → engine (SSR). Modely sú shardované, teda každý shard
     stiahne len motory svojich modelov. Výsledok sa cachuje v stave."""
-    if sh.state.get("engines"):
+    if sh.state.get("engines") and sh.state.get("engines_all_makes", "0") == os.environ.get("SG_SZEKOP_ALL_MAKES", "0"):
         return sh.state["engines"]
     pre = "/sk/katalog/tecdoc/osobne/"
     makes = [(h, t) for h, t in _links(sup.http, SZ_ENTRY, pre) if re.fullmatch(pre + r"[a-z0-9-]+/\d+", h)]
@@ -145,8 +145,8 @@ def szekop_engines(sup, sh: Shard) -> List[Dict[str, str]]:
     engines: List[Dict[str, str]] = []
     for mh, mt in makes:
         slug = mh.split("/")[5]
-        if slug not in rank:
-            continue  # najprv známe značky; ostatné neskôr (SG_SZEKOP_ALL_MAKES=1)
+        if slug not in rank and os.environ.get("SG_SZEKOP_ALL_MAKES", "0") != "1":
+            continue  # najprv známe značky; ostatné s SG_SZEKOP_ALL_MAKES=1
         try:
             models = [(h, t) for h, t in _links(sup.http, SZ_BASE + mh, pre + slug + "/")
                       if re.fullmatch(pre + slug + r"/[a-z0-9-]+/\d+/\d+", h)]
@@ -168,6 +168,7 @@ def szekop_engines(sup, sh: Shard) -> List[Dict[str, str]]:
             time.sleep(0.2)
     LOGGER.info("Szekop shard %d/%d: %d motorov", sh.i, sh.n, len(engines))
     sh.state["engines"] = engines
+    sh.state["engines_all_makes"] = os.environ.get("SG_SZEKOP_ALL_MAKES", "0")
     sh.save()
     return engines
 
@@ -202,13 +203,30 @@ def szekop_leaf_products(sup, leaf: str) -> List[str]:
         html = sup.http.get(leaf).text or ""
     except Exception:
         return []
-    out = []
-    for a in BeautifulSoup(html, "html.parser").find_all("a", href=True):
-        h = a["href"].split("#")[0].split("?")[0]
-        if h.startswith("/"):
-            h = SZ_BASE + h
-        if h.startswith(SZ_BASE) and is_tecdoc_product_url(h) and h not in out:
-            out.append(h)
+    out: List[str] = []
+    seen_pages = {leaf}
+    queue_pages: List[str] = []
+    max_pages = int(os.environ.get("SG_SZEKOP_MAX_PAGES", "30"))
+    base_leaf = leaf.split("?")[0]
+    while True:
+        soup = BeautifulSoup(html, "html.parser")
+        for a in soup.find_all("a", href=True):
+            raw = a["href"].split("#")[0]
+            full = SZ_BASE + raw if raw.startswith("/") else raw
+            h = full.split("?")[0]
+            if h.startswith(SZ_BASE) and is_tecdoc_product_url(h) and h not in out:
+                out.append(h)
+            # Stránkovanie listu (?page= / ?strana= / ?p=) — predtým len 1. stránka listu.
+            if h == base_leaf and "?" in full and re.search(r"[?&](page|strana|p|pg)=\d+", full) \
+                    and full not in seen_pages and len(seen_pages) < max_pages:
+                seen_pages.add(full)
+                queue_pages.append(full)
+        if not queue_pages:
+            break
+        try:
+            html = sup.http.get(queue_pages.pop(0)).text or ""
+        except Exception:
+            break
     return out
 
 
@@ -216,6 +234,25 @@ def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
     from suppliers import get_supplier
     sup = get_supplier("szekop")
     engines = szekop_engines(sup, sh)
+    # Nový cyklus: všetky motory prejdené pred > SG_SZEKOP_RECYCLE_H h → znova (len nové SKU,
+    # existujúce sa preskočia bez fetchu). Predtým sa hotový shard už nikdy nevrátil
+    # (nové diely / znova naskladnené kusy sa nedostali do obchodu).
+    if engines and all(e["url"] in set(sh.state["done"]) for e in engines):
+        fin = sh.state.get("cycle_done_at")
+        if not fin:
+            sh.state["cycle_done_at"] = datetime.now(timezone.utc).isoformat()
+            sh.save()
+        else:
+            age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(fin)).total_seconds() / 3600
+            if age_h >= float(os.environ.get("SG_SZEKOP_RECYCLE_H", "48")):
+                LOGGER.info("Szekop shard %d/%d: nový cyklus (predošlý hotový pred %.0f h)", sh.i, sh.n, age_h)
+                sh.state["done"] = []
+                sh.state.pop("cycle_done_at", None)
+                sh.state["cycles"] = int(sh.state.get("cycles") or 0) + 1
+                if sh.state["cycles"] % 3 == 0:
+                    sh.state.pop("engines", None)  # občas obnov zoznam motorov (nové modely)
+                    engines = szekop_engines(sup, sh)
+                sh.save()
     done = set(sh.state["done"])
     made = 0
     for eng in engines:

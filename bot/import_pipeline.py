@@ -388,7 +388,9 @@ def main() -> None:
             crawl_limit = min(max(args.limit * 2, args.limit), 400)
         if args.skip_existing and args.limit > 0:
             # Hľadaj nové SKU hlbšie v kategórii (žiarovky drip).
-            crawl_limit = min(max(args.limit * 15, 60), 400)
+            # SG_CRAWL_CAP: koľko riadkov listingu prejsť pri skip-existing (predtým napevno 400 →
+            # diely za 400. riadkom auta × kategórie sa nikdy nedostali do obchodu).
+            crawl_limit = min(max(args.limit * 15, 60), int(os.environ.get("SG_CRAWL_CAP", "400")))
         LOGGER.info(
             "🕷️  Crawl %s (limit=%s%s)...",
             args.supplier,
