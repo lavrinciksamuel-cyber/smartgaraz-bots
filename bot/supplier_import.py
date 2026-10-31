@@ -60,6 +60,7 @@ def run(cmd, env, timeout=None) -> tuple[int, str]:
     print("[import] " + " ".join(cmd[1:]), flush=True)
     left = max(120, int(timeout if timeout else BUDGET_S - (time.time() - T_START)))
     end = time.time() + left
+    env = {**env, "PYTHONUNBUFFERED": "1"}  # priebežný log + SG_PROGRESS aj pri predčasnom konci
     p = subprocess.Popen(cmd, cwd=str(ROOT.parent), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          text=True, bufsize=1)
     tail: list = []
@@ -359,6 +360,7 @@ def main() -> int:
     py = sys.executable
     t0 = time.time()
     rc, out, rounds = 0, "", 0
+    price_stats: dict = {}
     shard = os.environ.get("SG_SHARD", "").strip()
     if a.mode == "prices":
         if not host:
@@ -367,9 +369,19 @@ def main() -> int:
             # Najprv riadky, ktoré overenie označilo ako pokazené banner parserom.
             os.environ.setdefault("SG_PRIORITY_SKUS", "43201,33179,22202,X6000-5")
         env["SG_ONLY_SUPPLIER_HOST"] = host
+        # Rýchla cesta: SKU dodávateľa z HQ, zápis len pri zmene, kurzor medzi behmi,
+        # koniec 4 min pred rozpočtom so súhrnom (namiesto zabitia bez čísel).
+        env["SG_ONLY_SUPPLIER"] = slug
+        env["SG_DEADLINE_TS"] = str(int(T_START + BUDGET_S - 240))
         rc, out = run([py, str(ROOT / "secret_crawler.py"), "--existing", "--status", "any",
                        "--limit", str(limit), "--sleep", "0.1"], env)
         rounds = 1
+        prog = [l for l in out.splitlines() if l.startswith("SG_PROGRESS ")]
+        if prog:
+            try:
+                price_stats = json.loads(prog[-1][len("SG_PROGRESS "):])
+            except Exception:
+                price_stats = {}
     else:
         shard = os.environ.get("SG_SHARD", "").strip()
         if slug in ("szekop", "wurth") and shard:
@@ -428,7 +440,9 @@ def main() -> int:
 
     by_src = new_by_source(max_id_before) if a.mode == "full" else {}
     created = own_new(by_src, code) if by_src else 0
-    counts = {"new": created, "new_all_suppliers": sum(by_src.values()), "new_by_source": by_src, "updated": 0,
+    counts = {"new": created, "new_all_suppliers": sum(by_src.values()), "new_by_source": by_src,
+              "updated": int(price_stats.get("updated") or 0), "unchanged": int(price_stats.get("unchanged") or 0),
+              "checked": int(price_stats.get("done") or 0), "failed": int(price_stats.get("failed") or 0),
               "minutes": round((time.time() - t0) / 60, 1), "rounds": rounds, "mode": a.mode, "login": login_used, **pub}
     if slug == "lkq" and os.path.exists("/tmp/sg_lkq_login_failed"):
         return result(False, "Prihlásenie do LKQ počas behu zlyhalo – zvyšné úlohy som zastavil.", **counts)
@@ -454,6 +468,11 @@ def main() -> int:
                 print("::warning::Import nestihol celý katalóg v časovom limite – pokračuje ďalší beh.", flush=True)
                 return result(True, f"Čiastočne hotovo ({slug}): {created} nových, zvyšok ďalší beh.", partial=True, **counts)
         return result(False, f"Import skončil chybou: {why}", **counts)
+    if a.mode == "prices":
+        part = " (časový rozpočet — pokračuje ďalší beh od kurzora)" if price_stats.get("deadline") else ""
+        return result(True, f"Ceny/sklad ({slug}): skontrolovaných {counts['checked']} z {price_stats.get('total', '?')}, "
+                            f"zmenených {counts['updated']}, bez zmeny {counts['unchanged']}, chýb {counts['failed']}{part}.",
+                      partial=bool(price_stats.get("deadline")), **counts)
     return result(True, f"Hotovo ({slug}): {counts['new'] or 0} nových produktov" + (f", zverejnených {pub['published']}, na kontrolu {pub['held']}." if pub else "."), **counts)
 
 

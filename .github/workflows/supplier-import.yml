@@ -55,6 +55,12 @@ jobs:
             heijunka-state-
       - name: Install deps
         run: pip install -r bot/requirements.txt
+      - name: Restore price cursor
+        uses: actions/cache/restore@v4
+        with:
+          path: .sg_state
+          key: sg-state-${{ github.workflow }}-${{ github.job }}-${{ matrix.supplier || 'one' }}-${{ github.run_id }}
+          restore-keys: sg-state-${{ github.workflow }}-${{ github.job }}-${{ matrix.supplier || 'one' }}-
       - name: Import
         env:
           WC_URL: ${{ secrets.WC_URL }}
@@ -66,3 +72,9 @@ jobs:
           IDEO_PASSWORD: ${{ secrets.IDEO_PASSWORD }}
           IMPORT_IN_STOCK: "1"
         run: python bot/supplier_import.py --supplier "${{ inputs.supplier }}" --mode "${{ inputs.mode }}" --limit "${{ inputs.limit }}"
+      - name: Save price cursor
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .sg_state
+          key: sg-state-${{ github.workflow }}-${{ github.job }}-${{ matrix.supplier || 'one' }}-${{ github.run_id }}

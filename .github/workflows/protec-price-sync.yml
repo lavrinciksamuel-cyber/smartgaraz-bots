@@ -34,6 +34,12 @@ jobs:
           cache: pip
           cache-dependency-path: bot/requirements.txt
       - run: pip install -r bot/requirements.txt
+      - name: Restore price cursor
+        uses: actions/cache/restore@v4
+        with:
+          path: .sg_state
+          key: sg-state-${{ github.workflow }}-${{ github.job }}-${{ matrix.supplier || 'one' }}-${{ github.run_id }}
+          restore-keys: sg-state-${{ github.workflow }}-${{ github.job }}-${{ matrix.supplier || 'one' }}-
       - name: Sync prices and stock
         env:
           WC_URL: ${{ secrets.WC_URL }}
@@ -48,3 +54,9 @@ jobs:
           LIMIT="${{ github.event.inputs.limit }}"
           if [ -z "$LIMIT" ]; then LIMIT=0; fi
           python bot/supplier_import.py --supplier pro-tec --mode prices --limit "$LIMIT"
+      - name: Save price cursor
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .sg_state
+          key: sg-state-${{ github.workflow }}-${{ github.job }}-${{ matrix.supplier || 'one' }}-${{ github.run_id }}

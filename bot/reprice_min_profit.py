@@ -201,12 +201,33 @@ def _wc():
     return url, (key, secret)
 
 
+def _call(fn, what: str, waits=(0, 30, 90)):
+    """HTTP volanie s opakovaním pri prerušenom spojení (ChunkedEncodingError, RemoteDisconnected,
+    timeout) a 5xx/429. None = ani posledný pokus neprešiel (volajúci pokračuje ďalej)."""
+    import requests
+    last = None
+    for n, wait in enumerate(waits, 1):
+        if wait:
+            time.sleep(wait)
+        try:
+            r = fn()
+            if r.status_code in (429, 500, 502, 503, 504, 508) and n < len(waits):
+                print(f"[reprice] {what}: HTTP {r.status_code}, pokus {n}/{len(waits)}", flush=True)
+                last = r
+                continue
+            return r
+        except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError,
+                requests.exceptions.Timeout) as exc:
+            print(f"[reprice] {what}: {type(exc).__name__}, pokus {n}/{len(waits)}", flush=True)
+    return last
+
+
 def main() -> int:
     logging_setup()
     ap = argparse.ArgumentParser(description="Zdvihni ceny pod 20 % z nákupu s DPH")
     ap.add_argument("--apply", action="store_true", help="Zapíš do WooCommerce (inak len náhľad)")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--batch", type=int, default=20)
+    ap.add_argument("--batch", type=int, default=10)
     args = ap.parse_args()
 
     creds = _wc()
@@ -227,9 +248,11 @@ def main() -> int:
     decisions: List[Decision] = []
     page = 1
     seen = 0
+    page_errors = 0
+    failed_batches = 0
     while True:
         wait_if_slow()
-        r = session.get(
+        r = _call(lambda: session.get(
             f"{url}/wp-json/wc/v3/products",
             auth=auth,
             params={
@@ -237,7 +260,15 @@ def main() -> int:
                 "_fields": "id,sku,name,status,price,regular_price,sale_price,meta_data",
             },
             timeout=120,
-        )
+        ), f"WC page {page}")
+        if r is None:
+            # Stránka ani po 3 pokusoch neprišla → preskoč ju (týždenný beh ju dorobí), nepadni.
+            page_errors += 1
+            if page_errors >= 5:
+                print("[reprice] 5 stránok zlyhalo — končím čítanie, zapíšem, čo mám", flush=True)
+                break
+            page += 1
+            continue
         if not r.ok:
             print(f"[reprice] WC page {page} HTTP {r.status_code}", flush=True)
             break
@@ -263,23 +294,31 @@ def main() -> int:
         for i in range(0, len(updates), max(1, args.batch)):
             chunk = updates[i:i + args.batch]
             wait_if_slow()
-            resp = session.post(
+            resp = _call(lambda: session.post(
                 f"{url}/wp-json/wc/v3/products/batch",
                 auth=auth, json={"update": chunk}, timeout=180,
-            )
-            if resp.ok:
-                written += len((resp.json() or {}).get("update") or [])
+            ), f"batch {i // max(1, args.batch) + 1}")
+            if resp is not None and resp.ok:
+                try:
+                    written += len((resp.json() or {}).get("update") or [])
+                except ValueError:
+                    written += len(chunk)
             else:
-                print(f"[reprice] batch HTTP {resp.status_code}", flush=True)
-            time.sleep(1)
+                # Spojenie spadlo / HTTP chyba: zápis je idempotentný (rovnaká cena) → ďalší beh to dorovná.
+                failed_batches += 1
+                print(f"[reprice] batch zlyhal ({resp.status_code if resp is not None else 'spojenie'})", flush=True)
+            time.sleep(2)
     summary["applied"] = bool(args.apply)
     summary["written"] = written
+    summary["failed_batches"] = failed_batches
+    summary["page_errors"] = page_errors
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print("SG_RESULT " + json.dumps({
         "ok": True,
         "msg": f"Pod 20 %: {summary['repriced_total']} na úpravu, zapísaných {written}. "
                f"Pro-Tec čaká na sync: {summary['protec_waiting_resync']}. "
-               f"Podozrivý náklad: {len(summary['flagged'])}.",
+               f"Podozrivý náklad: {len(summary['flagged'])}. "
+               f"Zlyhané dávky: {failed_batches}, preskočené stránky: {page_errors}.",
         **{k: summary[k] for k in ("repriced_by_supplier", "repriced_total", "protec_waiting_resync")},
         "flagged_count": len(summary["flagged"]),
     }, ensure_ascii=False))

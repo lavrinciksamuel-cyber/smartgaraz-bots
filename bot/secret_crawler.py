@@ -30,6 +30,8 @@ Vyžaduje v .env:
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import logging
 import os
 import sys
@@ -272,6 +274,203 @@ def crawl_supplier_catalog(supplier_name: str, limit: int, wc: WooCommerceClient
 _ONLY_HOST = os.getenv("SG_ONLY_SUPPLIER_HOST", "").strip().lower()
 
 
+
+# ---------------------------------------------------------------------------
+# Rýchla cesta pre ceny/sklad jedného dodávateľa (TSS / ideo / Pro-Tec):
+#  - zoznam SKU dodávateľa z HQ (/api/sync/existing-skus?supplier=…) namiesto
+#    prechádzania všetkých ~50 000 WC produktov (to robilo 210 min behy s 0 hláseniami),
+#  - produkty po 40 cez WC ?sku=a,b,c (ľahké, 1 požiadavka / 40 produktov),
+#  - zápis len keď sa zmenila cena / sklad / nákup / dodanie (menej záťaže webu),
+#  - kurzor (posledné SKU) v SG_STATE_DIR po každom produkte → ďalší beh pokračuje,
+#  - SG_DEADLINE_TS: pred koncom rozpočtu skončí sám a vypíše súhrn (SG_PROGRESS).
+# ---------------------------------------------------------------------------
+_ONLY_SUPPLIER = os.getenv("SG_ONLY_SUPPLIER", "").strip().lower()
+_STATE_DIR = os.getenv("SG_STATE_DIR", ".sg_state")
+
+
+def _hq_supplier_skus(code: str) -> Optional[List[str]]:
+    tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
+    if not tok or not code:
+        return None
+    import requests
+    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    for wait in (0, 20, 60):
+        if wait:
+            time.sleep(wait)
+        try:
+            r = requests.get(f"{hq}/api/sync/existing-skus", params={"supplier": code}, timeout=60,
+                             headers={"Authorization": f"Bearer {tok}", "Accept-Encoding": "gzip",
+                                      "User-Agent": "smartgaraz-bot"})
+            if r.ok:
+                skus = sorted({str(s).strip() for s in (r.json().get("skus") or []) if str(s).strip()})
+                return skus or None
+        except Exception as exc:  # noqa: BLE001
+            LOGGER.warning("HQ SKU zoznam (%s) zlyhal: %s", code, type(exc).__name__)
+    return None
+
+
+def _cursor_path(code: str) -> str:
+    return os.path.join(_STATE_DIR, f"prices_cursor_{re.sub(r'[^a-z0-9_-]', '', code)}.json")
+
+
+def _cursor_load(code: str) -> str:
+    try:
+        with open(_cursor_path(code), encoding="utf-8") as fh:
+            return str(json.load(fh).get("last_sku") or "")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _cursor_save(code: str, sku: str, stats: dict) -> None:
+    try:
+        os.makedirs(_STATE_DIR, exist_ok=True)
+        tmp = _cursor_path(code) + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump({"last_sku": sku, "at": time.strftime("%Y-%m-%d %H:%M:%S"), "stats": stats}, fh)
+        os.replace(tmp, _cursor_path(code))
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _deadline_hit() -> bool:
+    try:
+        d = float(os.environ.get("SG_DEADLINE_TS") or 0)
+    except ValueError:
+        d = 0
+    return bool(d) and time.time() >= d
+
+
+def _num(v) -> str:
+    try:
+        return f"{float(str(v).replace(',', '.')):.2f}" if v not in (None, "") else ""
+    except (TypeError, ValueError):
+        return str(v)
+
+
+def payload_unchanged(product: dict, payload: dict) -> bool:
+    """True = zápis by nič nezmenil (cena, sklad, nákup, dodanie, SKU/názov)."""
+    for k in ("regular_price", "sale_price"):
+        if k in payload and _num(payload.get(k)) != _num(product.get(k)):
+            return False
+    if "stock_status" in payload and str(payload["stock_status"] or "") != str(product.get("stock_status") or ""):
+        return False
+    if "stock_quantity" in payload:
+        try:
+            if int(payload["stock_quantity"]) != int(product.get("stock_quantity") or 0):
+                return False
+        except (TypeError, ValueError):
+            return False
+    if "manage_stock" in payload and bool(payload["manage_stock"]) != bool(product.get("manage_stock")):
+        return False
+    for k in ("sku", "name"):
+        if k in payload and str(payload[k] or "") != str(product.get(k) or ""):
+            return False
+    cur = {m.get("key"): m.get("value") for m in product.get("meta_data") or [] if isinstance(m, dict)}
+    for m in payload.get("meta_data") or []:
+        key = m.get("key")
+        if key == "_last_b2b_sync":
+            continue
+        new, old = m.get("value"), cur.get(key)
+        if key == "_cost_price":
+            if _num(new) != _num(old):
+                return False
+        elif str(new if new is not None else "") != str(old if old is not None else ""):
+            return False
+    return True
+
+
+def sync_existing_by_skus(wc: WooCommerceClient, code: str, limit: int, dry_run: bool, sleep: float) -> Optional[dict]:
+    """Ceny/sklad podľa HQ zoznamu SKU dodávateľa. None = HQ zoznam nedostupný → stará cesta."""
+    from shop_guard import wait_if_slow
+    skus = _hq_supplier_skus(code)
+    if not skus:
+        return None
+    last = _cursor_load(code)
+    start = 0
+    if last:
+        import bisect
+        start = bisect.bisect_right(skus, last)
+        if start >= len(skus):
+            start = 0
+    order = skus[start:] + skus[:start]
+    stats = {"updated": 0, "unchanged": 0, "skipped": 0, "failed": 0, "total": len(skus), "done": 0}
+    LOGGER.info("⚡ %s: %d SKU z HQ, štart za kurzorom „%s“ (pozícia %d)", code, len(skus), last or "-", start)
+    supplier_by_host: Dict[str, object] = {}
+    t0 = time.time()
+    chunk_n = int(os.environ.get("SG_SKU_CHUNK", "40"))
+    for i in range(0, len(order), chunk_n):
+        if _deadline_hit():
+            LOGGER.info("⏱️ Časový rozpočet — končím, pokračuje ďalší beh od kurzora")
+            stats["deadline"] = True
+            break
+        chunk = order[i:i + chunk_n]
+        wait_if_slow()
+        try:
+            resp = wc.api.get("products", params={"sku": ",".join(chunk), "status": "any", "per_page": 100})
+            rows = resp.json() if resp is not None and resp.status_code < 400 else []
+        except Exception as exc:  # noqa: BLE001
+            LOGGER.warning("WC SKU dávka zlyhala: %s", type(exc).__name__)
+            rows = []
+        by_sku = {str(p.get("sku") or ""): p for p in rows if isinstance(p, dict)}
+        for sku in chunk:
+            if _deadline_hit():
+                break
+            product = by_sku.get(sku)
+            stats["done"] += 1
+            if not product:
+                stats["skipped"] += 1
+                _cursor_save(code, sku, stats)
+                continue
+            meta = {m["key"]: m["value"] for m in product.get("meta_data", []) if isinstance(m, dict)}
+            supplier_url = meta.get("supplier_url") or ""
+            if not supplier_url:
+                stats["skipped"] += 1
+                _cursor_save(code, sku, stats)
+                continue
+            try:
+                host = (urlparse(supplier_url).netloc or "").lower()
+                supplier = supplier_by_host.get(host)
+                if supplier is None:
+                    supplier = resolve_supplier(supplier_url, meta.get("_supplier_source") or "")
+                    if hasattr(supplier, "ensure_login"):
+                        supplier.ensure_login()
+                    supplier_by_host[host] = supplier
+                offer = supplier.fetch_offer(supplier_url)
+                if not offer:
+                    stats["failed"] += 1
+                else:
+                    offer.sku = offer.sku or sku
+                    offer.name = offer.name or product.get("name") or ""
+                    pricing = price_from_offer(offer)
+                    if not pricing:
+                        stats["skipped"] += 1
+                    elif payload_unchanged(product, build_wc_payload(offer, pricing)):
+                        stats["unchanged"] += 1
+                    else:
+                        wait_if_slow()
+                        res = sync_one(wc, offer, dry_run=dry_run, product_id=int(product["id"]))
+                        if res.startswith("updated"):
+                            stats["updated"] += 1
+                        else:
+                            stats["skipped"] += 1
+                        time.sleep(sleep)
+            except Exception as exc:  # noqa: BLE001
+                LOGGER.warning("ID %s zlyhalo: %s", product.get("id"), exc)
+                stats["failed"] += 1
+            _cursor_save(code, sku, stats)
+            if stats["done"] % 50 == 0:
+                print("SG_PROGRESS " + json.dumps(stats), flush=True)
+            if limit and stats["done"] >= limit:
+                break
+        if limit and stats["done"] >= limit:
+            break
+    if stats["done"] >= len(order) and not stats.get("deadline"):
+        _cursor_save(code, "", stats)  # celý zoznam prejdený → ďalší beh od začiatku
+    stats["minutes"] = round((time.time() - t0) / 60, 1)
+    print("SG_PROGRESS " + json.dumps(stats), flush=True)
+    return stats
+
+
 def sync_existing_wc(
     wc: WooCommerceClient,
     limit: int,
@@ -295,13 +494,14 @@ def sync_existing_wc(
     def _one(product: dict) -> None:
         nonlocal processed
         from shop_guard import wait_if_slow
-        wait_if_slow()
         processed += 1
         meta = {m["key"]: m["value"] for m in product.get("meta_data", []) if isinstance(m, dict)}
         supplier_url = meta.get("supplier_url") or ""
         if not supplier_url or (_ONLY_HOST and _ONLY_HOST not in (urlparse(supplier_url).netloc or "").lower()):
             stats["skipped"] += 1
             return
+        # Brzda len pred skutočnou prácou (predtým aj pri každom preskočenom cudzom produkte).
+        wait_if_slow()
         try:
             host = (urlparse(supplier_url).netloc or "").lower()
             supplier = supplier_by_host.get(host)
@@ -349,6 +549,12 @@ def sync_existing_wc(
             time.sleep(sleep)
             if limit and processed >= limit:
                 return stats
+
+    if _ONLY_SUPPLIER and not prefer_no_cost:
+        fast = sync_existing_by_skus(wc, _ONLY_SUPPLIER, limit, dry_run, sleep)
+        if fast is not None:
+            return fast
+        LOGGER.warning("HQ zoznam SKU nedostupný — pomalá cesta cez celý WC katalóg")
 
     def _has_cost(product: dict) -> bool:
         meta = {
