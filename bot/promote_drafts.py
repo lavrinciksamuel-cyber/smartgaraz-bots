@@ -46,8 +46,8 @@ CZ_WORDS = re.compile(
     r"\b(filtr|sada\s+filtr\w*|kotouč\w*|tlumič\w*|čidlo|snímač\s+otáček|světl\w*|převod\w*|"
     r"vzduchový\s+filtr|olejový\s+filtr|palivový\s+filtr|brzdové\s+destičky|destičk\w*|"
     r"těsnění|ložisko\s+kola|zapalovací|svíčk\w*|žhavicí|chladič\s+motoru|motoru|"
-    r"vodní|čerpadlo|spojka\s+kompletní|lambda\s+sonda\s+zadní|řemen\w*|klínov\w*|"
-    r"částic|sazov\w*|kola\b|přední|zadní|levý|pravý|levé|pravé|horní|dolní)\b",
+    r"vodní|spojka\s+kompletní|lambda\s+sonda\s+zadní|řemen\w*|klínov\w*|"
+    r"částic|sazov\w*|kola\b|přední|zadní|levý|levé|horní|dolní)\b",
     re.I,
 )
 BULK_RE = re.compile(r"\b(20|25|55|58|60|200|205|208|1000)\s*l\b", re.I)  # sudy / IBC — nepublikovať
@@ -158,6 +158,13 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
         reasons.append("bad_name")
     elif is_czech(name):
         fixed = sk_name(name)
+        if not fixed or is_czech(fixed):
+            try:  # slovník fráz + slov z klasifikátora (bez AI)
+                from draft_classifier import to_sk
+
+                fixed = to_sk(fixed or name)
+            except Exception:
+                pass
         if fixed and fixed != name and not is_czech(fixed):
             new_name = fixed
         else:

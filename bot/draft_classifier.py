@@ -132,6 +132,25 @@ RULES: List[Tuple[str, Optional[List[str]]]] = [
     (r"zvedac\w* okn|stahovac\w* okn|mechanizm\w* okn|zdvihac\w* okn", [ND, K, "Sťahovače okien"]),
     (r"celn\w* sklo|autosklo|zadn\w* sklo|bocn\w* sklo", [ND, K, "Autosklá"]),
     (r"zamek|zamok|zamk|klic|kluc|centraln\w* zamyk", [ND, K, "Zámky & kľúče"]),
+    # 2026-10-31 doplnok: najčastejšie nezaradené názvy (CZ/SK TecDoc tvary)
+    (r"(agr|egr)[ -]?ventil|ventil,? (agr|egr)|potrubi,? (agr|egr)|chladic (agr|egr)", [ND, M, "EGR / škrtiaca klapka"]),
+    (r"(hlavn\w*|pomocn\w*|vysuvac\w*|vypinac\w*) valec,? spojk|valec,? spojk|spojkov\w* valec", [ND, S, "Vysúvacie ložiská"]),
+    (r"elektromotor\w*.{0,30}(okn|zvedac)|zvedac\w* okn|zdvihac\w* okn|spinac\w* (stahovan|zvedac)\w* okn", [ND, K, "Sťahovače okien"]),
+    (r"elektromotor\w*.{0,30}(ventilator|chladic)|ventilator chladic", [ND, CH, "Ventilátory & spojky"]),
+    (r"elektromotor\w*.{0,30}(sterac|stierac)|motor (sterac|stierac)", [ND, K, "Stierače"]),
+    (r"olejov\w* van|vana olej|vypust\w* (sroub|skrutk)|olejov\w* (cerpadl|pump)", [ND, M, "Oleové pumpy & vypúšťacie skrutky"]),
+    (r"chladic oleje|olejov\w* chladic|chladic,? motorov\w* olej", [ND, CH, "Chladiče motora"]),
+    (r"(priruba|trubka|potrubi|vedeni|hadic\w*|spojk\w*) chladiv|chladici kapalin\w*.{0,20}(priruba|hadic|trubk)|priruba chlad", [ND, CH, "Hadice chladenia"]),
+    (r"sac\w* potrub|sacie potrub|plnic\w* vzduch|turbodmychadl|turbodúchadl|\bturba\b|\bturbo\b|intercooler|nasavan\w* vzduch", [ND, M, "Turbá & sanie"]),
+    (r"zdvihatk|vahadl|vackov\w* hridel|vackovy hridel|vedeni ventil|sacich ventil|vyfukov\w* ventil|sac\w* ventil|predstihov|nastavovac vack", [ND, M, "Rozvody & remene"]),
+    (r"remenic|napinac\w* (reme|klin)|napinak|vratn\w* kladk|vodic\w* kladk|vodiac\w* kladk", [ND, M, "Klinové remene"]),
+    (r"kryt hlavy valc|veko hlavy valc|tesn\w* (veka|krytu) hlavy", [ND, M, "Tesnenia motora & sania"]),
+    (r"snimac otac|snimac polohy (vack|klik)|impulsn\w* snimac|senzor polohy (vack|klik)|generator impuls", [ND, E, "ABS / otáčkové senzory"]),
+    (r"vstrikovac|vstrekovac|vstrikovaci trysk|vysokotlak\w* cerpadl|palivov\w* cerpadl|dopravni cerpadl", [ND, M, "Palivové čerpadlá & vstreky"]),
+    (r"hnac\w* hridel|kloubov\w* hridel|kardan", [ND, S, "Poloosi & kĺby"]),
+    (r"\bzamek\b|\bzamok\b|vlozka zamku|klika dveri|klucka dveri|oviadac zamku", [ND, K, "Zámky & kľúče"]),
+    (r"mrizk|mriezk|blatnik|podbeh|ozdobn\w* (lista|mrizk)", [ND, K, "Blatníky & mriežky"]),
+    (r"naraznik|narazn\w* (drziak|vyztuz)|vyztuha naraz", [ND, K, "Nárazníky & držiaky"]),
 ]
 _RX = [(re.compile(rx), path) for rx, path in RULES]
 
@@ -260,10 +279,21 @@ def classify(name: str) -> Optional[List[str]]:
     return None
 
 
+CZ_SK_WORDS = [('chlazení', 'chladenie'), ('chlazeni', 'chladenie'), ('zapalování', 'zapaľovanie'), ('vstřikování', 'vstrekovania'), ('topení', 'kúrenia'), ('klikové', 'kľukovej'), ('kliková', 'kľuková'), ('klikový', 'kľukový'), ('rozvodového', 'rozvodovej'), ('chladiče', 'chladiča'), ('ojniční', 'ojničné'), ('vačkové', 'vačkového'), ('hřídele vačkové', 'vačkového hriadeľa'), ('motoru', 'motora'), ('hřídele', 'hriadeľa'), ('hřídel', 'hriadeľ'), ('hřídelů', 'hriadeľov'), ('řetězu', 'reťaze'), ('řetězů', 'reťazí'), ('řetěz', 'reťaz'), ('skříně', 'skrine'), ('skříň', 'skriňa'), ('skříní', 'skríň'), ('příruba', 'príruba'), ('řízení', 'riadenia'), ('větrák', 'ventilátor'), ('těsnicí', 'tesniaci'), ('těsnící', 'tesniaci'), ('těsnění', 'tesnenie'), ('zadní', 'zadný'), ('přední', 'predný'), ('horní', 'horný'), ('dolní', 'dolný'), ('levý', 'ľavý'), ('levé', 'ľavé'), ('levá', 'ľavá'), ('světlo', 'svetlo'), ('světla', 'svetlá'), ('světlometu', 'svetlometu'), ('světlomet', 'svetlomet'), ('plynů', 'plynov'), ('řídicí', 'riadiaca'), ('řídící', 'riadiaca'), ('impulsů', 'impulzov'), ('mřížka', 'mriežka'), ('řemenů', 'remeňov'), ('řemene', 'remeňa'), ('řemenice', 'remenica'), ('řemen', 'remeň'), ('vodní', 'vodné'), ('dveře', 'dvere'), ('dveří', 'dverí'), ('tlumič', 'tlmič'), ('tlumiče', 'tlmiče'), ('tlumičů', 'tlmičov'), ('vnější', 'vonkajší'), ('vnitřní', 'vnútorný'), ('stieračů', 'stieračov'), ('kotouče', 'kotúče'), ('kotouč', 'kotúč'), ('odvětrání', 'odvetranie'), ('osvětlení', 'osvetlenie'), ('předstihová', 'predstihová'), ('kabelů', 'káblov'), ('větrací', 'vetrací'), ('kroužků', 'krúžkov'), ('kroužek', 'krúžok'), ('čistění', 'čistenia'), ('čištění', 'čistenia'), ('vytápění', 'kúrenia'), ('výměník', 'výmenník'), ('klínových', 'klinových'), ('klínový', 'klinový'), ('měch', 'mech'), ('dřík', 'driek'), ('přítlačný', 'prítlačný'), ('přídavné', 'prídavné'), ('měrka', 'mierka'), ('trychtýř', 'lievik'), ('nosičů', 'nosičov'), ('uzávěr', 'uzáver'), ('ostřikovače', 'ostrekovača'), ('ostřikovačů', 'ostrekovačov'), ('šroubů', 'skrutiek'), ('šroub', 'skrutka'), ('odměrka', 'odmerka'), ('vyhřívané', 'vyhrievané'), ('přívod', 'prívod'), ('převodovka', 'prevodovka'), ('převodovky', 'prevodovky'), ('svíčka', 'sviečka'), ('svíčky', 'sviečky'), ('plnění', 'plnenia'), ('kola', 'kolesa'), ('filtr', 'filter'), ('čidlo', 'snímač'), ('větrání', 'vetrania'), ('držák', 'držiak'), ('ventilů', 'ventilov'), ('víko', 'veko'), ('víčko', 'viečko'), ('pístní', 'piestne'), ('píst', 'piest'), ('válce', 'valca'), ('válec', 'valec'), ('hlavní', 'hlavný'), ('zapalovací', 'zapaľovacia'), ('žhavicí', 'žeraviaca'), ('částic', 'častíc'), ('sazový', 'sadzový'), ('sazí', 'sadzí'), ('destičky', 'doštičky')]
+_CZ_SK_W = [(re.compile(r"(?<!\w)" + re.escape(a) + r"(?!\w)", re.I), b) for a, b in CZ_SK_WORDS]
+
+
+def _case(m, sk):
+    w = m.group(0)
+    return sk[:1].upper() + sk[1:] if w[:1].isupper() else sk
+
+
 def to_sk(name: str) -> str:
     out = name
     for rx, sk in _CZ_SK:
         out = rx.sub(sk, out)
+    for rx, sk in _CZ_SK_W:  # jednotlivé slová (hranice slova), zachová veľké písmeno
+        out = rx.sub(lambda m, sk=sk: _case(m, sk), out)
     return out
 
 
