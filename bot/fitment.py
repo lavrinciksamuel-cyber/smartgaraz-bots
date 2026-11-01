@@ -1275,10 +1275,16 @@ def parse_fitment_from_catalog_slug(url_or_slug: str) -> Dict[str, Any]:
 
     engine = ""
     # 1-6-tdi / 2-0-tsi
-    em = re.search(r"(?:^|-)(\d)-(\d)-([a-z]{3,4})(?:-|$)", rest)
+    # 1-6-tdi / 2-0-tsi / 1-0-t-gdi (Hyundai/Kia) / 1-8-hybrid (Toyota)
+    em = re.search(r"(?:^|-)(\d)-(\d)-(t-gdi|hybrid|bluehdi|ecoboost|[a-z]{3,4})(?:-|$)", rest)
+    # BMW: 320d / 520d / 320i / 330e (označenie motora, nie chassis g20/f30)
+    em_bmw = re.search(r"(?:^|-)(\d{3}[die])(?:-|$)", rest) if make == "BMW" else None
     if em:
         engine = f"{em.group(1)}.{em.group(2)} {em.group(3).upper()}"
         rest = (rest[: em.start()] + "-" + rest[em.end():]).strip("-")
+    elif em_bmw:
+        engine = em_bmw.group(1)
+        rest = (rest[: em_bmw.start()] + "-" + rest[em_bmw.end():]).strip("-")
     else:
         # Mercedes-style: c-220-d / a-180-d / e-220-d (nie e-0ccm…)
         em_mb = re.search(

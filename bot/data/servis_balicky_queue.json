@@ -1,0 +1,788 @@
+{
+ "_meta": {
+  "purpose": "Servisné balíčky – autá × presný motor × filtre/zapaľovanie pre heijunka_vehicle_parts.py --servis-balicky (LKQ). Generuje /workspace/rcfix/rc_build.py.",
+  "built_at": "2026-11-01 13:27",
+  "not_in_hierarchy": [
+   "BMW 3 Series G20 330e",
+   "BMW 5 Series G30 530e",
+   "Hyundai Tucson NX4 1.6 Hybrid",
+   "Hyundai Tucson TL 1.6 CRDi",
+   "Hyundai Tucson TL 1.6 GDI",
+   "Kia Sportage QL 1.6 GDI",
+   "Kia Sportage QL 1.7 CRDi",
+   "Kia Sportage V 1.6 Hybrid",
+   "Škoda Octavia II 1.6",
+   "Škoda Octavia II 1.9 TDI"
+  ]
+ },
+ "items": [
+  {
+   "make": "skoda",
+   "model": "octavia iii",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia iii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia iii",
+   "engine": "2.0 TDI",
+   "kw": "135kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-iii"
+  },
+  {
+   "make": "toyota",
+   "model": "corolla",
+   "engine": "1.8 Hybrid",
+   "kw": "90kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-corolla-e210"
+  },
+  {
+   "make": "toyota",
+   "model": "corolla",
+   "engine": "1.8 Hybrid",
+   "kw": "90kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-corolla-e210"
+  },
+  {
+   "make": "toyota",
+   "model": "corolla",
+   "engine": "2.0 Hybrid",
+   "kw": "112kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-corolla-e210"
+  },
+  {
+   "make": "toyota",
+   "model": "corolla",
+   "engine": "2.0 Hybrid",
+   "kw": "112kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-corolla-e210"
+  },
+  {
+   "make": "toyota",
+   "model": "prius",
+   "engine": "2.0 Hybrid",
+   "kw": "112kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-prius-xw60"
+  },
+  {
+   "make": "toyota",
+   "model": "prius",
+   "engine": "2.0 Hybrid",
+   "kw": "112kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-prius-xw60"
+  },
+  {
+   "make": "hyundai",
+   "model": "i30",
+   "engine": "1.6 CRDi",
+   "kw": "100kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-hyundai-i30-pd"
+  },
+  {
+   "make": "hyundai",
+   "model": "i30",
+   "engine": "1.0 T-GDI",
+   "kw": "88kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-hyundai-i30-pd"
+  },
+  {
+   "make": "hyundai",
+   "model": "i30",
+   "engine": "1.0 T-GDI",
+   "kw": "88kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-hyundai-i30-pd"
+  },
+  {
+   "make": "hyundai",
+   "model": "i30",
+   "engine": "1.4 T-GDI",
+   "kw": "103kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-hyundai-i30-pd"
+  },
+  {
+   "make": "hyundai",
+   "model": "i30",
+   "engine": "1.4 T-GDI",
+   "kw": "103kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-hyundai-i30-pd"
+  },
+  {
+   "make": "kia",
+   "model": "ceed",
+   "engine": "1.6 CRDi",
+   "kw": "100kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-kia-ceed-cd"
+  },
+  {
+   "make": "kia",
+   "model": "ceed",
+   "engine": "1.0 T-GDI",
+   "kw": "88kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-kia-ceed-cd"
+  },
+  {
+   "make": "kia",
+   "model": "ceed",
+   "engine": "1.0 T-GDI",
+   "kw": "88kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-kia-ceed-cd"
+  },
+  {
+   "make": "kia",
+   "model": "ceed",
+   "engine": "1.5 T-GDI",
+   "kw": "118kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-kia-ceed-cd"
+  },
+  {
+   "make": "kia",
+   "model": "ceed",
+   "engine": "1.5 T-GDI",
+   "kw": "118kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-kia-ceed-cd"
+  },
+  {
+   "make": "kia",
+   "model": "sportage v",
+   "engine": "1.6 T-GDI",
+   "kw": "132kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-kia-sportage-nq5"
+  },
+  {
+   "make": "kia",
+   "model": "sportage v",
+   "engine": "1.6 T-GDI",
+   "kw": "132kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-kia-sportage-nq5"
+  },
+  {
+   "make": "kia",
+   "model": "sportage v",
+   "engine": "1.6 CRDi",
+   "kw": "100kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-kia-sportage-nq5"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vii",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-vii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-vii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vii",
+   "engine": "2.0 TDI",
+   "kw": "135kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-vii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vii",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-vii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vii",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-volkswagen-golf-vii"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia iv",
+   "engine": "2.0 TDI",
+   "kw": "85kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-iv"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia iv",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-iv"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia iv",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-iv"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia iv",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-skoda-octavia-iv"
+  },
+  {
+   "make": "skoda",
+   "model": "fabia iii",
+   "engine": "1.0 TSI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-fabia-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "fabia iii",
+   "engine": "1.0 TSI",
+   "kw": "81kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-skoda-fabia-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "fabia iii",
+   "engine": "1.4 TDI",
+   "kw": "66kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-fabia-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "superb iii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-superb-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "superb iii",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-superb-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "superb iii",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-skoda-superb-iii"
+  },
+  {
+   "make": "skoda",
+   "model": "karoq",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-karoq-i"
+  },
+  {
+   "make": "skoda",
+   "model": "karoq",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-karoq-i"
+  },
+  {
+   "make": "skoda",
+   "model": "karoq",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-karoq-i"
+  },
+  {
+   "make": "skoda",
+   "model": "karoq",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-skoda-karoq-i"
+  },
+  {
+   "make": "skoda",
+   "model": "scala",
+   "engine": "1.0 TSI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-scala-i"
+  },
+  {
+   "make": "skoda",
+   "model": "scala",
+   "engine": "1.0 TSI",
+   "kw": "81kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-skoda-scala-i"
+  },
+  {
+   "make": "skoda",
+   "model": "scala",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-scala-i"
+  },
+  {
+   "make": "seat",
+   "model": "leon iii",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-seat-leon-iii"
+  },
+  {
+   "make": "seat",
+   "model": "leon iii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-seat-leon-iii"
+  },
+  {
+   "make": "seat",
+   "model": "leon iii",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-seat-leon-iii"
+  },
+  {
+   "make": "seat",
+   "model": "leon iii",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-seat-leon-iii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "passat b8",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-passat-b8"
+  },
+  {
+   "make": "volkswagen",
+   "model": "passat b8",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-passat-b8"
+  },
+  {
+   "make": "volkswagen",
+   "model": "passat b8",
+   "engine": "1.4 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-volkswagen-passat-b8"
+  },
+  {
+   "make": "volkswagen",
+   "model": "tiguan ii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-tiguan-ii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "tiguan ii",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-tiguan-ii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "tiguan ii",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-volkswagen-tiguan-ii"
+  },
+  {
+   "make": "audi",
+   "model": "a3 8v",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-audi-a3-8v"
+  },
+  {
+   "make": "audi",
+   "model": "a3 8v",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-audi-a3-8v"
+  },
+  {
+   "make": "audi",
+   "model": "a3 8v",
+   "engine": "1.4 TFSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-audi-a3-8v"
+  },
+  {
+   "make": "audi",
+   "model": "a3 8v",
+   "engine": "1.4 TFSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-audi-a3-8v"
+  },
+  {
+   "make": "toyota",
+   "model": "rav 4 v",
+   "engine": "2.5 Hybrid",
+   "kw": "131kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-rav4-xa50"
+  },
+  {
+   "make": "toyota",
+   "model": "rav 4 v",
+   "engine": "2.5 Hybrid",
+   "kw": "131kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-rav4-xa50"
+  },
+  {
+   "make": "toyota",
+   "model": "yaris",
+   "engine": "1.5 Hybrid",
+   "kw": "68kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-yaris-xp210"
+  },
+  {
+   "make": "toyota",
+   "model": "yaris",
+   "engine": "1.5 Hybrid",
+   "kw": "68kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-yaris-xp210"
+  },
+  {
+   "make": "hyundai",
+   "model": "tucson",
+   "engine": "1.6 T-GDI",
+   "kw": "132kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-hyundai-tucson-nx4"
+  },
+  {
+   "make": "hyundai",
+   "model": "tucson",
+   "engine": "1.6 T-GDI",
+   "kw": "132kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-hyundai-tucson-nx4"
+  },
+  {
+   "make": "hyundai",
+   "model": "tucson",
+   "engine": "1.6 CRDi",
+   "kw": "100kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-hyundai-tucson-nx4"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (f30",
+   "engine": "320d",
+   "kw": "140kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-3-series-f30"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (f30",
+   "engine": "318d",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-3-series-f30"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (f30",
+   "engine": "320i",
+   "kw": "135kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-3-series-f30"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (f30",
+   "engine": "320i",
+   "kw": "135kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-bmw-3-series-f30"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (g20)",
+   "engine": "320d",
+   "kw": "140kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-3-series-g20"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (g20)",
+   "engine": "320i",
+   "kw": "135kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-3-series-g20"
+  },
+  {
+   "make": "bmw",
+   "model": "3 (g20)",
+   "engine": "320i",
+   "kw": "135kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-bmw-3-series-g20"
+  },
+  {
+   "make": "skoda",
+   "model": "octavia ii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-octavia-ii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vi",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-vi"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf vi",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-vi"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf viii",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-viii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf viii",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-volkswagen-golf-viii"
+  },
+  {
+   "make": "volkswagen",
+   "model": "golf viii",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-volkswagen-golf-viii"
+  },
+  {
+   "make": "skoda",
+   "model": "kodiaq",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-kodiaq-i"
+  },
+  {
+   "make": "skoda",
+   "model": "kodiaq",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-skoda-kodiaq-i"
+  },
+  {
+   "make": "skoda",
+   "model": "kodiaq",
+   "engine": "1.5 TSI",
+   "kw": "110kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-skoda-kodiaq-i"
+  },
+  {
+   "make": "toyota",
+   "model": "rav 4 iv",
+   "engine": "2.0",
+   "kw": "111kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-rav4-xa40"
+  },
+  {
+   "make": "toyota",
+   "model": "rav 4 iv",
+   "engine": "2.0",
+   "kw": "111kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-rav4-xa40"
+  },
+  {
+   "make": "toyota",
+   "model": "rav 4 iv",
+   "engine": "2.5 Hybrid",
+   "kw": "131kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-toyota-rav4-xa40"
+  },
+  {
+   "make": "toyota",
+   "model": "rav 4 iv",
+   "engine": "2.5 Hybrid",
+   "kw": "131kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-toyota-rav4-xa40"
+  },
+  {
+   "make": "hyundai",
+   "model": "tucson",
+   "engine": "1.7 CRDi",
+   "kw": "104kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-hyundai-tucson-tl"
+  },
+  {
+   "make": "kia",
+   "model": "sportage iv",
+   "engine": "1.6 CRDi",
+   "kw": "100kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-kia-sportage-ql"
+  },
+  {
+   "make": "bmw",
+   "model": "5 (g30)",
+   "engine": "520d",
+   "kw": "140kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-5-series-g30"
+  },
+  {
+   "make": "bmw",
+   "model": "5 (g30)",
+   "engine": "530i",
+   "kw": "185kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-bmw-5-series-g30"
+  },
+  {
+   "make": "bmw",
+   "model": "5 (g30)",
+   "engine": "530i",
+   "kw": "185kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-bmw-5-series-g30"
+  },
+  {
+   "make": "seat",
+   "model": "ibiza iv",
+   "engine": "1.2 TSI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-seat-ibiza-iv"
+  },
+  {
+   "make": "seat",
+   "model": "ibiza iv",
+   "engine": "1.2 TSI",
+   "kw": "81kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-seat-ibiza-iv"
+  },
+  {
+   "make": "seat",
+   "model": "ibiza iv",
+   "engine": "1.6 TDI",
+   "kw": "81kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-seat-ibiza-iv"
+  },
+  {
+   "make": "audi",
+   "model": "a4 b9",
+   "engine": "2.0 TDI",
+   "kw": "110kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-audi-a4-b9"
+  },
+  {
+   "make": "audi",
+   "model": "a4 b9",
+   "engine": "2.0 TFSI",
+   "kw": "140kw",
+   "category": "filtre",
+   "sgv": "sgv-gen-audi-a4-b9"
+  },
+  {
+   "make": "audi",
+   "model": "a4 b9",
+   "engine": "2.0 TFSI",
+   "kw": "140kw",
+   "category": "zapalovanie",
+   "sgv": "sgv-gen-audi-a4-b9"
+  }
+ ]
+}

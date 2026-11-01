@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "wave3 | wave6 | mop"
+        description: "wave3 | wave6 | mop | servis (servisné balíčky: filtre/sviečky pre presné motory)"
         required: false
         default: "wave3"
       jobs:
@@ -90,6 +90,9 @@ jobs:
           case "$MODE" in
             wave6)
               python bot/heijunka_vehicle_parts.py --wave6-only --jobs "$JOBS" --limit "$LIMIT" --sleep 0.3 --reset-failed
+              ;;
+            servis)
+              python bot/heijunka_vehicle_parts.py --servis-balicky --jobs "$JOBS" --limit "$LIMIT" --sleep 0.3 --reset-failed
               ;;
             mop)
               python bot/heijunka_vehicle_parts.py --jobs "$JOBS" --limit "$LIMIT" --sleep 0.3 --skip-covered
