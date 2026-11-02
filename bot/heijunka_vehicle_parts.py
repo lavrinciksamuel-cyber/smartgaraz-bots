@@ -663,6 +663,8 @@ def _save_state(state: Dict[str, Any]) -> None:
             if k not in done and k not in tombs:
                 failed.setdefault(k, v)
         for k, v in (disk.get("url_cache") or {}).items():
+            if k in tombs:
+                continue
             cache.setdefault(k, v)
         for k in list(failed):
             if k in done:
@@ -815,9 +817,455 @@ def _find_url(job: Dict[str, str], url_cache: Optional[Dict[str, str]] = None) -
     raise RuntimeError(f"finder failed: {last_err}")
 
 
-def _run_import(url: str, limit: int, sleep: float, dry_run: bool) -> int:
+def done_record_is_empty(rec: Any) -> bool:
+    """Done záznam bez potvrdeného nálezu produktov.
+
+    skipped_covered ostáva hotový. Nový úspech má products>0.
+    Záznam bez products (beh 2026-11-02 označil 0 nálezov ako done)
+    sa berie ako prázdny a má sa spracovať znova.
+    """
+    if not isinstance(rec, dict):
+        return True
+    if rec.get("skipped_covered"):
+        return False
+    if "products" in rec:
+        try:
+            return int(rec.get("products") or 0) <= 0
+        except (TypeError, ValueError):
+            return True
+    return True
+
+
+def reset_empty_done(state: Dict[str, Any], keys: List[str]) -> List[str]:
+    """Vyhoď z done úlohy bez nájdených produktov, aby šli znova do fronty.
+
+    Tombstones zabránia, aby ich _save_state vrátil z disku (aj url cache).
+    """
+    done = state.setdefault("done", {})
+    failed = state.setdefault("failed", {})
+    cache = state.setdefault("url_cache", {})
+    dropped = [k for k in keys if k in done and done_record_is_empty(done.get(k))]
+    for k in dropped:
+        done.pop(k, None)
+        failed.pop(k, None)
+        cache.pop(k, None)
+    if dropped:
+        tombs = set(state.get("_tombstones") or [])
+        tombs.update(dropped)
+        state["_tombstones"] = list(tombs)
+        LOGGER.info("reset-empty: %d úloh s 0 produktmi vrátených do fronty", len(dropped))
+    return dropped
+
+
+_SECRET_ENV_KEYS = (
+    "LKQ_PASSWORD",
+    "LKQ_USER",
+    "LKQ_USERNAME",
+    "HQ_SYNC_TOKEN",
+    "WC_CONSUMER_SECRET",
+    "WC_CONSUMER_KEY",
+)
+
+
+def _scrub_secrets(text: str) -> str:
+    """Vyhoď hodnoty secrets z textu, ktorý ide do logu alebo do stavu fronty."""
+    out = text or ""
+    for key in _SECRET_ENV_KEYS:
+        val = os.environ.get(key) or ""
+        if len(val) >= 4 and val in out:
+            out = out.replace(val, "•••")
+    return out
+
+
+def _parse_found_count(line: str) -> Optional[int]:
+    marker = "Nájdených produktov:"
+    idx = line.find(marker)
+    if idx < 0:
+        return None
+    tail = line[idx + len(marker):].lstrip()
+    digits: List[str] = []
+    for ch in tail:
+        if ch.isdigit():
+            digits.append(ch)
+        else:
+            break
+    if not digits:
+        return None
+    return int("".join(digits))
+
+
+def _is_logged_in_html(html: str) -> bool:
+    body = (html or "").lower()
+    return ("logoff" in body) or ("odhlás" in body) or ("odhlas" in body)
+
+
+def _is_login_page(html: str) -> bool:
+    """Mobilný login formulár LKQ. Prihlásená stránka (logoff) ním nie je."""
+    if _is_logged_in_html(html):
+        return False
+    body = (html or "").lower()
+    return ('name="usernamem"' in body) or ('name="passwordm"' in body)
+
+
+def _is_lkq_catalog_url(url: str) -> bool:
+    lowered = (url or "").strip().lower()
+    return lowered.startswith("https://www.lkq.sk/catalog/") or lowered.startswith(
+        "https://lkq.sk/catalog/"
+    )
+
+
+def _lkq_cookie_path() -> str:
+    return os.environ.get("SG_LKQ_COOKIE_FILE", "/tmp/sg_lkq_session.pkl")
+
+
+def _lkq_fail_marker() -> str:
+    return os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed")
+
+
+def _drop_lkq_cookie() -> None:
+    try:
+        os.remove(_lkq_cookie_path())
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        LOGGER.info("LKQ cookie súbor sa nepodarilo zmazať (%s)", type(exc).__name__)
+
+
+def _raw_lkq_request(supplier: Any, method: str, url: str, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """HTTP bez raise. Do výsledku nejde telo odpovede — len status, dĺžka a príznaky."""
+    session = supplier.http.session
+    try:
+        resp = session.request(
+            method,
+            url,
+            headers=headers or {},
+            timeout=60,
+            allow_redirects=True,
+        )
+    except Exception as exc:
+        LOGGER.info("LKQ %s zlyhal: %s", method, type(exc).__name__)
+        return {
+            "status": None,
+            "bytes": 0,
+            "login_page": False,
+            "logged_in": False,
+            "text": "",
+        }
+    raw = resp.content or b""
+    try:
+        text = resp.text or ""
+    except Exception:
+        text = ""
+    return {
+        "status": int(resp.status_code),
+        "bytes": len(raw),
+        "login_page": _is_login_page(text),
+        "logged_in": _is_logged_in_html(text),
+        "text": text,
+    }
+
+
+def _probe_lkq_home(supplier: Any) -> Dict[str, Any]:
+    info = _raw_lkq_request(
+        supplier,
+        "GET",
+        "https://www.lkq.sk/",
+        headers={"Accept": "text/html"},
+    )
+    info.pop("text", None)
+    LOGGER.info(
+        "LKQ session: http=%s bytes=%s login_page=%s logged_in=%s",
+        info.get("status"),
+        info.get("bytes"),
+        bool(info.get("login_page")),
+        bool(info.get("logged_in")),
+    )
+    return info
+
+
+def _session_hard_fail(home: Dict[str, Any]) -> bool:
+    status = home.get("status")
+    if status is None or int(status) >= 400:
+        return True
+    return bool(home.get("login_page"))
+
+
+def _load_lkq_supplier() -> Any:
+    """LKQ klient z existujúcich env/HQ údajov. Heslá sa nelogujú."""
+    os.environ["HQ_CRED_QUIET"] = "1"
+    try:
+        from suppliers.hq_credentials import export_logins
+
+        export_logins("lkq")
+    except Exception as exc:
+        LOGGER.info("LKQ prihlásenie: HQ export nedostupné (%s)", type(exc).__name__)
+    from suppliers import get_supplier
+
+    return get_supplier("lkq")
+
+
+def _force_lkq_relogin(supplier: Any, run: Dict[str, Any]) -> Dict[str, Any]:
+    """Najviac jeden nový POST login na beh. Cookie zmaž, nech sa nenačíta stará session."""
+    if (
+        run.get("force_used")
+        or os.path.exists(_lkq_fail_marker())
+        or os.environ.get("SG_LKQ_DISABLED") == "1"
+    ):
+        LOGGER.error("LKQ re-login sa nespúšťa (pokus už bol alebo je login guard)")
+        return _probe_lkq_home(supplier)
+    run["force_used"] = True
+    LOGGER.info("LKQ session neplatná → nový login")
+    _drop_lkq_cookie()
+    try:
+        supplier.http.session.cookies.clear()
+    except Exception:
+        pass
+    supplier._logged_in = False
+    ok = False
+    try:
+        ok = bool(supplier.ensure_login())
+    except Exception as exc:
+        LOGGER.info("LKQ re-login výnimka: %s", type(exc).__name__)
+        ok = False
+    home = _probe_lkq_home(supplier)
+    if ok and not _session_hard_fail(home):
+        run["fresh"] = True
+        run["trusted"] = True
+    LOGGER.info("LKQ re-login: %s", "OK" if ok else "zlyhal")
+    return home
+
+
+def _ensure_lkq_session(supplier: Any, run: Dict[str, Any]) -> Dict[str, Any]:
+    """Over session. Ak nevyzerá prihlásená, znova sa prihlás (existujúce secrets)."""
+    creds = supplier.credentials or {}
+    user = str(creds.get("user") or "").strip()
+    password = str(creds.get("password") or "").strip()
+    if not user or not password:
+        raise RuntimeError(
+            "LKQ session neplatná: chýbajú prihlasovacie údaje "
+            "(http=n/a bytes=0 login_page=False)"
+        )
+    ok = False
+    try:
+        ok = bool(supplier.ensure_login())
+    except Exception as exc:
+        LOGGER.info("LKQ login výnimka: %s", type(exc).__name__)
+        ok = False
+    home = _probe_lkq_home(supplier)
+    # Formulár v SPA šablóne (aj katalógová URL ho má) nie je sám o sebe pád.
+    # Tvrdá chyba = HTTP. Inak sa prihlásime znova, keď nie je odhlásenie a form ostal.
+    if _session_hard_fail(home) or (home.get("login_page") and not home.get("logged_in")):
+        LOGGER.info(
+            "LKQ session po kontrole neplatná: http=%s bytes=%s login_page=%s logged_in=%s login_ok=%s",
+            home.get("status"),
+            home.get("bytes"),
+            bool(home.get("login_page")),
+            bool(home.get("logged_in")),
+            ok,
+        )
+        if not run.get("force_used"):
+            home = _force_lkq_relogin(supplier, run)
+    # HTTP pád je tvrdá chyba. Login formulár v SPA šablóne (200, veľké HTML)
+    # nie — o tom, či ide o zoznam, rozhodne ProductList nižšie.
+    status = home.get("status")
+    if status is None or int(status) >= 400:
+        raise RuntimeError(
+            "LKQ session neplatná po kontrole "
+            f"(http={home.get('status')} bytes={home.get('bytes')} "
+            f"login_page={bool(home.get('login_page'))})"
+        )
+    # Potvrdená session = odhlásenie, alebo formulár z HTML zmizol.
+    # Ak SPA formulár nechá aj po logine, o platnosti rozhodne ProductList.
+    run["trusted"] = bool(home.get("logged_in")) or not bool(home.get("login_page"))
+    if run["trusted"]:
+        run["fresh"] = True
+    elif home.get("login_page"):
+        LOGGER.info(
+            "LKQ homepage stále obsahuje login formulár (http=%s bytes=%s login_page=True) — overím zoznam produktov",
+            home.get("status"),
+            home.get("bytes"),
+        )
+    return home
+
+
+def _parse_product_list(text: str) -> Optional[Dict[str, Any]]:
+    try:
+        data = json.loads(text)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    items = data.get("Items")
+    paging = data.get("Paging")
+    if not isinstance(items, list) or not isinstance(paging, dict):
+        return None
+    total = paging.get("TotalCount")
+    total_i: Optional[int]
+    try:
+        total_i = int(total) if total is not None and total != "" else None
+    except (TypeError, ValueError):
+        total_i = None
+    return {"items": len(items), "total": total_i}
+
+
+def _servis_failure_is_retryable(err: str) -> bool:
+    """Session alebo výpadok siete: job nechať pending. 0 produktov pri platnej session nie."""
+    text = err or ""
+    return text.startswith("LKQ session") or "http=None" in text or "login_page=True" in text
+
+
+def _probe_reason(prefix: str, probe: Dict[str, Any]) -> str:
+    bits = [
+        f"http={probe.get('status')}",
+        f"bytes={probe.get('bytes')}",
+        f"login_page={bool(probe.get('login_page'))}",
+    ]
+    if "category_status" in probe:
+        bits.append(f"category_http={probe.get('category_status')}")
+        bits.append(f"category_bytes={probe.get('category_bytes')}")
+    if probe.get("items") is not None:
+        bits.append(f"items={probe.get('items')}")
+    if "total" in probe:
+        bits.append(f"total={probe.get('total')}")
+    return prefix + " (" + " ".join(bits) + ")"
+
+
+def _probe_catalog(supplier: Any, url: str) -> Dict[str, Any]:
+    """GET kategórie + POST ProductList. Loguje status, dĺžku a či ide o login."""
+    out: Dict[str, Any] = {
+        "is_list": False,
+        "login_page": False,
+        "status": None,
+        "bytes": 0,
+        "items": None,
+        "total": None,
+    }
+    if not _is_lkq_catalog_url(url):
+        LOGGER.info("LKQ category: URL nie je Catalog http=n/a bytes=0 login_page=False")
+        out["reason"] = "URL nie je LKQ Catalog"
+        return out
+    cat = _raw_lkq_request(
+        supplier,
+        "GET",
+        url,
+        headers={"Referer": "https://www.lkq.sk/", "Accept": "text/html"},
+    )
+    cat.pop("text", None)
+    LOGGER.info(
+        "LKQ category: http=%s bytes=%s login_page=%s",
+        cat.get("status"),
+        cat.get("bytes"),
+        bool(cat.get("login_page")),
+    )
+    out["category_status"] = cat.get("status")
+    out["category_bytes"] = cat.get("bytes")
+    # Katalógové HTML má login formulár v šablóne aj anonymne — nie je to dôkaz,
+    # že URL nie je zoznam. Rozhoduje až JSON ProductList.
+    if cat.get("status") is None or int(cat.get("status") or 0) >= 400:
+        out["status"] = cat.get("status")
+        out["bytes"] = cat.get("bytes")
+        out["login_page"] = bool(cat.get("login_page"))
+        return out
+    api = _raw_lkq_request(
+        supplier,
+        "POST",
+        "https://www.lkq.sk/ProductList/Items/AllInOne/1",
+        headers={
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json",
+            "Referer": url,
+        },
+    )
+    parsed = None if api.get("login_page") else _parse_product_list(api.get("text") or "")
+    api.pop("text", None)
+    LOGGER.info(
+        "LKQ product list: http=%s bytes=%s login_page=%s items=%s total=%s",
+        api.get("status"),
+        api.get("bytes"),
+        bool(api.get("login_page")),
+        None if parsed is None else parsed.get("items"),
+        None if parsed is None else parsed.get("total"),
+    )
+    status = api.get("status")
+    out.update(
+        {
+            "status": status,
+            "bytes": api.get("bytes"),
+            "login_page": bool(api.get("login_page")),
+            "is_list": parsed is not None and not api.get("login_page") and status is not None and int(status) < 400,
+            "items": None if parsed is None else parsed.get("items"),
+            "total": None if parsed is None else parsed.get("total"),
+        }
+    )
+    return out
+
+
+def _probe_empty(probe: Dict[str, Any]) -> bool:
+    if not probe.get("is_list"):
+        return False
+    try:
+        items = int(probe.get("items") or 0)
+    except (TypeError, ValueError):
+        items = 0
+    if items > 0:
+        return False
+    total = probe.get("total")
+    return not (isinstance(total, int) and total > 0)
+
+
+def _servis_resolve_url(
+    job: Dict[str, str],
+    url_cache: Dict[str, str],
+    supplier: Any,
+    run: Dict[str, Any],
+) -> tuple:
+    """Nájdi Catalog URL a over, že je to zoznam produktov. 0 ks → výnimka (failed, nie done)."""
+    key = _job_key(job)
+    cached = bool(url_cache.get(key))
+    url = _find_url(job, url_cache=url_cache)
+    LOGGER.info("URL %s", url)
+    probe = _probe_catalog(supplier, url)
+    if not probe.get("is_list"):
+        if not run.get("fresh"):
+            _force_lkq_relogin(supplier, run)
+            probe = _probe_catalog(supplier, url)
+        if not probe.get("is_list") and cached:
+            url_cache.pop(key, None)
+            url = _find_url(job, url_cache=url_cache)
+            LOGGER.info("URL %s", url)
+            probe = _probe_catalog(supplier, url)
+    if not probe.get("is_list"):
+        if probe.get("login_page") or probe.get("status") is None:
+            raise RuntimeError(_probe_reason("LKQ session neplatná: URL nie je zoznam produktov", probe))
+        raise RuntimeError(_probe_reason("URL nie je zoznam produktov", probe))
+    if _probe_empty(probe) and not run.get("trusted"):
+        LOGGER.info("LKQ zoznam prázdny pri neoverenej session → nový login")
+        home = _force_lkq_relogin(supplier, run)
+        if not _session_hard_fail(home) and (home.get("logged_in") or not home.get("login_page")):
+            run["trusted"] = True
+        probe = _probe_catalog(supplier, url)
+    if not probe.get("is_list"):
+        if probe.get("login_page") or probe.get("status") is None:
+            raise RuntimeError(_probe_reason("LKQ session neplatná: URL nie je zoznam produktov", probe))
+        raise RuntimeError(_probe_reason("URL nie je zoznam produktov", probe))
+    if not _probe_empty(probe):
+        run["trusted"] = True
+    if _probe_empty(probe):
+        if not run.get("trusted"):
+            raise RuntimeError(
+                _probe_reason(
+                    "LKQ session neplatná: prázdny zoznam bez potvrdeného prihlásenia",
+                    probe,
+                )
+            )
+        raise RuntimeError(_probe_reason("Nájdených produktov: 0", probe))
+    return url, probe
+
+
+def _run_import(url: str, limit: int, sleep: float, dry_run: bool, *, capture: bool = False) -> tuple:
     cmd = [
         sys.executable,
+        "-u",
         str(ROOT / "import_pipeline.py"),
         "--supplier",
         "lkq",
@@ -834,8 +1282,26 @@ def _run_import(url: str, limit: int, sleep: float, dry_run: bool) -> int:
     if dry_run:
         cmd.append("--dry-run")
     LOGGER.info("import: %s", " ".join(cmd[-8:]))
-    proc = subprocess.run(cmd, cwd=str(ROOT))
-    return int(proc.returncode)
+    if not capture:
+        proc = subprocess.run(cmd, cwd=str(ROOT))
+        return int(proc.returncode), None
+    proc = subprocess.Popen(
+        cmd,
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    found: Optional[int] = None
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        clean = _scrub_secrets(line.rstrip("\n"))
+        LOGGER.info("%s", clean)
+        parsed = _parse_found_count(clean)
+        if parsed is not None:
+            found = parsed
+    rc = int(proc.wait())
+    return rc, found
 
 
 def _publish_fitment_drafts(limit: int = 40) -> int:
@@ -916,6 +1382,11 @@ def main() -> int:
     )
     ap.add_argument("--no-publish", action="store_true")
     ap.add_argument("--reset-failed", action="store_true", help="znova skús failed joby")
+    ap.add_argument(
+        "--reset-empty",
+        action="store_true",
+        help="z done vyhoď úlohy bez potvrdeného počtu produktov (znova do fronty)",
+    )
     ap.add_argument(
         "--reopen-zero-pub",
         action="store_true",
@@ -1045,6 +1516,11 @@ def main() -> int:
         # So shardom delí účty už parita shardu (A párne, B nepárne) — druhý filter
         # by polovicu jobov výseku nedal nikomu.
         slice_q = [j for j in slice_q if _acct_mine("hv:" + _job_key(j))]
+    # 0 produktov sa nesmie tváriť ako hotové. Servisný beh to robí sám,
+    # --reset-empty je ten istý krok pre vybranú frontu (aj z pending checku).
+    if (args.servis_balicky or args.reset_empty) and not args.dry_run:
+        if reset_empty_done(state, [_job_key(j) for j in queue]):
+            _save_state(state)
     pending = [j for j in slice_q if _job_key(j) not in done and _job_key(j) not in failed]
     LOGGER.info("shard %s → výsek=%d pending=%d", args.shard or "-", len(slice_q), len(pending))
     if not pending and slice_q and not args.dry_run:
@@ -1101,10 +1577,20 @@ def main() -> int:
     batch = pending[: max(0, args.jobs)]
     results: List[Dict[str, Any]] = []
     _skip_cats = {"filtre", "kotúčová", "stierače"}
+    lkq_run: Dict[str, Any] = {
+        "fresh": False,
+        "force_used": False,
+        "trusted": False,
+        "supplier": None,
+        "session_dead": False,
+    }
 
     for job in batch:
         if os.environ.get("SG_LKQ_DISABLED") == "1" or os.path.exists(os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed")):
             LOGGER.error("LKQ login guard: login zlyhal — ruším zvyšné LKQ joby")
+            break
+        if lkq_run.get("session_dead"):
+            LOGGER.error("LKQ session neplatná — ruším zvyšné joby")
             break
         key = _job_key(job)
         LOGGER.info("=== JOB %s ===", key)
@@ -1130,30 +1616,64 @@ def main() -> int:
                 _save_state(state)
                 continue
 
-            url = _find_url(job, url_cache=url_cache)
+            probe: Dict[str, Any] = {}
+            if args.servis_balicky:
+                if lkq_run.get("supplier") is None:
+                    lkq_run["supplier"] = _load_lkq_supplier()
+                    home = _ensure_lkq_session(lkq_run["supplier"], lkq_run)
+                    lkq_run["trusted"] = bool(home.get("logged_in")) and not home.get("login_page")
+                url, probe = _servis_resolve_url(job, url_cache, lkq_run["supplier"], lkq_run)
+            else:
+                url = _find_url(job, url_cache=url_cache)
+                LOGGER.info("URL %s", url)
             row["url"] = url
-            LOGGER.info("URL %s", url)
-            rc = _run_import(url, args.limit, args.sleep, args.dry_run)
+            t0 = time.monotonic()
+            rc, found = _run_import(
+                url, args.limit, args.sleep, args.dry_run, capture=bool(args.servis_balicky)
+            )
+            elapsed = time.monotonic() - t0
             row["import_rc"] = rc
+            row["products"] = found
             if rc != 0:
                 raise RuntimeError(f"import_pipeline rc={rc}")
+            if args.servis_balicky and (found is None or int(found) <= 0):
+                raise RuntimeError(
+                    _probe_reason(
+                        f"Nájdených produktov: 0 (import {elapsed:.1f}s rc={rc})",
+                        probe,
+                    )
+                )
             if not args.dry_run and not args.no_publish:
                 row["published"] = _publish_fitment_drafts(limit=40)
             row["ok"] = True
             # dry-run nesmie zatvoriť frontu — inak „hotové“ bez evidencie v WC
             if not args.dry_run:
-                done[key] = {
+                rec: Dict[str, Any] = {
                     "at": datetime.now(timezone.utc).isoformat(),
                     "url": url,
                     "limit": args.limit,
                     "published": row.get("published", 0),
                 }
+                if found is not None:
+                    rec["products"] = int(found)
+                done[key] = rec
                 failed.pop(key, None)
         except Exception as exc:
-            LOGGER.error("JOB FAIL %s: %s", key, exc)
-            row["error"] = str(exc)
-            if not args.dry_run:
-                failed[key] = {"at": datetime.now(timezone.utc).isoformat(), "error": str(exc)}
+            err = _scrub_secrets(str(exc))[:500]
+            LOGGER.error("JOB FAIL %s: %s", key, err)
+            row["error"] = err
+            # Session/sieť: nenechaj job done ani failed, nech sa po oprave zopakuje.
+            # 0 produktov pri potvrdenej session ostáva failed (neuzavrie frontu ako hotové).
+            if args.servis_balicky and _servis_failure_is_retryable(err):
+                lkq_run["session_dead"] = True
+            elif not args.dry_run:
+                fail_rec: Dict[str, Any] = {
+                    "at": datetime.now(timezone.utc).isoformat(),
+                    "error": err,
+                }
+                if "Nájdených produktov: 0" in err:
+                    fail_rec["products"] = 0
+                failed[key] = fail_rec
         results.append(row)
         _save_state(state)
         time.sleep(0.3)
@@ -1174,7 +1694,11 @@ def main() -> int:
     ]
     for r in results:
         status = "OK" if r.get("ok") else "FAIL"
-        lines.append(f"- **{status}** `{r['key']}` pub={r.get('published', 0)} {r.get('error', '')}")
+        prod = r.get("products")
+        prod_bit = f" products={prod}" if prod is not None else ""
+        lines.append(
+            f"- **{status}** `{r['key']}` pub={r.get('published', 0)}{prod_bit} {r.get('error', '')}"
+        )
         if r.get("url"):
             lines.append(f"  - {r['url']}")
     report.write_text("\n".join(lines) + "\n", encoding="utf-8")
