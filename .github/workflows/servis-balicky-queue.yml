@@ -1,0 +1,137 @@
+# Servisné balíčky: LKQ filtre/sviečky pre presné motory (fronta bot/data/servis_balicky_queue.json).
+# Spúšťa sa sám po merge (push) a potom každých 20 min, kým fronta nie je prejdená.
+# Keď je fronta hotová (alebo po 2026-11-04), workflow sa sám vypne (gh workflow disable,
+# len vstavaný GITHUB_TOKEN tohto behu). Opätovné zapnutie: Actions → Enable workflow.
+name: Servisné balíčky (LKQ fronta)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/servis-balicky-queue.yml"
+      - "bot/data/servis_balicky_queue.json"
+  schedule:
+    - cron: "*/20 * * * *"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: servis-balicky-queue
+  cancel-in-progress: false
+
+env:
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+  # Fronta servisných balíčkov je len v tomto repe → jeden účet spracuje všetky joby.
+  SG_ACCOUNT_INDEX: "0"
+  SG_ACCOUNT_COUNT: "1"
+  SG_LKQ_DISABLED: "0"
+  SERVIS_JOBS: "12"
+  SERVIS_LIMIT: "50"
+  SERVIS_UNTIL: "2026-11-04"
+
+jobs:
+  servis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Expiry guard
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$(date -u +%F)" > "$SERVIS_UNTIL" ]]; then
+            echo "Po termíne $SERVIS_UNTIL → vypínam workflow"
+            gh workflow disable servis-balicky-queue.yml -R "$GITHUB_REPOSITORY" || true
+            echo "go=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.go == '1'
+
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.go == '1'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+
+      - name: Restore import queue state
+        if: steps.guard.outputs.go == '1'
+        uses: actions/cache@v4
+        with:
+          path: |
+            bot/data/heijunka_vehicle_queue_state.json
+            bot/data/heijunka_szekop_queue_state.json
+            bot/data/wurth_cheap_progress.json
+          key: import-queue-state-${{ github.run_id }}
+          restore-keys: |
+            import-queue-state-
+            heijunka-state-
+
+      - name: Pending check
+        if: steps.guard.outputs.go == '1'
+        id: pending
+        working-directory: bot
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          import heijunka_vehicle_parts as h
+          q = h.servis_balicky_queue()
+          st = h._load_state()
+          done, failed = st.get("done") or {}, st.get("failed") or {}
+          keys = [h._job_key(j) for j in q]
+          d = sum(k in done for k in keys)
+          f = sum(k in failed and k not in done for k in keys)
+          p = len(keys) - d - f
+          print(f"servis fronta: spolu={len(keys)} done={d} failed={f} pending={p}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"pending={p}\n")
+          PY
+
+      - name: Queue finished → disable this workflow
+        if: steps.guard.outputs.go == '1' && steps.pending.outputs.pending == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow disable servis-balicky-queue.yml -R "$GITHUB_REPOSITORY" || true
+
+      - name: Install deps
+        if: steps.guard.outputs.go == '1' && steps.pending.outputs.pending != '0'
+        run: pip install -r bot/requirements.txt
+
+      - name: Supplier logins from HQ
+        if: steps.guard.outputs.go == '1' && steps.pending.outputs.pending != '0'
+        working-directory: bot
+        env:
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+        run: python -m suppliers.hq_credentials lkq
+
+      - name: Servisné balíčky — LKQ import
+        if: steps.guard.outputs.go == '1' && steps.pending.outputs.pending != '0'
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          LKQ_LOGIN_URL: ${{ secrets.LKQ_LOGIN_URL }}
+          AI_MODE: cheap
+          IMPORT_IN_STOCK: "1"
+          SG_DAYTIME_QUIET: force_run
+        run: |
+          set -euo pipefail
+          python bot/sync_taxonomy.py --ensure-only
+          # bez --reset-failed: zlyhaný job sa neopakuje dokola, fronta sa dá dokončiť
+          python bot/heijunka_vehicle_parts.py --servis-balicky --force-daytime \
+            --jobs "$SERVIS_JOBS" --limit "$SERVIS_LIMIT" --sleep 0.3
+          python bot/publish_ready_drafts.py --limit 40 || true
+
+      - name: Report summary (redacted)
+        if: always() && steps.guard.outputs.go == '1'
+        run: >-
+          python bot/public_report_summary.py
+          'bot/reports/ops-parts-import-ready-*.md'
+          'bot/reports/ops-heijunka-vehicle-*.md' || true
