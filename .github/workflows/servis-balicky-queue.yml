@@ -1,10 +1,12 @@
 # Servisné balíčky: LKQ filtre/sviečky pre presné motory (fronta bot/data/servis_balicky_queue.json).
-# Spúšťa sa sám po merge (push) a potom každých 20 min, kým fronta nie je prejdená.
+# Spúšťa sa sám po merge (push), ručne (workflow_dispatch) a potom každých 20 min,
+# kým fronta nie je prejdená.
 # Keď je fronta hotová (alebo po 2026-11-04), workflow sa sám vypne (gh workflow disable,
 # len vstavaný GITHUB_TOKEN tohto behu). Opätovné zapnutie: Actions → Enable workflow.
 name: Servisné balíčky (LKQ fronta)
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -79,12 +81,16 @@ jobs:
         working-directory: bot
         run: |
           python - <<'PY'
-          import json, os, pathlib
+          import os
           import heijunka_vehicle_parts as h
           q = h.servis_balicky_queue()
           st = h._load_state()
-          done, failed = st.get("done") or {}, st.get("failed") or {}
           keys = [h._job_key(j) for j in q]
+          dropped = h.reset_empty_done(st, keys)
+          if dropped:
+              h._save_state(st)
+              print(f"reset-empty: {len(dropped)} úloh s 0 produktmi vrátených do fronty")
+          done, failed = st.get("done") or {}, st.get("failed") or {}
           d = sum(k in done for k in keys)
           f = sum(k in failed and k not in done for k in keys)
           p = len(keys) - d - f
@@ -126,6 +132,7 @@ jobs:
           python bot/sync_taxonomy.py --ensure-only
           # bez --reset-failed: zlyhaný job sa neopakuje dokola, fronta sa dá dokončiť
           python bot/heijunka_vehicle_parts.py --servis-balicky --force-daytime \
+            --reset-empty \
             --jobs "$SERVIS_JOBS" --limit "$SERVIS_LIMIT" --sleep 0.3
           python bot/publish_ready_drafts.py --limit 40 || true
 
