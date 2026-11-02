@@ -572,6 +572,27 @@ CATEGORY_PRESETS: Dict[str, tuple] = {
 }
 
 
+SERVIS_QUEUE_PATH = ROOT / "data" / "servis_balicky_queue.json"
+
+
+def servis_balicky_queue() -> List[Dict[str, str]]:
+    """Servisné balíčky: autá × motor (kW) × filtre/zapaľovanie z bot/data/servis_balicky_queue.json.
+
+    Fronta sa generuje z auditu servisných balíčkov (balíček sa zobrazí až keď
+    dodávateľská kompatibilita LKQ potvrdí filtre pre presný motor).
+    """
+    try:
+        data = json.loads(SERVIS_QUEUE_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        raise SystemExit(f"servis_balicky_queue.json: {exc}") from exc
+    out: List[Dict[str, str]] = []
+    for it in data.get("items") or []:
+        if not (it.get("make") and it.get("model") and it.get("engine") and it.get("category")):
+            continue
+        out.append({k: str(it.get(k) or "") for k in ("make", "model", "engine", "kw", "category")})
+    return _dedupe(out)
+
+
 def custom_categories_queue(names_csv: str) -> List[Dict[str, str]]:
     """Rozlož `--custom-categories` (presety alebo voľné needle texty, čiarkou)."""
     cats: List[str] = []
@@ -926,6 +947,11 @@ def main() -> int:
         help="len Wave 6 — stierače/zapaľovanie/ložiská/tlmiče/chladenie/spojka/remene/snímače",
     )
     ap.add_argument(
+        "--servis-balicky",
+        action="store_true",
+        help="len fronta servisných balíčkov (bot/data/servis_balicky_queue.json)",
+    )
+    ap.add_argument(
         "--custom-categories",
         default="",
         help=(
@@ -942,11 +968,11 @@ def main() -> int:
 
     only_flags = sum(
         bool(x)
-        for x in (args.wave3_only, args.wave5_only, args.wave6_only, args.custom_categories)
+        for x in (args.wave3_only, args.wave5_only, args.wave6_only, args.custom_categories, args.servis_balicky)
     )
     if only_flags > 1:
         raise SystemExit(
-            "Zvoľ najviac jedno z --wave3-only / --wave5-only / --wave6-only / --custom-categories"
+            "Zvoľ najviac jedno z --wave3-only / --wave5-only / --wave6-only / --custom-categories / --servis-balicky"
         )
 
     if not args.force_daytime and not args.dry_run:
@@ -985,7 +1011,9 @@ def main() -> int:
             done.pop(k, None)
         LOGGER.info("reopen-zero-pub: uvoľnených %d jobov", len(drop))
 
-    if args.custom_categories:
+    if args.servis_balicky:
+        queue = servis_balicky_queue()
+    elif args.custom_categories:
         queue = custom_categories_queue(args.custom_categories)
         if not queue:
             raise SystemExit(f"--custom-categories {args.custom_categories!r} nevytvorilo žiadny queue")
