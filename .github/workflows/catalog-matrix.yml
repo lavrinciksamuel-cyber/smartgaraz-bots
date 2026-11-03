@@ -1,142 +1,15 @@
-name: Catalog matrix (drafts, parallel)
-# Plné katalógy LKQ / Szekop / Würth do konceptov. Každý matrix job = vlastný
-# shard (crc32 kľúča), vlastný kurzor v actions/cache (ukladá sa aj pri
-# zrušení/timeoute) → joby sa neprekrývajú a pokračujú, kde skončili.
-# shop_guard pribrzdí, ak HostCreators spomalí. Fotky doplní enrich-images.yml.
+name: Catalog matrix
+# Replaced by catalog-lkq.yml, catalog-szekop.yml, and szekop-stock.yml.
 on:
-  schedule:
-    # každých 30 min; per-shard concurrency → nový beh čaká, kým starý skončí (nič sa neruší)
-    - cron: "*/30 * * * *"
   workflow_dispatch:
-    inputs:
-      budget_min:
-        description: "Rozpočet minút na job"
-        required: false
-        default: "290"
 
-# Max. 1 beh naraz (shop má prednosť pred importom); nový plánovaný beh počká.
-concurrency:
-  group: catalog-matrix
-  cancel-in-progress: false
-
-env:
-  # Public repo: logs are world-readable → redact purchase prices, margins,
-  # supplier URLs and search terms in every Python process (bot/log_redact.py).
-  SG_PUBLIC_LOGS: "1"
-  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+permissions:
+  contents: read
 
 jobs:
-  plan:
-    # Rozdelenie medzi účty: repo A (SG_ACCOUNT_INDEX=0) párne shardy, repo B (1) nepárne.
+  retired:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    outputs:
-      matrix: ${{ steps.m.outputs.matrix }}
-      par: ${{ steps.m.outputs.par }}
     steps:
-      - id: m
-        env:
-          IDX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
-          CNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}
-          LKQ_N: ${{ vars.SG_LKQ_SHARDS || '20' }}
-          SZ_N: ${{ vars.SG_SZEKOP_SHARDS || '16' }}
-          # zákazníci majú prednosť: cez deň (07–23 SK) 1 shard naraz, v noci 4
-          PAR_DAY: ${{ vars.SG_MATRIX_PAR_DAY || '1' }}
-          PAR_NIGHT: ${{ vars.SG_MATRIX_PAR_NIGHT || '4' }}
-          # režim údržby obchodu (zákazníci vidia 503) → všetky shardy naraz
-          PAR_MAINT: ${{ vars.SG_MATRIX_PAR_MAINT || '20' }}
-          WC_URL: ${{ secrets.WC_URL }}
-          FORCE_MAINT: ${{ vars.SG_MAINTENANCE || '' }}
-        run: |
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, os
-          idx, cnt = int(os.environ["IDX"]), int(os.environ["CNT"])
-          inc = []
-          for sup, n in (("lkq", int(os.environ["LKQ_N"])), ("szekop", int(os.environ["SZ_N"]))):
-              inc += [{"supplier": sup, "shard": f"{i}/{n}"} for i in range(n) if i % cnt == idx]
-          if idx == 0:
-              inc.append({"supplier": "wurth", "shard": "0/1"})
-          print("matrix=" + json.dumps({"include": inc}))
-          from datetime import datetime
-          from zoneinfo import ZoneInfo
-          h = datetime.now(ZoneInfo("Europe/Bratislava")).hour
-          day = 7 <= h < 23
-          maint = False
-          try:
-              import urllib.request
-              u = os.environ.get("WC_URL", "").rstrip("/") + "/wp-json/sg/v1/maintenance"
-              maint = bool(json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "SmartGarazBot-plan", "Accept": "application/json"}), timeout=15)).get("on"))
-          except Exception as exc:
-              import sys
-              print(f"maintenance check failed: {str(exc)[:200]}", file=sys.stderr)
-              maint = False
-          if os.environ.get("FORCE_MAINT", "") in ("0", "1"):
-              maint = os.environ["FORCE_MAINT"] == "1"
-          import sys
-          print(f"maintenance={maint}", file=sys.stderr)
-          print("par=" + os.environ.get("PAR_MAINT" if maint else ("PAR_DAY" if day else "PAR_NIGHT"), "1"))
-          PY
-  shard:
-    needs: plan
-    runs-on: ubuntu-latest
-    timeout-minutes: 330
-    # Jeden beh na shard naraz (nový čaká, nič sa neruší)
-    concurrency:
-      group: shard-${{ matrix.supplier }}-${{ matrix.shard }}
-      cancel-in-progress: false
-    strategy:
-      fail-fast: false
-      # cez deň 1, v noci 4 (plan.outputs.par) — shop rýchlosť má prednosť
-      max-parallel: ${{ fromJSON(needs.plan.outputs.par) }}
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: bot/requirements.txt
-      - name: Shard id
-        id: sid
-        run: echo "id=${{ matrix.supplier }}-$(echo '${{ matrix.shard }}' | tr '/' 'of')" >> "$GITHUB_OUTPUT"
-      - name: Restore shard cursor
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            bot/data/heijunka_vehicle_queue_state.json
-            bot/data/shard_state
-          key: shard-${{ steps.sid.outputs.id }}-${{ github.run_id }}
-          restore-keys: |
-            shard-${{ steps.sid.outputs.id }}-
-            shard-${{ matrix.supplier }}-
-      - name: Install deps
-        run: pip install -r bot/requirements.txt
-      - name: Import shard
-        env:
-          WC_URL: ${{ secrets.WC_URL }}
-          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
-          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
-          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
-          IMPORT_IN_STOCK: "1"
-          AI_MODE: cheap
-          SG_SHARD: ${{ matrix.shard }}
-          SG_DEFER_IMAGES: "1"
-          PYTHONUNBUFFERED: "1"
-          SG_LKQ_JOBS: "4"
-          # Úplnosť katalógu (repo variables, default v zátvorke):
-          SG_CRAWL_CAP: ${{ vars.SG_CRAWL_CAP || '1500' }}            # riadkov listingu na auto × kategóriu (bolo 400)
-          SG_LKQ_RECYCLE_H: ${{ vars.SG_LKQ_RECYCLE_H || '6' }}      # nový cyklus LKQ po h
-          SG_SZEKOP_RECYCLE_H: ${{ vars.SG_SZEKOP_RECYCLE_H || '48' }}
-          SG_SZEKOP_ALL_MAKES: ${{ vars.SG_SZEKOP_ALL_MAKES || '1' }}  # všetky značky, nie len 36 prioritných
-          SG_IMPORT_BUDGET_S: ${{ format('{0}', (github.event.inputs.budget_min || '290')) }}
-        run: |
-          export SG_IMPORT_BUDGET_S=$(( SG_IMPORT_BUDGET_S * 60 ))
-          python bot/supplier_import.py --supplier "${{ matrix.supplier }}" --mode full --limit 0
-      - name: Save shard cursor
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            bot/data/heijunka_vehicle_queue_state.json
-            bot/data/shard_state
-          key: shard-${{ steps.sid.outputs.id }}-${{ github.run_id }}
+      - name: Moved
+        run: echo "status=skipped"

@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Würth SK cenník (XLSX / CSV / BMEcat) → cena a sklad. Obsah môže byť v súbore.
-
-Majiteľ žiada u obchodného zástupcu Würth týždenný cenník (XLSX alebo BMEcat).
-Príde ako príloha e-mailu na Gmail. Bot schránku zatiaľ nečíta — súbor sa sem
-dostane ručne: nahratie v HQ, alebo súbor v bot/data/wurth_sk_inbox/.
-Automatické stiahnutie z Gmailu je až ďalší krok.
+"""Würth file import (XLSX / CSV / BMEcat) → price and stock.
 
 Würth SK: všetky ceny v súbore sú bez DPH. Objednávka do 99,99 € netto má
 manipulačný poplatok 6,80 €, od 100 € je bez poplatku (viď calculate_retail /
@@ -483,13 +478,11 @@ def main() -> int:
     data, name = load_feed_bytes(args.file)
     if not data:
         print("SG_RESULT " + json.dumps({
-            "ok": True,
-            "msg": "Žiadny čerstvý Würth SK cenník (inbox ani HQ). Ceny a sklad ostávajú, nič sa nehádalo.",
-            "updated": 0, "created": 0,
+            "ok": False, "status": "failed", "updated": 0, "created": 0,
         }, ensure_ascii=False))
-        return 0
+        return 1
     rows = parse_feed(data, name)
-    print(f"[wurth-sk] {name}: {len(rows)} riadkov", flush=True)
+    print(f"rows={len(rows)}", flush=True)
 
     creds_url = (os.environ.get("WC_URL") or "").rstrip("/")
     key = os.environ.get("WC_CONSUMER_KEY") or ""
@@ -565,12 +558,16 @@ def main() -> int:
         written_u += flush("update", updates[i:i + step])
     for i in range(0, len(creates), step):
         written_c += flush("create", creates[i:i + step])
+    wrote = written_u + written_c
+    ok = wrote > 0
     print("SG_RESULT " + json.dumps({
-        "ok": True,
-        "msg": f"Würth SK cenník {name}: upravených {written_u}, nových konceptov {written_c}.",
-        "updated": written_u, "created": written_c, "rows": len(rows),
+        "ok": ok,
+        "status": "ok" if ok else "failed",
+        "updated": written_u,
+        "created": written_c,
+        "rows": len(rows),
     }, ensure_ascii=False))
-    return 0
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

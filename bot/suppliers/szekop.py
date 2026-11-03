@@ -243,16 +243,33 @@ class SzekopSupplier(LoginMixin, GenericSupplier):
         return ordered[: limit or None]
 
     def ensure_login(self) -> bool:
-        """B2B login len keď SZEKOP_B2B=1. Inak vždy False (verejný režim)."""
+        """Sign in at most once when SZEKOP_B2B=1."""
         if self._public_only:
             return False
         if self._logged_in:
             return True
+        if getattr(self, "_login_attempted", False):
+            return False
+        import os as _os
+        attempt = _os.environ.get("SG_SZEKOP_ATTEMPT_FILE", "/tmp/sg_szekop_login_attempted")
+        one = _os.environ.get("SG_SZEKOP_ONE_LOGIN", "1") != "0"
+        if one and _os.path.exists(attempt):
+            LOGGER.error("status=failed")
+            self._login_attempted = True
+            return False
         user = (self.credentials or {}).get("user")
         password = (self.credentials or {}).get("password")
         if not user or not password:
-            LOGGER.warning("SZEKOP_B2B=1, ale chýba SZEKOP_USER/PASSWORD — pokračujem verejne.")
+            LOGGER.error("status=failed")
+            self._login_attempted = True
             return False
+        from supplier_pace import SupplierStop
+        self._login_attempted = True
+        if one:
+            try:
+                open(attempt, "w").write("1\n")
+            except OSError:
+                pass
         try:
             self.http.get(self.base_url + "/")
             resp = self.http.post(
@@ -260,22 +277,32 @@ class SzekopSupplier(LoginMixin, GenericSupplier):
                 data={"login": user, "password": password, "redirectUrl": "/"},
                 headers={"X-Requested-With": "XMLHttpRequest"},
             )
+            if resp.status_code in (401, 403, 429):
+                LOGGER.error("status=failed http=%s", resp.status_code)
+                self._logged_in = False
+                return False
             data = resp.json()
             self._logged_in = bool(data.get("IsAuthenticated"))
             if not self._logged_in:
-                LOGGER.warning(
-                    "Szekop B2B login zlyhal: %s — fallback na verejný katalóg",
-                    data.get("ErrorText") or "neznáma chyba",
-                )
+                LOGGER.error("status=failed")
+            else:
+                LOGGER.info("status=ok")
             return self._logged_in
+        except SupplierStop:
+            self._logged_in = False
+            raise
         except Exception as exc:
-            LOGGER.warning("Szekop B2B login výnimka: %s — fallback na verejný katalóg", exc)
+            LOGGER.error("status=failed")
             self._logged_in = False
             return False
 
     def parse_product(self, url: str) -> Optional[ProductRaw]:
         if not self._public_only:
-            self.ensure_login()
+            ok = self.ensure_login()
+            import os as _os
+            if _os.environ.get("SG_SZEKOP_B2B_REQUIRED") == "1" and not ok:
+                from supplier_pace import LoginFailed
+                raise LoginFailed()
         try:
             soup = self.soup(url)
         except Exception:
@@ -571,11 +598,14 @@ class SzekopSupplier(LoginMixin, GenericSupplier):
             LOGGER.warning("TecDoc expand: chýbajú route ID v URL %s", engine_url)
             return []
 
-        # Warm session on engine page (cookies)
+        # Session warm-up. A stop exception is not swallowed.
         try:
             self.http.get(engine_url.split("?")[0])
-        except Exception:
-            pass
+        except Exception as exc:
+            from supplier_pace import SupplierStop
+            if isinstance(exc, SupplierStop):
+                raise
+            return []
 
         payload = {
             "id": int(category_id),
@@ -602,7 +632,10 @@ class SzekopSupplier(LoginMixin, GenericSupplier):
             )
             data = resp.json()
         except Exception as exc:
-            LOGGER.warning("TecDoc expand fail: %s", exc)
+            from supplier_pace import SupplierStop
+            if isinstance(exc, SupplierStop):
+                raise
+            LOGGER.warning("TecDoc expand fail: %s", type(exc).__name__)
             return []
 
         html = data.get("ItemsHTMLContent") or ""

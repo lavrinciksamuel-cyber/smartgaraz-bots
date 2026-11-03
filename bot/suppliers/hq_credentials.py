@@ -49,6 +49,9 @@ def supplier_login(slug: str) -> tuple[str, str]:
     ue, pe = ENV_NAMES.get(slug.lower(), (f"{slug.upper()}_USER", f"{slug.upper()}_PASSWORD"))
     user = (p.get("username") or os.environ.get(ue, "") or "").strip()
     pwd = (p.get("password") or os.environ.get(pe, "") or "").strip()
+    for secret in (user, pwd):
+        if secret:
+            print(f"::add-mask::{secret}", file=sys.stderr)
     src = "HQ" if p.get("password") else "env"
     if os.environ.get("HQ_CRED_QUIET") != "1":
         print(f"[hq] {slug}: login from {src}{' (missing!)' if not (user and pwd) else ''}", file=sys.stderr)

@@ -70,6 +70,12 @@ DEFAULT_PARTS_CATEGORY_URLS: list[str] = [
 # - pricing.py zarovná predaj na retail_hint (ako PRO-TEC), cost ostáva B2B.
 
 
+def lkq_html_logged_in(html: str) -> bool:
+    """True only when the page shows a signed-in marker."""
+    body = (html or "").lower()
+    return ("logoff" in body) or ("odhlás" in body) or ("odhlas" in body)
+
+
 def _strip_html(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text or "")
     return re.sub(r"\s+", " ", text).strip()
@@ -103,48 +109,117 @@ class LkqSupplier(LoginMixin, GenericSupplier):
 
     # ---- Login (mobilný formulár, iné názvy polí ako generický mixin) ----
 
+    def _lkq_paths(self):
+        import os as _os
+        return (
+            _os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed"),
+            _os.environ.get("SG_LKQ_COOKIE_FILE", "/tmp/sg_lkq_session.pkl"),
+            _os.environ.get("SG_LKQ_ATTEMPT_FILE", "/tmp/sg_lkq_login_attempted"),
+        )
+
+    def _drop_cookie_file(self) -> None:
+        import os as _os
+        _, cookie_file, _ = self._lkq_paths()
+        try:
+            _os.remove(cookie_file)
+        except OSError:
+            pass
+        try:
+            self.http.session.cookies.clear()
+        except Exception:
+            pass
+
+    def _load_cookie_jar(self) -> bool:
+        import os as _os
+        import pickle as _pickle
+        from requests.utils import cookiejar_from_dict
+        _, cookie_file, _ = self._lkq_paths()
+        if not _os.path.exists(cookie_file):
+            return False
+        try:
+            with open(cookie_file, "rb") as fh:
+                saved = _pickle.load(fh)
+            if isinstance(saved, dict):
+                self.http.session.cookies.update(cookiejar_from_dict(saved))
+            else:
+                for c in list(saved):
+                    try:
+                        self.http.session.cookies.set_cookie(c)
+                    except Exception:
+                        pass
+            return True
+        except Exception as exc:
+            LOGGER.info("status=failed")
+            self._drop_cookie_file()
+            return False
+
+    def _save_cookie_jar(self) -> None:
+        import os as _os
+        import pickle as _pickle
+        from requests.utils import dict_from_cookiejar
+        _, cookie_file, _ = self._lkq_paths()
+        try:
+            with open(cookie_file, "wb") as fh:
+                _pickle.dump(dict_from_cookiejar(self.http.session.cookies), fh)
+            _os.chmod(cookie_file, 0o600)
+        except Exception:
+            pass
+
+    def _cookie_is_logged_in(self) -> bool:
+        """Restore a saved session when it still validates."""
+        from supplier_pace import SupplierStop
+        if not self._load_cookie_jar():
+            return False
+        try:
+            resp = self.http.get(self.base_url + "/")
+        except SupplierStop:
+            self._drop_cookie_file()
+            raise
+        except Exception as exc:
+            LOGGER.info("status=failed")
+            self._drop_cookie_file()
+            return False
+        if lkq_html_logged_in(getattr(resp, "text", "") or ""):
+            return True
+        LOGGER.info("status=retry")
+        self._drop_cookie_file()
+        return False
+
     def ensure_login(self) -> bool:
+        """Sign in at most once per run."""
         if self._logged_in:
             return True
+        import os as _os
+        marker, _, attempt = self._lkq_paths()
+        if _os.path.exists(marker) or _os.environ.get("SG_LKQ_DISABLED") == "1":
+            return False
         user = (self.credentials or {}).get("user")
         password = (self.credentials or {}).get("password")
         if not user or not password:
             return False
-        login_url = self.credentials.get("login_url") or f"{self.base_url}/account/logonmobilenow"
-        # Lockout guard: po 1 neúspešnom logine v behu už LKQ nikto neskúša.
-        import os as _os
-        marker = _os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed")
-        if _os.path.exists(marker) or _os.environ.get("SG_LKQ_DISABLED") == "1":
-            return False
-        # Jeden login na beh: session cookies zdieľané medzi jobmi (lokálny súbor
-        # na runneri, nikdy sa neuploaduje). Ak session stále platí → bez POST loginu.
-        import pickle as _pickle
-        from requests.utils import cookiejar_from_dict, dict_from_cookiejar
-        cookie_file = _os.environ.get("SG_LKQ_COOKIE_FILE", "/tmp/sg_lkq_session.pkl")
-        if _os.path.exists(cookie_file):
+        from supplier_pace import SupplierStop
+        try:
+            if self._cookie_is_logged_in():
+                self._logged_in = True
+                LOGGER.info("status=ok")
+                return True
+        except SupplierStop:
+            raise
+        one = _os.environ.get("SG_LKQ_ONE_LOGIN", "1") != "0"
+        if one and _os.path.exists(attempt):
+            LOGGER.error("status=failed")
             try:
-                with open(cookie_file, "rb") as fh:
-                    saved = _pickle.load(fh)
-                if isinstance(saved, dict):
-                    self.http.session.cookies.update(cookiejar_from_dict(saved))
-                else:
-                    # legacy CookieJar pickle
-                    for c in list(saved):
-                        try:
-                            self.http.session.cookies.set_cookie(c)
-                        except Exception:
-                            pass
-                body = (self.http.get(self.base_url + "/").text or "").lower()
-                # rovnaké kritérium ako POST login (+ bez mobilného login formulára)
-                if "logoff" in body or "odhlás" in body or (
-                    'name="usernamem"' not in body and ("autokelly" in body or "lkq" in body)
-                ):
-                    self._logged_in = True
-                    LOGGER.info("LKQ: zdieľaná session (bez nového loginu)")
-                    return True
-                LOGGER.info("LKQ: cookie súbor neplatný — nový login")
-            except Exception as exc:
-                LOGGER.info("LKQ: cookie restore zlyhal (%s) — nový login", exc)
+                open(marker, "w").write("failed\n")
+            except OSError:
+                pass
+            return False
+        if one:
+            try:
+                open(attempt, "w").write("1\n")
+            except OSError:
+                pass
+        login_url = self.credentials.get("login_url") or f"{self.base_url}/account/logonmobilenow"
+        self._logged_in = False
         try:
             # 2026-10: GET /account/logonmobilenow = 404 (len POST); session nadviaž cez homepage.
             self.http.get(self.base_url + "/")
@@ -153,23 +228,30 @@ class LkqSupplier(LoginMixin, GenericSupplier):
                 data={"UserNameM": str(user).strip(), "PasswordM": str(password).strip()},
                 headers={"Referer": self.base_url + "/", "Origin": self.base_url},
             )
-            # AutoKellyE60 cookie dostane aj anonym — úspech = zmizol login formulár / je odhlásenie.
-            body = (resp.text or "").lower()
-            self._logged_in = resp.status_code < 400 and (
-                "logoff" in body or "odhlás" in body or 'name="usernamem"' not in body
-            )
+            ok = lkq_html_logged_in(getattr(resp, "text", "") or "")
+            if not ok:
+                home = self.http.get(self.base_url + "/")
+                ok = lkq_html_logged_in(getattr(home, "text", "") or "")
+            self._logged_in = bool(ok)
+        except SupplierStop:
+            self._logged_in = False
+            try:
+                open(marker, "w").write("blocked\n")
+            except OSError:
+                pass
+            raise
         except Exception:
             self._logged_in = False
         if self._logged_in:
+            self._save_cookie_jar()
+            LOGGER.info("status=ok")
+        else:
+            self._drop_cookie_file()
             try:
-                with open(cookie_file, "wb") as fh:
-                    _pickle.dump(dict_from_cookiejar(self.http.session.cookies), fh)
-                _os.chmod(cookie_file, 0o600)
-            except Exception:
+                open(marker, "w").write("failed\n")
+            except OSError:
                 pass
-        if not self._logged_in:
-            open(marker, "w").write("failed\n")
-            LOGGER.error("LKQ login zlyhal — guard: žiadne ďalšie pokusy v tomto behu")
+            LOGGER.error("status=failed")
         return self._logged_in
 
     # ---- Discovery cez interné ProductList/Items JSON API -----------------
@@ -217,10 +299,18 @@ class LkqSupplier(LoginMixin, GenericSupplier):
             try:
                 self.http.get(category_url)
             except Exception as exc:
-                raise RuntimeError(f"LKQ: nepodarilo sa otvoriť kategóriu {category_url}: {exc}")
+                from supplier_pace import SupplierStop
+                if isinstance(exc, SupplierStop):
+                    raise
+                raise RuntimeError(f"LKQ: nepodarilo sa otvoriť kategóriu: {type(exc).__name__}") from exc
 
             page = 1
-            max_pages = 40  # ~20 ks/stránka → až ~800 na kategóriu (oil import)
+            # Predvolene menej stránok. Plný oil import si vie SG_LKQ_MAX_PAGES zvýšiť.
+            try:
+                import os as _os
+                max_pages = max(1, int(_os.environ.get("SG_LKQ_MAX_PAGES", "4")))
+            except ValueError:
+                max_pages = 4
             while (limit is None or len(urls) < limit) and page <= max_pages:
                 try:
                     resp = self.http.post(
@@ -228,15 +318,20 @@ class LkqSupplier(LoginMixin, GenericSupplier):
                         headers={"X-Requested-With": "XMLHttpRequest", "Referer": category_url},
                     )
                     data = resp.json()
-                except Exception:
+                except Exception as exc:
+                    from supplier_pace import SupplierStop
+                    if isinstance(exc, SupplierStop):
+                        raise
                     break
                 items = data.get("Items") or []
                 if not items:
                     break
 
-                # LKQ vedia interná cenová služba občas vrátiť prázdne Price/PriceVat
-                # pre CELÚ stránku výsledkov — retry max 2×.
-                for _retry in range(2):
+                # Prázdna stránka cien: najviac 2 opakovania. V pomalom režime žiadne
+                # (nechceme z jedného listu spraviť salvu).
+                import os as _os
+                _price_retries = 0 if _os.environ.get("SG_POLITE_HOSTS", "").strip() else 2
+                for _retry in range(_price_retries):
                     if any(item.get("Price") for item in items):
                         break
                     try:
@@ -248,7 +343,10 @@ class LkqSupplier(LoginMixin, GenericSupplier):
                         retry_items = retry_data.get("Items") or []
                         if retry_items:
                             items = retry_items
-                    except Exception:
+                    except Exception as exc:
+                        from supplier_pace import SupplierStop
+                        if isinstance(exc, SupplierStop):
+                            raise
                         break
 
                 # Doplň Attributes z ProductList/Attributes (list item Attributes[]

@@ -1,0 +1,72 @@
+name: Szekop stock
+# Scheduled Szekop stock update.
+on:
+  schedule:
+    - cron: "0 17 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      resume:
+        description: "Clear pause"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: szekop-supplier
+  cancel-in-progress: false
+
+env:
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+  SG_GUARD_SLUG: szekop-b2b
+  SZEKOP_B2B: "1"
+  SG_SZEKOP_B2B_REQUIRED: "1"
+  SG_SZEKOP_ONE_LOGIN: "1"
+  SG_SZEKOP_REFRESH_LIMIT: "12"
+  SG_POLITE_HOSTS: nextis.cz
+  SG_POLITE_MIN: "20"
+  SG_POLITE_MAX: "45"
+  SG_DAILY_CAP: "30"
+  SG_RUN_CAP: "30"
+  SG_HTTP_RETRIES: "0"
+  CRAWL_DELAY: "0"
+  SG_ACCOUNT_INDEX: "0"
+  SG_ACCOUNT_COUNT: "1"
+
+jobs:
+  prices:
+    if: vars.SG_ACCOUNT_INDEX != '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bot/requirements.txt
+      - uses: actions/cache/restore@v4
+        with:
+          path: bot/data/supplier_guard
+          key: guard-szekop-b2b-${{ github.run_id }}
+          restore-keys: |
+            guard-szekop-b2b-
+      - run: pip install -r bot/requirements.txt
+      - run: mkdir -p bot/data/supplier_guard && echo keep > bot/data/supplier_guard/.keep
+      - name: Import
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+          SG_GUARD_RESUME: ${{ github.event_name == 'workflow_dispatch' && inputs.resume && '1' || '0' }}
+        run: python bot/b2b_refresh.py --supplier szekop
+      - if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: bot/data/supplier_guard
+          key: guard-szekop-b2b-${{ github.run_id }}

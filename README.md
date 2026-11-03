@@ -7,9 +7,14 @@ Public GitHub Actions runners for SmartGaráž supplier imports (LKQ, Szekop, W�
 **What stays private:** shop theme, HQ, accounting, LavroDoc data, credentials (GitHub Secrets + HQ).
 
 ## Workflows
-- `supplier-import.yml` — HQ-triggered / manual full or prices import per supplier
-- `evening-strong-import.yml` — staged LKQ + Würth + Szekop into drafts
-- `heijunka-parts-nightly.yml` — nightly staged LKQ mop
+- `catalog-lkq.yml` — scheduled LKQ import
+- `catalog-szekop.yml` — scheduled Szekop catalog
+- `szekop-stock.yml` — scheduled Szekop stock update
+- `supplier-import.yml` — manual import per supplier
+- `wurth-sk-feed.yml` — manual Würth file import
+- `wurth-catalog-sync.yml` — weekly Würth catalog sync
+- `evening-strong-import.yml` — manual only
+- `heijunka-parts-nightly.yml` — manual only
 - `refresh-clicked.yml` — every 6 h, B2B price/stock refresh of clicked products (skips early if queue empty) — moved from smartgaraz-web
 - `cheap-ops.yml` — 2×/day customer smoke → publish ready drafts → cost guard (shares concurrency with promote-drafts) — moved from smartgaraz-web
 - `daily-site-eval.yml` — 04:00 UTC site eval + product QA fix (≤40) — moved from smartgaraz-web

@@ -354,6 +354,9 @@ def backfill(args) -> int:
     pending: List[Dict[str, Any]] = []
     changed = refetched = 0
     szekop_http = None
+    if args.szekop_refetch and os.environ.get("SG_SZEKOP_REFETCH_ALLOW") != "1":
+        LOG.info("status=skipped")
+        args.szekop_refetch = 0
     if args.szekop_refetch:
         from suppliers import get_supplier
         szekop_http = get_supplier("szekop").http

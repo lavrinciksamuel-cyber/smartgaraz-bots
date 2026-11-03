@@ -49,7 +49,7 @@ licenciách / vývoji napĺňa znaky nekalej súťaže (parazitovanie).
 | Zdroj | Čo smieme brať | Podmienka |
 |---|---|---|
 | **LKQ / Szekop B2B** | SKU, EAN, B2B cena, sklad, voľný text make/model | Prihlásený účet; žiadne TecDoc ID |
-| **Würth B2B** (`eshop.wurth.sk`) | Art.-Nr./SKU, EAN, názov, B2B cena/sklad, DIN/ISO text, KBCH PDF bez úprav | `WURTH_B2B=1` + účet. Fotky len ak `WURTH_MEDIA_OK=1` (súhlas VOP) |
+| **Würth SK file** | Art.-Nr./SKU, EAN, name, price, stock | `wurth_sk_feed` |
 | **PRO‑TEC / Metabond / EF** | Tovar, EAN, B2B cena, sklad | Vlastný B2B účet |
 | **Vlastná SG taxonómia** `sgv-*` | Nezávislá kurácia SK trhu | `vehicle_hierarchy_sk.json` |
 | **OE čísla dielu** | Z obalu / atribútu dielu | Nie celá cross‑ref matica z cudzieho e‑shopu |
@@ -83,12 +83,9 @@ Skryté formátovanie: `strip_hidden_formatting` / `sanitize_sk_copy`.
 
 ## Würth — špecifiká
 
-- **Smieme:** Art.-Nr., EAN, názov, B2B cena (po logine), sklad, technické
-  parametre (DIN/ISO), KBCH PDF bez zmeny obsahu.
-- **Nesmieme:** dump celého `eshop.wurth.sk`; guest cenník ako „naša“ B2B cena;
-  rehost fotiek bez súhlasu; vydávať Würth tovar za nebrandované generikum.
-- Heijunka: max **20–50 SKU** / beh.
-- Env: `WURTH_B2B=1` (cena/sklad), `WURTH_MEDIA_OK=1` (fotky — len so súhlasom).
+- **File:** price and stock via `bot/wurth_sk_feed.py`.
+- **Photos:** `eshop.wurth.ba` and `eshop.wurth-kosova.com` only, with `WURTH_MEDIA_OK=1`.
+- **Skip:** requests to `eshop.wurth.sk`.
 - Fotky z verejného `eshop.wurth.ba` a `eshop.wurth-kosova.com` dopĺňa
   photo backfill a týždenný catalog sync, len kde fotka chýba. Cudzí shop
   nedodáva slovenskú nákupnú cenu ani sklad. Artikl, ktorý vo verejnom

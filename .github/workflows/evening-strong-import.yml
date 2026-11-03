@@ -66,13 +66,10 @@ jobs:
       - name: Install deps
         run: pip install -r bot/requirements.txt
 
-      - name: Supplier logins from HQ
-        working-directory: bot
-        env:
-          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
-        run: python -m suppliers.hq_credentials lkq szekop wurth
-
       - name: Evening strong import
+        run: echo "status=skipped"
+      - name: Evening strong import (retired)
+        if: false
         env:
           WC_URL: ${{ secrets.WC_URL }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
