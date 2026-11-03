@@ -123,7 +123,12 @@ def _hq_max_id_once() -> int:
     tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
     if not tok:
         return 0
-    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    from hq_url import hq_url
+    try:
+        hq = hq_url()
+    except RuntimeError as exc:
+        print(f"status=failed {exc}", flush=True)
+        return 0
     try:
         r = requests.get(f"{hq}/api/sync/existing-skus", timeout=60,
                          headers={"Authorization": f"Bearer {tok}", "Accept-Encoding": "gzip", "User-Agent": "smartgaraz-bot"})
@@ -260,6 +265,17 @@ def own_new(by_src: dict, code: str) -> int:
     return int(by_src.get(code, 0))
 
 
+def shard_main_args(shard: str, minutes: int) -> int:
+    """Run the Szekop catalog step."""
+    import catalog_shard
+    old = sys.argv
+    try:
+        sys.argv = [old[0], "--supplier", "szekop", "--shard", shard, "--budget-min", str(minutes)]
+        return catalog_shard.main()
+    finally:
+        sys.argv = old
+
+
 def wurth_blocked_result(**kw) -> int:
     # Blokácia Würthu nie je chyba bota (neobchádzame ju) – shard skončí ako „preskočený“
     # s varovaním, nie ako zlyhaný beh. Würth katalóg rieši týždenný wurth-catalog-sync.
@@ -279,6 +295,10 @@ def main() -> int:
     slug = a.supplier.strip().lower()
     if slug not in SUPPLIERS:
         return result(False, f"Neznámy dodávateľ „{slug}“ – bot preň ešte nie je.")
+    if slug == "wurth":
+        from supplier_pace import job_summary
+        job_summary("Wurth", status="failed", new=0)
+        return result(False, "failed", new=0)
     code, host, needs_login = SUPPLIERS[slug]
     limit = a.limit if a.limit and a.limit > 0 else 0
 
@@ -291,6 +311,9 @@ def main() -> int:
         os.environ.setdefault("WURTH_CHALLENGE_PAUSE", "0")
         os.environ.setdefault("SG_WURTH_FAST_FAIL", "1")
     if user and pwd:
+        from supplier_pace import mask_secret
+        mask_secret(user)
+        mask_secret(pwd)
         os.environ[f"{pre}_USER"], os.environ[f"{pre}_PASSWORD"] = user, pwd
         if slug == "wurth":
             os.environ["WURTH_B2B"] = "1"
@@ -303,6 +326,21 @@ def main() -> int:
             return result(False, "Chýba web dodávateľa – doplň ho v HQ (Dodávatelia → Pták / Mopar).")
     if slug == "lkq" and os.environ.get("SG_LKQ_DISABLED") == "1":
         return result(False, "LKQ je dočasne vypnuté.")
+    if slug == "lkq":
+        if a.mode == "prices":
+            os.environ["SG_LKQ_NEW_JOBS"] = "0"
+            from b2b_refresh import main as b2b_main
+            return b2b_main(["--supplier", "lkq", "--limit", str(limit or 0)])
+        from lkq_quiet import main as lkq_main
+        return lkq_main()
+    if slug == "szekop" and a.mode == "prices":
+        from b2b_refresh import main as b2b_main
+        return b2b_main(["--supplier", "szekop", "--limit", str(limit or 0)])
+    if slug == "szekop" and a.mode == "full":
+        from catalog_shard import main as shard_main
+        shard = os.environ.get("SG_SHARD", "").strip() or "0/1"
+        mins = max(10, int(int(os.environ.get("SG_IMPORT_BUDGET_S", "1800")) / 60))
+        return shard_main_args(shard, mins)
 
     # LKQ shard s prejdeným výsekom fronty: koniec ešte PRED loginom (žiadne zbytočné
     # loginy každých 30 min, uvoľní runner slot pre Szekop/ideo/Pro-Tec).

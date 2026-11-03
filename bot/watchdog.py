@@ -2,15 +2,17 @@
 """Bot watchdog – keeps the GitHub bots running without a human (stdlib only, cheap).
 
 Every ~3 h (.github/workflows/watchdog.yml):
-  1. Stuck runs: in_progress longer than its limit → cancel (next time force-cancel);
-     queued/pending/waiting > 12 h → cancel.
+  1. Stuck runs: queued/pending/waiting > 12 h → cancel. A running job is cancelled
+     only after its own timeout (plus a grace period) or when its progress heartbeat
+     (commit status sg-heartbeat/<slug>) is older than 40 min. A long workflow that
+     is still on a fresh job is left alone.
   2. Health of key scheduled workflows: unhealthy = no successful run within the
      expected window (schedule stopped/delayed/always failing) or the last N
      finished runs failed. Superseded/timeout "cancelled" runs only count via the window.
   3. Self-heal: an unhealthy workflow is re-dispatched ONCE per window (heavy jobs only
      at night 23–07 Bratislava, so the daytime shop throttle stays intact).
   4. Alert: still unhealthy after that one automatic retry → POST HQ /api/sync/bot-alert
-     (push to Samuel's phone + HQ audit log). HQ dedupes 1 alert / bot / day.
+     one HQ alert. HQ dedupes 1 alert / bot / day.
      A supplier block (Würth 403) finishes as success/"skipped" → never alerts.
   5. Keepalive: once a day re-enables every scheduled workflow (resets GitHub's 60-day
      inactivity auto-disable for public repos) and re-enables any disabled_inactivity one.
@@ -38,23 +40,27 @@ API = "https://api.github.com"
 REPO = os.environ.get("GITHUB_REPOSITORY", "")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 DRY = os.environ.get("SG_WATCHDOG_DRY", "").strip() in {"1", "true", "yes"}
-HQ_URL = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+def _hq_base() -> str:
+    from hq_url import hq_url
+    return hq_url()
 NOW = datetime.now(timezone.utc)
 BOT_ACTOR = "github-actions[bot]"
 
 # file: window_h = max hours without success, streak = failed finished runs in a row that count,
 # redispatch = may re-run once, heavy = writes a lot to the shop (re-run only at night),
-# inputs = dispatch inputs (so a re-run does the real job, not a preview), name = for Samuel.
+# inputs = dispatch inputs (so a re-run does the real job, not a preview), name = short label.
 H = 1
 D = 24
 CFG = {
-    "catalog-matrix.yml":       dict(window_h=14, streak=4, redispatch=True, heavy=True, name="Import katalógu (LKQ/Szekop/Würth)"),
+    # Samostatné behy. redispatch=False: po páde sa čaká na ďalší cron, nie na druhý login.
+    "catalog-lkq.yml":          dict(window_h=36, streak=2, redispatch=False, heavy=True, job_timeout_min=90, heartbeat="lkq", name="LKQ import"),
+    "catalog-szekop.yml":       dict(window_h=36, streak=2, redispatch=False, heavy=True, job_timeout_min=90, heartbeat="szekop-public", name="Szekop catalog"),
+    "szekop-stock.yml":         dict(window_h=36, streak=2, redispatch=False, heavy=True, job_timeout_min=90, heartbeat="szekop-b2b", name="Szekop stock"),
     "supplier-schedule.yml":    dict(window_h=20, streak=3, redispatch=True, heavy=True, name="ideo / Pro-Tec / TSS import"),
     "promote-drafts.yml":       dict(window_h=14, streak=3, redispatch=True, heavy=False, name="Zverejňovanie konceptov"),
     "cheap-ops.yml":            dict(window_h=30, streak=2, redispatch=True, heavy=False, name="Denná údržba"),
     "availability-backfill.yml": dict(window_h=36, streak=1, redispatch=True, heavy=True, name="Dostupnosť produktov"),
     "protec-price-sync.yml":    dict(window_h=36, streak=1, redispatch=True, heavy=True, name="Pro-Tec ceny a sklad"),
-    "heijunka-parts-nightly.yml": dict(window_h=36, streak=2, redispatch=True, heavy=True, name="Nočný import dielov LKQ"),
     "repair-wurth.yml":         dict(window_h=36, streak=2, redispatch=True, heavy=False, name="Oprava Würth produktov"),
     "repair-ideo.yml":          dict(window_h=36, streak=2, redispatch=True, heavy=False, name="Oprava ideo produktov"),
     "repair-tss.yml":           dict(window_h=36, streak=2, redispatch=True, heavy=False, name="Oprava TSS produktov"),
@@ -65,9 +71,33 @@ CFG = {
     "wurth-photo-backfill.yml": dict(window_h=8 * D + 8, streak=1, redispatch=True, heavy=True, inputs={"apply": "true"}, name="Würth fotky"),
     "reprice-min-profit.yml":   dict(window_h=8 * D + 8, streak=1, redispatch=True, heavy=True, inputs={"args": "--apply"}, name="Kontrola minimálnej marže"),
 }
-STUCK_RUN_H = 6.5      # longest job timeout is 360 min
+# Záloha, keď GitHub job timeout nezabil beh. Meria sa vek JOBu, nie celého workflow.
+DEFAULT_JOB_TIMEOUT_MIN = 360
+JOB_TIMEOUT_GRACE_MIN = 15
+HEARTBEAT_STALE_MIN = 40
 STUCK_QUEUE_H = 12
 BAD = {"failure", "timed_out", "startup_failure"}
+
+
+def evaluate_stuck_job(
+    *,
+    job_age_min: float,
+    timeout_min: float,
+    heartbeat_age_min: float | None,
+    expect_heartbeat: bool,
+) -> tuple[bool, str]:
+    """Či zrušiť bežiaci job.
+
+    Čerstvý heartbeat = robota žije, aj keď workflow beží dlho.
+    Heartbeat starší ako 40 min pri jobe staršom ako 40 min = visí.
+    Bez heartbeatu (iný workflow alebo status sa nedá prečítať) rozhoduje timeout jobu.
+    """
+    if job_age_min > float(timeout_min) + JOB_TIMEOUT_GRACE_MIN:
+        return True, "timeout"
+    if expect_heartbeat and heartbeat_age_min is not None:
+        if job_age_min > HEARTBEAT_STALE_MIN and heartbeat_age_min > HEARTBEAT_STALE_MIN:
+            return True, "heartbeat"
+    return False, ""
 
 
 def log(msg: str) -> None:
@@ -122,7 +152,12 @@ def alert(wf: str, title: str, body: str, url: str = "", level: str = "error") -
     payload = json.dumps({"workflow": wf, "repo": REPO, "title": title, "body": body, "url": url, "level": level}).encode()
     for i in range(3):
         try:
-            req = urllib.request.Request(HQ_URL + "/api/sync/bot-alert", data=payload, method="POST",
+            try:
+                base = _hq_base()
+            except RuntimeError as exc:
+                log(f"status=failed {exc}")
+                return
+            req = urllib.request.Request(base + "/api/sync/bot-alert", data=payload, method="POST",
                                          headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json",
                                                   "User-Agent": "sg-watchdog"})
             with urllib.request.urlopen(req, timeout=40) as f:
@@ -137,8 +172,39 @@ def runs_of(wf_id, n=40):
     return gh("GET", f"/repos/{REPO}/actions/workflows/{wf_id}/runs?per_page={n}&branch=main").get("workflow_runs", [])
 
 
+def _heartbeat_age_min(sha: str, slug: str) -> float | None:
+    """None = status sa nedá prečítať alebo ešte neexistuje (nestrácať beh len preto)."""
+    if not sha or not slug:
+        return None
+    try:
+        data = gh("GET", f"/repos/{REPO}/commits/{sha}/status")
+    except Exception as exc:
+        log(f"heartbeat {slug}: {type(exc).__name__}")
+        return None
+    newest = None
+    for row in data.get("statuses") or []:
+        if row.get("context") != f"sg-heartbeat/{slug}":
+            continue
+        import re
+        m = re.search(r"t=(\d+)", str(row.get("description") or ""))
+        if m:
+            newest = int(m.group(1))
+    if newest is None:
+        return None
+    return max(0.0, (NOW.timestamp() - newest) / 60.0)
+
+
+def _cancel_run(run_id: int, force: bool) -> None:
+    if DRY:
+        return
+    try:
+        gh("POST", f"/repos/{REPO}/actions/runs/{run_id}/{'force-cancel' if force else 'cancel'}", ok_codes=(202, 409))
+    except Exception as e:
+        log(f"  cancel zlyhal: {e}")
+
+
 def stuck_runs() -> None:
-    for status in ("in_progress", "queued", "pending", "waiting"):
+    for status in ("queued", "pending", "waiting"):
         try:
             rs = gh("GET", f"/repos/{REPO}/actions/runs?status={status}&per_page=100").get("workflow_runs", [])
         except Exception as e:
@@ -148,17 +214,54 @@ def stuck_runs() -> None:
             if r.get("name") == "Bot watchdog":
                 continue
             start = ts(r.get("run_started_at") or r.get("created_at"))
-            age_h = (NOW - start).total_seconds() / 3600
-            limit = STUCK_RUN_H if status == "in_progress" else STUCK_QUEUE_H
-            if age_h <= limit:
+            age_h = (NOW - start).total_seconds() / 3600 if start else 0
+            if age_h <= STUCK_QUEUE_H:
                 continue
-            force = status == "in_progress" and age_h > limit + 2.5  # normal cancel didn't help last time
-            log(f"STUCK {r['path'].split('/')[-1]} run {r['id']} {status} {age_h:.1f} h → {'force-cancel' if force else 'cancel'}")
-            if not DRY:
-                try:
-                    gh("POST", f"/repos/{REPO}/actions/runs/{r['id']}/{'force-cancel' if force else 'cancel'}", ok_codes=(202, 409))
-                except Exception as e:
-                    log(f"  cancel zlyhal: {e}")
+            log(f"STUCK {r['path'].split('/')[-1]} run {r['id']} {status} {age_h:.1f} h → cancel")
+            _cancel_run(r["id"], False)
+    try:
+        running = gh("GET", f"/repos/{REPO}/actions/runs?status=in_progress&per_page=100").get("workflow_runs", [])
+    except Exception as e:
+        log(f"stuck check in_progress: {e}")
+        return
+    for r in running:
+        if r.get("name") == "Bot watchdog":
+            continue
+        wf = str(r.get("path") or "").split("/")[-1]
+        cfg = CFG.get(wf) or {}
+        timeout_min = float(cfg.get("job_timeout_min") or DEFAULT_JOB_TIMEOUT_MIN)
+        expect = bool(cfg.get("heartbeat"))
+        try:
+            jobs = gh("GET", f"/repos/{REPO}/actions/runs/{r['id']}/jobs?per_page=100").get("jobs", [])
+        except Exception as e:
+            log(f"jobs {r['id']}: {e}")
+            continue
+        active = [j for j in jobs if j.get("status") == "in_progress"]
+        if not active:
+            start = ts(r.get("run_started_at") or r.get("created_at"))
+            age_h = (NOW - start).total_seconds() / 3600 if start else 0
+            if age_h > STUCK_QUEUE_H:
+                log(f"STUCK {wf} run {r['id']} in_progress bez jobu {age_h:.1f} h → cancel")
+                _cancel_run(r["id"], age_h > STUCK_QUEUE_H + 2)
+            continue
+        hb_age = _heartbeat_age_min(r.get("head_sha") or "", str(cfg.get("heartbeat") or "")) if expect else None
+        for job in active:
+            started = ts(job.get("started_at"))
+            if not started:
+                continue
+            age_min = (NOW - started).total_seconds() / 60.0
+            cancel, why = evaluate_stuck_job(
+                job_age_min=age_min,
+                timeout_min=timeout_min,
+                heartbeat_age_min=hb_age,
+                expect_heartbeat=expect,
+            )
+            if not cancel:
+                continue
+            force = age_min > timeout_min + JOB_TIMEOUT_GRACE_MIN + 30
+            log(f"STUCK {wf} job {job.get('id')} {why} {age_min:.0f} min → {'force-cancel' if force else 'cancel'}")
+            _cancel_run(r["id"], force)
+            break
 
 
 def check(wf: dict, cfg: dict) -> None:
@@ -249,7 +352,12 @@ def tss_fresh() -> None:
         return
     import gzip
     try:
-        req = urllib.request.Request(HQ_URL + "/api/sync/tss-catalog", headers={
+        try:
+            base = _hq_base()
+        except RuntimeError as exc:
+            log(f"status=failed {exc}")
+            return
+        req = urllib.request.Request(base + "/api/sync/tss-catalog", headers={
             "Authorization": "Bearer " + os.environ["HQ_SYNC_TOKEN"], "Accept-Encoding": "gzip", "User-Agent": "sg-watchdog"})
         with urllib.request.urlopen(req, timeout=60) as f:
             raw = f.read()

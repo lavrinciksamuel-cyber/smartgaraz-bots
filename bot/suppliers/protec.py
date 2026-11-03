@@ -138,7 +138,7 @@ class ProtecSupplier(LoginMixin, GenericSupplier):
         return final, listed
 
     def _fetch_public_retail(self, url: str) -> float:
-        """Verejná MOC bez B2B cookies (Engine Clean = 8,49 €, nie partner 5,94)."""
+        """Public price without a signed-in session."""
         final, _listed = self._fetch_public_prices(url)
         return final
 

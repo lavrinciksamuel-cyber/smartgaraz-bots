@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 from suppliers.wurth_clean import build_description_v3, parse_oe_numbers  # noqa: E402
 
-PER_PIECE_SKUS = {"0500300002"}  # Samuel: predaj po kusoch
+PER_PIECE_SKUS = {"0500300002"}  # sold per piece
 
 
 def meta(p, k):

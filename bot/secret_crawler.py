@@ -293,7 +293,12 @@ def _hq_supplier_skus(code: str) -> Optional[List[str]]:
     if not tok or not code:
         return None
     import requests
-    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    from hq_url import hq_url
+    try:
+        hq = hq_url()
+    except RuntimeError as exc:
+        LOGGER.warning("status=failed %s", exc)
+        return None
     for wait in (0, 20, 60):
         if wait:
             time.sleep(wait)

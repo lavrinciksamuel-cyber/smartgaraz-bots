@@ -10,7 +10,7 @@ Beží v GitHub Actions (verejné repo → 0 €) každých 15 min:
      incidenty a upozornenia robí HQ.
 
 VEREJNÉ LOGY: vypisujú sa len počty – žiadne nálezy, cesty, IP ani tajomstvá.
-Env: SEC_SCANNER_SECRET (GitHub secret), SEC_HQ_URL (voliteľné), SEC_FULL=1 (vynúti hodinové kontroly),
+Env: SEC_SCANNER_SECRET, SEC_HQ_URL, SEC_LOGIN_PATH (all required for a real run), SEC_FULL=1,
      SEC_DRY=1 (nič neposiela, vypíše len počty).
 """
 from __future__ import annotations
@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 
 VERSION = "1.0"
 PROTO = "SGSEC1"
-UA = "SmartGarazSecMonitor/1.0 (+https://hq.smartgaraz.sk; bezpecnostny monitoring vlastnych webov)"
+UA = "SmartGarazSecMonitor/1.0"
 TIMEOUT = 15
 MAX_BODY = 2_000_000
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -429,13 +429,61 @@ def hq_call(hq: str, secret: str, method: str, path: str, payload: dict | None =
         return r.status, None
 
 
+def _mask(value: str) -> None:
+    text = (value or "").strip()
+    if len(text) >= 4:
+        print(f"::add-mask::{text}", file=sys.stderr)
+
+
+def _configured_hq() -> str:
+    raw = (os.environ.get("SEC_HQ_URL") or os.environ.get("HQ_URL") or "").strip().rstrip("/")
+    if not raw:
+        raise RuntimeError("SEC_HQ_URL is not set")
+    if "://" not in raw:
+        raw = "https://" + raw
+    _mask(raw)
+    host = urllib.parse.urlparse(raw).hostname or ""
+    if host:
+        _mask(host)
+    return raw
+
+
+def _apply_local_secrets(sites: list) -> list:
+    """Fallback list. Host and extra login path come only from the environment."""
+    path = (os.environ.get("SEC_LOGIN_PATH") or "").strip()
+    if not path:
+        raise RuntimeError("SEC_LOGIN_PATH is not set")
+    if not path.startswith("/"):
+        path = "/" + path
+    _mask(path)
+    hq = _configured_hq()
+    host = urllib.parse.urlparse(hq).hostname or ""
+    for site in sites:
+        if site.get("slug") != "smartgaraz":
+            continue
+        cfg = site.setdefault("cfg", {})
+        paths = [p for p in (cfg.get("login_paths") or []) if p and p != path]
+        paths.append(path)
+        cfg["login_paths"] = paths
+    sites.append({
+        "slug": "hq",
+        "url": hq + "/",
+        "kind": "hq",
+        "cfg": {"hosts": [host] if host else [], "domain": "smartgaraz.sk", "skip": ["wp", "blacklist"]},
+    })
+    return sites
+
+
 def load_sites(hq: str, secret: str) -> tuple[list, dict, str]:
-    if secret:
+    if secret and hq:
         st, d = hq_call(hq, secret, "GET", "/api/sec/scanner/sites")
         if st == 200 and isinstance(d, dict) and isinstance(d.get("sites"), list) and d["sites"]:
             return d["sites"], d.get("opts") or {}, "hq"
     with open(os.path.join(HERE, "sites.default.json"), encoding="utf-8") as f:
-        return json.load(f)["sites"], {}, "default"
+        sites = json.load(f)["sites"]
+    if secret:
+        sites = _apply_local_secrets(sites)
+    return sites, {}, "default"
 
 
 def is_full_run(now: time.struct_time) -> bool:
@@ -445,14 +493,22 @@ def is_full_run(now: time.struct_time) -> bool:
 def main() -> int:
     t0 = time.monotonic()
     secret = os.environ.get("SEC_SCANNER_SECRET", "").strip()
-    hq = os.environ.get("SEC_HQ_URL", "").strip() or "https://hq.smartgaraz.sk"
     dry = os.environ.get("SEC_DRY") == "1"
     if not secret and not dry:
         print("security-monitor: SEC_SCANNER_SECRET nie je nastavený – preskakujem (0 webov).")
         return 0
+    try:
+        hq = _configured_hq()
+    except RuntimeError as exc:
+        print(f"status=failed {exc}")
+        return 1
     now = time.gmtime()
     full = is_full_run(now)
-    sites, _opts, src = load_sites(hq, secret)
+    try:
+        sites, _opts, src = load_sites(hq, secret)
+    except RuntimeError as exc:
+        print(f"status=failed {exc}")
+        return 1
     sites = [s for s in sites if s.get("slug") and s.get("url")][:30]
     with ThreadPoolExecutor(max_workers=6) as ex:
         results = list(ex.map(lambda s: scan_site(s, full), sites))

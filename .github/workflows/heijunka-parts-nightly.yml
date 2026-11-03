@@ -2,8 +2,7 @@
 name: Heijunka parts (nightly staged)
 
 on:
-  schedule:
-    - cron: "20 21 * * *"   # 21:20 UTC ≈ 23:20 SK (summer)
+  # Manual only. Scheduled run is catalog-lkq.yml.
   workflow_dispatch:
     inputs:
       mode:
@@ -29,10 +28,13 @@ env:
   # LKQ zapnuté 13.10.2026 (login fix ae8494c); "1" = vypnúť
   SG_LKQ_DISABLED: "0"
 
+concurrency:
+  group: catalog-lkq
+  cancel-in-progress: false
 jobs:
   heijunka-parts:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -61,18 +63,30 @@ jobs:
         working-directory: bot
         env:
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
-        run: python -m suppliers.hq_credentials lkq szekop wurth
+          HQ_URL: ${{ secrets.HQ_URL }}
+        run: python -m suppliers.hq_credentials lkq
 
       - name: Prepare + staged heijunka
         env:
           WC_URL: ${{ secrets.WC_URL }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           LKQ_LOGIN_URL: ${{ secrets.LKQ_LOGIN_URL }}
           AI_MODE: cheap
           IMPORT_IN_STOCK: "1"
           SG_DAYTIME_QUIET: force_run
+          SG_LKQ_ONE_LOGIN: "1"
+          SG_LKQ_MAX_JOBS: "2"
+          SG_LKQ_MAX_PAGES: "2"
+          SG_GUARD_SLUG: lkq
+          SG_POLITE_HOSTS: lkq.sk
+          SG_POLITE_MIN: "12"
+          SG_POLITE_MAX: "28"
+          SG_DAILY_CAP: "40"
+          SG_RUN_CAP: "40"
+          SG_HTTP_RETRIES: "0"
         run: |
           set -euo pipefail
           MODE="${{ github.event.inputs.mode }}"

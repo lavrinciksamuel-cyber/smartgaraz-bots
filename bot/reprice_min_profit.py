@@ -37,7 +37,7 @@ from pricing import (  # noqa: E402
 )
 from suppliers.protec import PARSER_VERSION  # noqa: E402
 
-# Samuel 2026-10-22: 0500300002 predávame po 1 ks — cenu nemeniť.
+# 0500300002 is sold per piece. Do not change its price.
 KEEP_PRICE_SKUS = {"0500300002"}
 
 

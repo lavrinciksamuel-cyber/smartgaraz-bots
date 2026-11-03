@@ -43,6 +43,26 @@ def shard_of(key: str, n: int) -> int:
     return zlib.crc32(key.encode("utf-8")) % n
 
 
+def prepare_szekop_phase1() -> None:
+    """Catalog step settings."""
+    os.environ["SZEKOP_B2B"] = "0"
+    os.environ["SG_SZEKOP_PHASE"] = "1"
+    os.environ.setdefault("SG_GUARD_SLUG", "szekop-public")
+    os.environ.setdefault("SG_POLITE_HOSTS", "nextis.cz")
+    os.environ.setdefault("SG_POLITE_MIN", "20")
+    os.environ.setdefault("SG_POLITE_MAX", "35")
+    os.environ.setdefault("SG_DAILY_CAP", "40")
+    os.environ.setdefault("SG_RUN_CAP", "18")
+    os.environ.setdefault("SG_HTTP_RETRIES", "0")
+    os.environ["CRAWL_DELAY"] = "0"
+
+
+def _reraise_stop(exc: BaseException) -> None:
+    from supplier_pace import SupplierStop
+    if isinstance(exc, SupplierStop):
+        raise exc
+
+
 class Shard:
     def __init__(self, supplier: str, i: int, n: int):
         self.i, self.n = i, n
@@ -94,7 +114,8 @@ def import_urls(supplier, urls: List[str], skus: set, sh: Shard, deadline: float
         try:
             p = supplier.parse_product(u)
         except Exception as exc:
-            LOGGER.debug("parse fail %s: %s", u, exc)
+            _reraise_stop(exc)
+            LOGGER.debug("parse fail: %s", type(exc).__name__)
             p = None
         sh.state["stats"]["parsed"] += 1
         if not p or not getattr(p, "name", ""):
@@ -134,23 +155,31 @@ def _links(http, url: str, prefix: str) -> List[tuple]:
 
 
 def szekop_engines(sup, sh: Shard) -> List[Dict[str, str]]:
-    """Make → model → engine (SSR). Modely sú shardované, teda každý shard
-    stiahne len motory svojich modelov. Výsledok sa cachuje v stave."""
-    if sh.state.get("engines") and sh.state.get("engines_all_makes", "0") == os.environ.get("SG_SZEKOP_ALL_MAKES", "0"):
-        return sh.state["engines"]
+    """Make → model → engine (SSR). Pri dennom strope sa zoznam uloží a pokračuje ďalší beh."""
+    if sh.state.get("engines_complete") and sh.state.get("engines"):
+        if sh.state.get("engines_all_makes", "0") == os.environ.get("SG_SZEKOP_ALL_MAKES", "0"):
+            return sh.state["engines"]
     pre = "/sk/katalog/tecdoc/osobne/"
     makes = [(h, t) for h, t in _links(sup.http, SZ_ENTRY, pre) if re.fullmatch(pre + r"[a-z0-9-]+/\d+", h)]
     rank = {m: i for i, m in enumerate(PRIORITY_MAKES)}
     makes.sort(key=lambda x: (rank.get(x[0].split("/")[5], 999), x[0]))
-    engines: List[Dict[str, str]] = []
-    for mh, mt in makes:
+    engines: List[Dict[str, str]] = list(sh.state.get("engines") or [])
+    start = int(sh.state.get("engine_make_i") or 0)
+    for i, (mh, mt) in enumerate(makes):
+        if i < start:
+            continue
         slug = mh.split("/")[5]
         if slug not in rank and os.environ.get("SG_SZEKOP_ALL_MAKES", "0") != "1":
+            sh.state["engine_make_i"] = i + 1
             continue  # najprv známe značky; ostatné s SG_SZEKOP_ALL_MAKES=1
         try:
             models = [(h, t) for h, t in _links(sup.http, SZ_BASE + mh, pre + slug + "/")
                       if re.fullmatch(pre + slug + r"/[a-z0-9-]+/\d+/\d+", h)]
-        except Exception:
+        except Exception as exc:
+            _reraise_stop(exc)
+            sh.state["engine_make_i"] = i + 1
+            sh.state["engines"] = engines
+            sh.save()
             continue
         for h, t in models:
             if not sh.mine(h):
@@ -161,14 +190,20 @@ def szekop_engines(sup, sh: Shard) -> List[Dict[str, str]]:
             try:
                 engs = [(eh, et) for eh, et in _links(sup.http, SZ_BASE + h, h.rsplit("/", 2)[0] + "/")
                         if re.fullmatch(r".*/\d+/\d+/\d+", eh)]
-            except Exception:
+            except Exception as exc:
+                _reraise_stop(exc)
                 continue
             for eh, et in engs:
                 engines.append({"url": SZ_BASE + eh, "make": mt, "model": t, "engine": et})
-            time.sleep(0.2)
+        sh.state["engine_make_i"] = i + 1
+        sh.state["engines"] = engines
+        sh.state["engines_complete"] = False
+        sh.save()
     LOGGER.info("Szekop shard %d/%d: %d motorov", sh.i, sh.n, len(engines))
     sh.state["engines"] = engines
+    sh.state["engines_complete"] = True
     sh.state["engines_all_makes"] = os.environ.get("SG_SZEKOP_ALL_MAKES", "0")
+    sh.state.pop("engine_make_i", None)
     sh.save()
     return engines
 
@@ -184,7 +219,8 @@ def szekop_leaves(sup, eng: Dict[str, str]) -> List[str]:
             try:
                 rows = sup.expand_tecdoc_subcategories(eng["url"], nid, path=path, manufacturer=eng["make"],
                                                        model=eng["model"], engine=eng["engine"])
-            except Exception:
+            except Exception as exc:
+                _reraise_stop(exc)
                 rows = []
             for r in rows:
                 if r.get("end") == "1" and r.get("leaf_url"):
@@ -201,7 +237,8 @@ def szekop_leaf_products(sup, leaf: str) -> List[str]:
     from bs4 import BeautifulSoup
     try:
         html = sup.http.get(leaf).text or ""
-    except Exception:
+    except Exception as exc:
+        _reraise_stop(exc)
         return []
     out: List[str] = []
     seen_pages = {leaf}
@@ -225,14 +262,18 @@ def szekop_leaf_products(sup, leaf: str) -> List[str]:
             break
         try:
             html = sup.http.get(queue_pages.pop(0)).text or ""
-        except Exception:
+        except Exception as exc:
+            _reraise_stop(exc)
             break
     return out
 
 
 def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
+    prepare_szekop_phase1()
     from suppliers import get_supplier
     sup = get_supplier("szekop")
+    if not getattr(sup, "_public_only", True):
+        raise RuntimeError("status=failed")
     engines = szekop_engines(sup, sh)
     # Nový cyklus: všetky motory prejdené pred > SG_SZEKOP_RECYCLE_H h → znova (len nové SKU,
     # existujúce sa preskočia bez fetchu). Predtým sa hotový shard už nikdy nevrátil
@@ -272,9 +313,10 @@ def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
                 urls = szekop_leaf_products(sup, leaf)
                 got = import_urls(sup, urls, skus, sh, deadline) if urls else 0
                 made += got
-                LOGGER.info("leaf %s: url=%d nových=%d (spolu %d)", leaf.split("/?")[0][-60:], len(urls), got, made)
+                LOGGER.info("leaf: url=%d nových=%d (spolu %d)", len(urls), got, made)
             except Exception as exc:
-                LOGGER.warning("leaf fail %s: %s", leaf, exc)
+                _reraise_stop(exc)
+                LOGGER.warning("leaf fail: %s", type(exc).__name__)
             leaf_done.add(leaf)
             sh.state["leaf_done_" + eng["url"]] = sorted(leaf_done)
             sh.save()
@@ -289,31 +331,50 @@ def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
 # ------------------------------------------------------------------ Würth
 
 def run_wurth(sh: Shard, deadline: float, skus: set) -> int:
-    from suppliers import get_supplier
-    import suppliers.wurth as W
-    sup = get_supplier("wurth")
-    if not sh.state.get("urls"):
-        # Plný crawl (bez 400 stropu); zoznam URL sa uloží a delí shardom.
-        os.environ.setdefault("SG_WURTH_MAX_PAGES", "1500")  # ~2 s/str. ≈ 50 min
-        urls = sup.discover_product_urls(None)  # vrátane B2B loginu (verejný katalóg dáva 0 URL)
-        sh.state["urls"] = [u for u in urls if sh.mine(u)]
-        LOGGER.info("Würth crawl: %d URL, shard %d/%d → %d", len(urls), sh.i, sh.n, len(sh.state["urls"]))
-        sh.save()
-    urls = sh.state["urls"]
-    cur = int(sh.state.get("cursor") or 0)
-    made = 0
-    while cur < len(urls) and time.time() < deadline:
-        chunk = urls[cur:cur + 50]
-        made += import_urls(sup, chunk, skus, sh, deadline)
-        cur += len(chunk)
-        sh.state["cursor"] = cur
-        sh.save()
-        LOGGER.info("Würth kurzor %d/%d nových spolu %d", cur, len(urls), made)
-    if cur >= len(urls):
-        sh.state.pop("urls", None)  # ďalší beh = nový crawl (nové SKU)
-        sh.state["cursor"] = 0
-        sh.save()
-    return made
+    raise RuntimeError("skipped")
+
+
+def _finish_shard(sh: Shard, supplier: str, shard: str, made: int, t0: float, *, ok: bool, reason: str) -> int:
+    from supplier_pace import decide_outcome, job_summary, guard
+    sh.save()
+    stats = sh.state.get("stats") or {}
+    seen = int(stats.get("parsed") or 0)
+    skipped = int(stats.get("skipped_existing") or 0)
+    cap = reason in {"cap", "run_cap"}
+    blocked = reason == "blocked"
+    requests_n = 0
+    try:
+        requests_n = int(guard(os.environ.get("SG_GUARD_SLUG") or "szekop-public").snapshot().get("run_requests") or 0)
+    except Exception:
+        requests_n = 0
+    # Count requests toward progress when the run was not stopped.
+    progress = requests_n if not blocked else 0
+    success, why = decide_outcome(
+        seen=max(seen, progress), new=made, skipped_existing=skipped, blocked=blocked, cap=cap,
+    )
+    if reason == "login":
+        success, why = False, "login"
+    slug = os.environ.get("SG_GUARD_SLUG") or "szekop-public"
+    try:
+        g = guard(slug)
+        if success:
+            g.note_success()
+        elif why != "paused":
+            g.note_failure(why)
+    except Exception:
+        pass
+    job_summary(
+        "Szekop",
+        status="ok" if success else "failed",
+        new=made,
+        seen=seen,
+        skipped=skipped,
+    )
+    print("SG_RESULT " + json.dumps({
+        "ok": success, "status": "ok" if success else "failed",
+        "new": made, "seen": seen, "skipped": skipped,
+    }, ensure_ascii=False), flush=True)
+    return 0 if success else 1
 
 
 def main() -> int:
@@ -332,14 +393,37 @@ def main() -> int:
     sh.state["stats"]["runs"] += 1
     t0 = time.time()
     deadline = t0 + a.budget_min * 60
-    skus = existing_skus()
-    made = run_szekop(sh, deadline, skus) if a.supplier == "szekop" else run_wurth(sh, deadline, skus)
-    sh.save()
-    hrs = max((time.time() - t0) / 3600, 1e-6)
-    print("SG_RESULT " + json.dumps({"ok": True, "supplier": a.supplier, "shard": a.shard, "new": made,
-                                     "per_hour": round(made / hrs), "minutes": round((time.time() - t0) / 60, 1),
-                                     "stats": sh.state["stats"]}, ensure_ascii=False), flush=True)
-    return 0
+    if a.supplier == "wurth":
+        from supplier_pace import job_summary
+        job_summary("Wurth", status="failed", new=0, seen=0)
+        print("SG_RESULT " + json.dumps({
+            "ok": False, "status": "failed", "new": 0, "seen": 0,
+        }, ensure_ascii=False), flush=True)
+        return 1
+    prepare_szekop_phase1()
+    from supplier_pace import DailyCapReached, LoginFailed, RunCapReached, SupplierBlocked, guard, job_summary
+    from supplier_pace import resume_requested
+    st = guard(os.environ.get("SG_GUARD_SLUG") or "szekop-public").begin(resume=resume_requested())
+    if st.get("paused"):
+        job_summary("Szekop", status="failed", new=0, seen=0)
+        print('SG_RESULT {"ok": false, "status": "failed", "new": 0, "seen": 0}', flush=True)
+        return 1
+    if int(st.get("cap_left") or 0) <= 0:
+        job_summary("Szekop", status="ok", new=0, seen=int(st.get("requests") or 0))
+        print("SG_RESULT " + json.dumps({
+            "ok": True, "status": "ok", "new": 0, "seen": int(st.get("requests") or 0),
+        }, ensure_ascii=False), flush=True)
+        return 0
+    try:
+        skus = existing_skus()
+        made = run_szekop(sh, deadline, skus)
+    except (DailyCapReached, RunCapReached):
+        return _finish_shard(sh, "szekop", a.shard, int(sh.state["stats"].get("created") or 0), t0, ok=True, reason="cap")
+    except SupplierBlocked:
+        return _finish_shard(sh, "szekop", a.shard, int(sh.state["stats"].get("created") or 0), t0, ok=False, reason="blocked")
+    except LoginFailed:
+        return _finish_shard(sh, "szekop", a.shard, 0, t0, ok=False, reason="login")
+    return _finish_shard(sh, "szekop", a.shard, made, t0, ok=True, reason="done")
 
 
 if __name__ == "__main__":

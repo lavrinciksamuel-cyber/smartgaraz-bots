@@ -496,7 +496,7 @@ def _fold_make(name: str) -> str:
 
 
 def full_fleet_queue() -> List[Dict[str, str]]:
-    """Plný LKQ katalóg (2026-10-23, Samuel): celý SK park z vlastnej taxonómie
+    """Full LKQ catalog: the whole park from the local taxonomy
     (data/vehicle_hierarchy_sk.json: značka × model+generácia × motor) × všetky
     LKQ kategórie, ktoré majú mapovanie v data/supplier_category_map.json
     (lkq_needles → žiadne fallback kategórie). Poradie: značky podľa SK parku."""
@@ -943,6 +943,9 @@ def _raw_lkq_request(supplier: Any, method: str, url: str, headers: Optional[Dic
             allow_redirects=True,
         )
     except Exception as exc:
+        from supplier_pace import SupplierStop
+        if isinstance(exc, SupplierStop):
+            raise
         LOGGER.info("LKQ %s zlyhal: %s", method, type(exc).__name__)
         return {
             "status": None,
@@ -1036,55 +1039,27 @@ def _force_lkq_relogin(supplier: Any, run: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _ensure_lkq_session(supplier: Any, run: Dict[str, Any]) -> Dict[str, Any]:
-    """Over session. Ak nevyzerá prihlásená, znova sa prihlás (existujúce secrets)."""
+    """Jeden login. Platná je len session s odhlásením v HTML. Inak koniec behu."""
+    from supplier_pace import SupplierStop
+
     creds = supplier.credentials or {}
     user = str(creds.get("user") or "").strip()
     password = str(creds.get("password") or "").strip()
     if not user or not password:
-        raise RuntimeError(
-            "LKQ session neplatná: chýbajú prihlasovacie údaje "
-            "(http=n/a bytes=0 login_page=False)"
-        )
-    ok = False
+        raise RuntimeError("status=failed")
     try:
         ok = bool(supplier.ensure_login())
+    except SupplierStop:
+        raise
     except Exception as exc:
         LOGGER.info("LKQ login výnimka: %s", type(exc).__name__)
         ok = False
     home = _probe_lkq_home(supplier)
-    # Formulár v SPA šablóne (aj katalógová URL ho má) nie je sám o sebe pád.
-    # Tvrdá chyba = HTTP. Inak sa prihlásime znova, keď nie je odhlásenie a form ostal.
-    if _session_hard_fail(home) or (home.get("login_page") and not home.get("logged_in")):
-        LOGGER.info(
-            "LKQ session po kontrole neplatná: http=%s bytes=%s login_page=%s logged_in=%s login_ok=%s",
-            home.get("status"),
-            home.get("bytes"),
-            bool(home.get("login_page")),
-            bool(home.get("logged_in")),
-            ok,
-        )
-        if not run.get("force_used"):
-            home = _force_lkq_relogin(supplier, run)
-    # HTTP pád je tvrdá chyba. Login formulár v SPA šablóne (200, veľké HTML)
-    # nie — o tom, či ide o zoznam, rozhodne ProductList nižšie.
-    status = home.get("status")
-    if status is None or int(status) >= 400:
-        raise RuntimeError(
-            "LKQ session neplatná po kontrole "
-            f"(http={home.get('status')} bytes={home.get('bytes')} "
-            f"login_page={bool(home.get('login_page'))})"
-        )
-    # Potvrdená session = odhlásenie, alebo formulár z HTML zmizol.
-    # Ak SPA formulár nechá aj po logine, o platnosti rozhodne ProductList.
-    run["trusted"] = bool(home.get("logged_in")) or not bool(home.get("login_page"))
-    if run["trusted"]:
-        run["fresh"] = True
-    elif home.get("login_page"):
-        LOGGER.info(
-            "LKQ homepage stále obsahuje login formulár (http=%s bytes=%s login_page=True) — overím zoznam produktov",
-            home.get("status"),
-            home.get("bytes"),
-        )
+    run["fresh"] = bool(ok and home.get("logged_in"))
+    run["trusted"] = bool(home.get("logged_in"))
+    if not run["trusted"]:
+        raise RuntimeError("status=failed")
+    LOGGER.info("status=ok")
     return home
 
 
@@ -1220,44 +1195,21 @@ def _servis_resolve_url(
     run: Dict[str, Any],
 ) -> tuple:
     """Nájdi Catalog URL a over, že je to zoznam produktov. 0 ks → výnimka (failed, nie done)."""
-    key = _job_key(job)
-    cached = bool(url_cache.get(key))
     url = _find_url(job, url_cache=url_cache)
     LOGGER.info("URL %s", url)
     probe = _probe_catalog(supplier, url)
     if not probe.get("is_list"):
-        if not run.get("fresh"):
-            _force_lkq_relogin(supplier, run)
-            probe = _probe_catalog(supplier, url)
-        if not probe.get("is_list") and cached:
-            url_cache.pop(key, None)
-            url = _find_url(job, url_cache=url_cache)
-            LOGGER.info("URL %s", url)
-            probe = _probe_catalog(supplier, url)
-    if not probe.get("is_list"):
-        if probe.get("login_page") or probe.get("status") is None:
+        if probe.get("login_page") or probe.get("status") is None or not run.get("trusted"):
             raise RuntimeError(_probe_reason("LKQ session neplatná: URL nie je zoznam produktov", probe))
         raise RuntimeError(_probe_reason("URL nie je zoznam produktov", probe))
     if _probe_empty(probe) and not run.get("trusted"):
-        LOGGER.info("LKQ zoznam prázdny pri neoverenej session → nový login")
-        home = _force_lkq_relogin(supplier, run)
-        if not _session_hard_fail(home) and (home.get("logged_in") or not home.get("login_page")):
-            run["trusted"] = True
-        probe = _probe_catalog(supplier, url)
-    if not probe.get("is_list"):
-        if probe.get("login_page") or probe.get("status") is None:
-            raise RuntimeError(_probe_reason("LKQ session neplatná: URL nie je zoznam produktov", probe))
-        raise RuntimeError(_probe_reason("URL nie je zoznam produktov", probe))
-    if not _probe_empty(probe):
-        run["trusted"] = True
-    if _probe_empty(probe):
-        if not run.get("trusted"):
-            raise RuntimeError(
-                _probe_reason(
-                    "LKQ session neplatná: prázdny zoznam bez potvrdeného prihlásenia",
-                    probe,
-                )
+        raise RuntimeError(
+            _probe_reason(
+                "LKQ session neplatná: prázdny zoznam bez potvrdeného prihlásenia",
+                probe,
             )
+        )
+    if _probe_empty(probe):
         raise RuntimeError(_probe_reason("Nájdených produktov: 0", probe))
     return url, probe
 
@@ -1436,6 +1388,21 @@ def main() -> int:
         raise SystemExit("Heijunka: --limit max 50")
     if args.jobs > 12:
         args.jobs = 12
+    # Prihlásený LKQ beh je zámerne malý. Väčší počet len s SG_LKQ_ALLOW_BURST=1.
+    if os.environ.get("SG_LKQ_ALLOW_BURST") != "1":
+        cap_jobs = int(os.environ.get("SG_LKQ_MAX_JOBS", "3") or 3)
+        if args.jobs > cap_jobs:
+            LOGGER.info("status=ok jobs=%d", cap_jobs)
+            args.jobs = cap_jobs
+    if os.environ.get("SG_LKQ_KEEP_SESSION") != "1" and not args.check_only:
+        for stale in (
+            os.environ.get("SG_LKQ_ATTEMPT_FILE", "/tmp/sg_lkq_login_attempted"),
+            os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed"),
+        ):
+            try:
+                os.remove(stale)
+            except OSError:
+                pass
 
     only_flags = sum(
         bool(x)
@@ -1659,12 +1626,23 @@ def main() -> int:
                 done[key] = rec
                 failed.pop(key, None)
         except Exception as exc:
+            from supplier_pace import SupplierStop
             err = _scrub_secrets(str(exc))[:500]
             LOGGER.error("JOB FAIL %s: %s", key, err)
+            if isinstance(exc, SupplierStop):
+                lkq_run["session_dead"] = True
+                row["error"] = err
+                results.append(row)
+                _save_state(state)
+                break
             row["error"] = err
-            # Session/sieť: nenechaj job done ani failed, nech sa po oprave zopakuje.
-            # 0 produktov pri potvrdenej session ostáva failed (neuzavrie frontu ako hotové).
-            if args.servis_balicky and _servis_failure_is_retryable(err):
+            # Session/sieť/login: job nechaj vo fronte. 0 produktov pri platnej session ostáva failed.
+            login_dead = (
+                "login zlyhal" in err
+                or "session neplatná" in err
+                or os.path.exists(os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed"))
+            )
+            if login_dead or (args.servis_balicky and _servis_failure_is_retryable(err)):
                 lkq_run["session_dead"] = True
             elif not args.dry_run:
                 fail_rec: Dict[str, Any] = {
@@ -1706,6 +1684,8 @@ def main() -> int:
     LOGGER.info("stav %s (done=%d failed=%d)", STATE_PATH, len(done), len(failed))
     # Heijunka: jeden padnutý leaf (napr. chýbajúca LKQ kategória) nemá zabíjať večer.
     ok_n = sum(1 for r in results if r.get("ok"))
+    if lkq_run.get("session_dead") or os.path.exists(os.environ.get("SG_LKQ_FAIL_MARKER", "/tmp/sg_lkq_login_failed")):
+        return 1
     if not results or ok_n > 0:
         return 0
     return 1

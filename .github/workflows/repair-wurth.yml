@@ -1,7 +1,7 @@
 name: Repair Würth products (pack / popis / kategória)
 # Idempotentná oprava Würth produktov: publish → koncept kým nie je overené
 # balenie (ks) + pôvod SK/DE, čistý popis + OE čísla, tagy, značka, hádané kategórie.
-# Denne skúsi doplniť balenie/pôvod z Würth PDP (--refetch); pri ochrane webu refetch vypne.
+# Repair stored product fields.
 on:
   workflow_dispatch:
     inputs:
@@ -40,8 +40,11 @@ jobs:
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           PYTHONUNBUFFERED: "1"
         run: |
           ARGS="${{ github.event.inputs.args }}"
-          if [ "${{ github.event_name }}" = "schedule" ]; then ARGS="--refetch"; fi
+          case "$ARGS" in
+            *--refetch*) echo "status=skipped"; ARGS="${ARGS//--refetch/}" ;;
+          esac
           python bot/repair_wurth_products.py $ARGS

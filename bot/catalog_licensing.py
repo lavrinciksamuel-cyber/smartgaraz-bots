@@ -48,7 +48,7 @@ ALLOWED_SUPPLIER_HOST_SUFFIXES: tuple[str, ...] = (
     "nextis.cz",
     "lkq.sk",
     "lkq.cz",
-    "eshop.wurth.sk",
+    # Slovak shop host is denied above.
     "wurth.sk",
     "wurth.cz",
     "eshop.wurth.ba",  # verejné fotky, len článkové číslo (wurth_photo_backfill)
@@ -88,6 +88,14 @@ def _matches_suffix(host: str, suffix: str) -> bool:
     return h == s or h.endswith("." + s)
 
 
+def is_wurth_sk_shop(url_or_host: str) -> bool:
+    """Host check for the Slovak shop hostname."""
+    host = host_of(url_or_host) if "://" in (url_or_host or "") or "/" in (url_or_host or "") else (
+        (url_or_host or "").lower().rstrip(".")
+    )
+    return host == "eshop.wurth.sk" or host.endswith(".eshop.wurth.sk")
+
+
 def is_forbidden_catalog_host(url_or_host: str) -> bool:
     host = host_of(url_or_host) if "://" in (url_or_host or "") or "/" in (url_or_host or "") else (
         (url_or_host or "").lower().rstrip(".")
@@ -107,6 +115,9 @@ def assert_allowed_catalog_url(url: str, *, context: Optional[str] = None) -> st
     """
     if not (url or "").strip():
         return url
+    if is_wurth_sk_shop(url):
+        where = f" ({context})" if context else ""
+        raise CatalogLicensingError(f"request refused{where}")
     if is_forbidden_catalog_host(url):
         where = f" ({context})" if context else ""
         raise CatalogLicensingError(

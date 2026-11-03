@@ -20,8 +20,9 @@ on:
         required: false
         default: "manual"
 
+# Same concurrency group as the matching scheduled workflow.
 concurrency:
-  group: supplier-import-${{ inputs.supplier }}
+  group: ${{ inputs.supplier == 'szekop' && 'szekop-supplier' || inputs.supplier == 'lkq' && 'catalog-lkq' || format('supplier-import-{0}', inputs.supplier) }}
   cancel-in-progress: false
 
 env:
@@ -53,6 +54,24 @@ jobs:
           restore-keys: |
             import-queue-state-
             heijunka-state-
+      - name: Guard cache key
+        id: gk
+        run: |
+          case "${{ inputs.supplier }}:${{ inputs.mode }}" in
+            szekop:prices) echo "slug=szekop-b2b" >> "$GITHUB_OUTPUT" ;;
+            szekop:*) echo "slug=szekop-public" >> "$GITHUB_OUTPUT" ;;
+            lkq:*) echo "slug=lkq" >> "$GITHUB_OUTPUT" ;;
+            *) echo "slug=other" >> "$GITHUB_OUTPUT" ;;
+          esac
+          mkdir -p bot/data/supplier_guard
+      - name: Restore supplier guard
+        if: steps.gk.outputs.slug != 'other'
+        uses: actions/cache/restore@v4
+        with:
+          path: bot/data/supplier_guard
+          key: guard-${{ steps.gk.outputs.slug }}-${{ github.run_id }}
+          restore-keys: |
+            guard-${{ steps.gk.outputs.slug }}-
       - name: Install deps
         run: pip install -r bot/requirements.txt
       - name: Restore price cursor
@@ -67,11 +86,39 @@ jobs:
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           IDEO_USER: ${{ secrets.IDEO_USER }}
           IDEO_PASSWORD: ${{ secrets.IDEO_PASSWORD }}
           IMPORT_IN_STOCK: "1"
-        run: python bot/supplier_import.py --supplier "${{ inputs.supplier }}" --mode "${{ inputs.mode }}" --limit "${{ inputs.limit }}"
+        run: |
+          SUP="${{ inputs.supplier }}"
+          MODE="${{ inputs.mode }}"
+          case "$SUP" in
+            lkq)
+              export SG_GUARD_SLUG=lkq SG_POLITE_HOSTS=lkq.sk SG_POLITE_MIN=12 SG_POLITE_MAX=28
+              export SG_DAILY_CAP=40 SG_RUN_CAP=40 SG_HTTP_RETRIES=0 SG_LKQ_ONE_LOGIN=1
+              export SG_LKQ_REFRESH_LIMIT=12 SG_LKQ_MAX_PAGES=2 SG_LKQ_NEW_LIMIT=8
+              if [ "$MODE" = "prices" ]; then export SG_LKQ_NEW_JOBS=0; else export SG_LKQ_NEW_JOBS="${SG_LKQ_NEW_JOBS:-1}"; fi
+              ;;
+            szekop)
+              export SG_POLITE_HOSTS=nextis.cz SG_HTTP_RETRIES=0 CRAWL_DELAY=0
+              if [ "$MODE" = "prices" ]; then
+                export SG_GUARD_SLUG=szekop-b2b SZEKOP_B2B=1 SG_SZEKOP_B2B_REQUIRED=1 SG_SZEKOP_ONE_LOGIN=1
+                export SG_POLITE_MIN=20 SG_POLITE_MAX=45 SG_DAILY_CAP=30 SG_RUN_CAP=30 SG_SZEKOP_REFRESH_LIMIT=12
+              else
+                export SG_GUARD_SLUG=szekop-public SZEKOP_B2B=0 SG_SZEKOP_PHASE=1
+                export SG_POLITE_MIN=20 SG_POLITE_MAX=35 SG_DAILY_CAP=40 SG_RUN_CAP=18
+              fi
+              ;;
+          esac
+          python bot/supplier_import.py --supplier "$SUP" --mode "$MODE" --limit "${{ inputs.limit }}"
+      - name: Save supplier guard
+        if: always() && steps.gk.outputs.slug != 'other'
+        uses: actions/cache/save@v4
+        with:
+          path: bot/data/supplier_guard
+          key: guard-${{ steps.gk.outputs.slug }}-${{ github.run_id }}
       - name: Save price cursor
         if: always()
         uses: actions/cache/save@v4

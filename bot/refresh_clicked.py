@@ -95,6 +95,11 @@ def fetch_refresh_queue(limit: int, hours: int = 24) -> List[Dict[str, Any]]:
     return list(data.get("items") or [])
 
 
+def _live_fetch_skipped(url: str, source: str) -> bool:
+    from supplier_pace import live_fetch_skipped
+    return live_fetch_skipped(url, source)
+
+
 def _ensure_supplier_login(supplier) -> None:
     name = getattr(supplier, "source_name", None) or getattr(supplier, "name", None) or supplier.__class__.__name__
     key = str(name).lower()
@@ -137,6 +142,10 @@ def refresh_one(
     offer = None
     raw_dict: Dict[str, Any] = wc_product_to_raw_data(product)
     raw_dict["wc_product_id"] = product_id
+
+    if supplier_url and _live_fetch_skipped(supplier_url, source):
+        LOGGER.info("Preskakujem živý fetch (LKQ/Szekop majú vlastný beh, Würth SK je vypnutý)")
+        return "skipped_live"
 
     if supplier_url:
         from suppliers.base import OfferSnapshot, parse_price

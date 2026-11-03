@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Dostupnosť / pôvod skladu pre každý produkt (Samuel 22.10.2026).
+"""Dostupnosť / pôvod skladu pre každý produkt.
 
 Statusy (meta `_sg_avail`):
   sr       „Skladom v SR“  — 2–3 pracovné dni
   eu       „Sklad v EÚ“    — 5–10 pracovných dní
   na       „Nedostupné“    — stock_status=outofstock (nedá sa objednať, na koniec výpisov)
   (interné „unknown“ = pôvod nevieme → na webe VŽDY „Sklad v EÚ“ 5–10 dní, ak je objednateľné;
-   legenda má len 3 stavy, „Na objednávku“ sa nezobrazuje — Samuel 23.10.2026)
+   legenda má len 3 stavy, „Na objednávku“ sa nezobrazuje)
 
 Ako zisťujeme pôvod:
   LKQ (lkq.sk B2B, ProductList API): StorageStockAmount > 0 (+ IsStorageStock, IsOrderable)
@@ -296,7 +296,12 @@ def _tss_stock_text(m: Dict[str, Any]) -> Optional[str]:
         if tok:
             try:
                 import requests
-                hq = os.getenv("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+                from hq_url import hq_url
+                try:
+                    hq = hq_url()
+                except RuntimeError as exc:
+                    LOG.warning("status=failed %s", exc)
+                    return None
                 r = requests.get(f"{hq}/api/sync/tss-catalog", timeout=180,
                                  headers={"Authorization": f"Bearer {tok}", "User-Agent": "smartgaraz-bot"})
                 if r.status_code == 200:
@@ -354,6 +359,9 @@ def backfill(args) -> int:
     pending: List[Dict[str, Any]] = []
     changed = refetched = 0
     szekop_http = None
+    if args.szekop_refetch and os.environ.get("SG_SZEKOP_REFETCH_ALLOW") != "1":
+        LOG.info("status=skipped")
+        args.szekop_refetch = 0
     if args.szekop_refetch:
         from suppliers import get_supplier
         szekop_http = get_supplier("szekop").http

@@ -382,6 +382,12 @@ def main() -> None:
         if hasattr(supplier, "ensure_login"):
             ok = supplier.ensure_login()
             LOGGER.info("🔐 Login %s: %s", args.supplier, "OK" if ok else "skip/public")
+            if args.supplier == "lkq" and not ok:
+                LOGGER.error("status=failed")
+                sys.exit(1)
+            if args.supplier == "szekop" and os.getenv("SG_SZEKOP_B2B_REQUIRED") == "1" and not ok:
+                LOGGER.error("status=failed")
+                sys.exit(1)
         # Pri --in-stock crawl viac kandidátov, potom orež (cap 2× / 400 — menej muda).
         crawl_limit = args.limit
         if in_stock_only and args.limit > 0:

@@ -1,7 +1,7 @@
 """Ochrana hostingu (HostCreators): chránime HQ + WC API, nie rýchlosť shopu.
 
 wait_if_slow() meria najviac raz za SG_GUARD_EVERY_S (30 s):
-  - HQ (SG_GUARD_HQ_URL, default https://hq.smartgaraz.sk/) — TTFB > SG_GUARD_SLOW_S (3 s) = pomalé
+  - HQ (HQ_URL, required) — TTFB > SG_GUARD_SLOW_S (3 s) = pomalé
   - WC API (products?per_page=1) — 429 / 5xx / 508 (limit zdrojov) = problém
 Pri 508 (Resource Limit Is Reached) hneď dlhá pauza, aby účet nesuspendovali.
 Inak pauza 30/60/120/240 s, kým sa HQ aj API nespamätajú.
@@ -22,16 +22,25 @@ BAD = (429, 500, 502, 503, 504, 508)
 def _probe() -> tuple:
     """(hq_dt, hq_code, api_code, api_dt)."""
     import requests
-    hq = os.environ.get("SG_GUARD_HQ_URL", "https://hq.smartgaraz.sk/")
+    hq = ""
+    try:
+        from hq_url import hq_url
+        hq = hq_url() + "/"
+    except RuntimeError:
+        if not _maint.get("hq_warned"):
+            LOGGER.error("status=failed HQ_URL is not set")
+            _maint["hq_warned"] = True
     t = time.monotonic()
     hq_code = 0
-    try:
-        r = requests.get(hq, timeout=20, headers={"User-Agent": "SmartGarazBot-guard"}, stream=True)
-        hq_code = r.status_code
-        r.close()
-    except Exception:
-        hq_code = 599
-    hq_dt = time.monotonic() - t
+    hq_dt = 0.0
+    if hq:
+        try:
+            r = requests.get(hq, timeout=20, headers={"User-Agent": "SmartGarazBot-guard"}, stream=True)
+            hq_code = r.status_code
+            r.close()
+        except Exception:
+            hq_code = 599
+        hq_dt = time.monotonic() - t
     api_code, api_dt = 200, 0.0
     wc = os.environ.get("WC_URL", "").rstrip("/")
     if wc:

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import argparse
 import os
-try:  # loginy z HQ (hq.smartgaraz.sk) majú prednosť pred secrets
+try:  # HQ logins override env values
     from suppliers.hq_credentials import export_logins as _hq_export
     _hq_export("lkq")
 except Exception:

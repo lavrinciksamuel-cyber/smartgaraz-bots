@@ -24,7 +24,7 @@ SMALL = re.compile(
     re.I,
 )
 TUNING = re.compile(r"\bEIBACH\b|K&(amp;)?N\b|\bBILSTEIN\s+B(8|1[2-6])\b|\bB(8|1[2-6])\b.*\bBILSTEIN\b|Pro-Kit|Pro-Street", re.I)
-# Žiarovky (Samuel 2026-10-31): OE nie je povinné na zverejnenie; ak OE v dátach je, ostáva a je hľadateľné.
+# Bulbs: OE is not required to publish. An OE number already on the product stays searchable.
 BULB = re.compile(r"[žz]iarov|[žz][aá]rovk|\bbulb|v[yý]bojk|xen[oó]n", re.I)
 BULB_TYPE = re.compile(r"\b(h[1-9]|h1[0-9]|hb[1-5]|hir2|w5w|w21w|w21/5w|p21w|p21/5w|py21w|r5w|r10w|c5w|t10|d[1-8][rs])\b", re.I)
 LAMP_UNIT = re.compile(r"svetlomet|sv[eě]tlomet|reflektor|lamp|svietidl|sv[ií]tiln|koncov[eéá]|hmlovk", re.I)

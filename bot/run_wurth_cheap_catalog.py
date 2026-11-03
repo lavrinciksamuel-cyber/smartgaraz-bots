@@ -20,7 +20,7 @@ import argparse
 import json
 import logging
 import os
-try:  # loginy z HQ (hq.smartgaraz.sk) majú prednosť pred secrets
+try:  # HQ logins override env values
     from suppliers.hq_credentials import export_logins as _hq_export
     _hq_export("wurth")
 except Exception:

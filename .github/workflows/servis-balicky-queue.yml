@@ -1,26 +1,15 @@
-# Servisné balíčky: LKQ filtre/sviečky pre presné motory (fronta bot/data/servis_balicky_queue.json).
-# Spúšťa sa sám po merge (push), ručne (workflow_dispatch) a potom každých 20 min,
-# kým fronta nie je prejdená.
-# Keď je fronta hotová (alebo po 2026-11-04), workflow sa sám vypne (gh workflow disable,
-# len vstavaný GITHUB_TOKEN tohto behu). Opätovné zapnutie: Actions → Enable workflow.
+# Manual LKQ queue. Scheduled work is catalog-lkq.yml.
 name: Servisné balíčky (LKQ fronta)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/servis-balicky-queue.yml"
-      - "bot/data/servis_balicky_queue.json"
-  schedule:
-    - cron: "*/20 * * * *"
 
 permissions:
   contents: read
   actions: write
 
 concurrency:
-  group: servis-balicky-queue
+  group: catalog-lkq
   cancel-in-progress: false
 
 env:
@@ -30,8 +19,18 @@ env:
   SG_ACCOUNT_INDEX: "0"
   SG_ACCOUNT_COUNT: "1"
   SG_LKQ_DISABLED: "0"
-  SERVIS_JOBS: "12"
-  SERVIS_LIMIT: "50"
+  SG_LKQ_ONE_LOGIN: "1"
+  SG_LKQ_MAX_JOBS: "2"
+  SG_POLITE_HOSTS: "lkq.sk"
+  SG_GUARD_SLUG: "lkq"
+  SG_POLITE_MIN: "12"
+  SG_POLITE_MAX: "28"
+  SG_DAILY_CAP: "40"
+  SG_RUN_CAP: "40"
+  SG_HTTP_RETRIES: "0"
+  SG_LKQ_MAX_PAGES: "2"
+  SERVIS_JOBS: "2"
+  SERVIS_LIMIT: "8"
   SERVIS_UNTIL: "2026-11-04"
 
 jobs:
@@ -114,6 +113,7 @@ jobs:
         working-directory: bot
         env:
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
         run: python -m suppliers.hq_credentials lkq
 
       - name: Servisné balíčky — LKQ import
@@ -121,6 +121,7 @@ jobs:
         env:
           WC_URL: ${{ secrets.WC_URL }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           LKQ_LOGIN_URL: ${{ secrets.LKQ_LOGIN_URL }}

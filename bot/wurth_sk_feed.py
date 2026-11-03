@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Würth SK cenník (XLSX / CSV / BMEcat) → cena a sklad. Obsah môže byť v súbore.
+"""Würth file import (XLSX / CSV / BMEcat) → price and stock.
 
-Majiteľ žiada u obchodného zástupcu Würth týždenný cenník (XLSX alebo BMEcat).
-Príde ako príloha e-mailu na Gmail. Bot schránku zatiaľ nečíta — súbor sa sem
-dostane ručne: nahratie v HQ, alebo súbor v bot/data/wurth_sk_inbox/.
-Automatické stiahnutie z Gmailu je až ďalší krok.
+A row without a price does not keep the old price. A row without stock does not change stock.
+New SKUs are created as drafts.
 
-Würth SK: všetky ceny v súbore sú bez DPH. Objednávka do 99,99 € netto má
-manipulačný poplatok 6,80 €, od 100 € je bez poplatku (viď calculate_retail /
-wurth_price_floor). Predaj = netto × 1,23, potom marža, fee floor a min. 20 %.
-Riadok bez ceny nenechá starú cenu. Riadok bez skladu nemení sklad.
-Nové SKU vzniknú ako koncept.
-
-Súbor: --file, inak bot/data/wurth_sk_inbox/, inak HQ GET /api/sync/wurth-pricelist.
+File: --file, else bot/data/wurth_sk_inbox/, else the HQ price-list endpoint.
 
   python bot/wurth_sk_feed.py --file cennik.xlsx          # náhľad
   python bot/wurth_sk_feed.py --file cennik.xlsx --apply
@@ -454,7 +446,12 @@ def load_feed_bytes(path: str = "") -> tuple[Optional[bytes], str]:
     if not token:
         return None, ""
     import requests
-    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    from hq_url import hq_url
+    try:
+        hq = hq_url()
+    except RuntimeError:
+        print("status=failed HQ_URL is not set", flush=True)
+        return None, ""
     resp = requests.get(
         f"{hq}/api/sync/wurth-pricelist",
         headers={"Authorization": f"Bearer {token}", "User-Agent": "smartgaraz-bot"},
@@ -483,13 +480,11 @@ def main() -> int:
     data, name = load_feed_bytes(args.file)
     if not data:
         print("SG_RESULT " + json.dumps({
-            "ok": True,
-            "msg": "Žiadny čerstvý Würth SK cenník (inbox ani HQ). Ceny a sklad ostávajú, nič sa nehádalo.",
-            "updated": 0, "created": 0,
+            "ok": False, "status": "failed", "updated": 0, "created": 0,
         }, ensure_ascii=False))
-        return 0
+        return 1
     rows = parse_feed(data, name)
-    print(f"[wurth-sk] {name}: {len(rows)} riadkov", flush=True)
+    print(f"rows={len(rows)}", flush=True)
 
     creds_url = (os.environ.get("WC_URL") or "").rstrip("/")
     key = os.environ.get("WC_CONSUMER_KEY") or ""
@@ -565,12 +560,16 @@ def main() -> int:
         written_u += flush("update", updates[i:i + step])
     for i in range(0, len(creates), step):
         written_c += flush("create", creates[i:i + step])
+    wrote = written_u + written_c
+    ok = wrote > 0
     print("SG_RESULT " + json.dumps({
-        "ok": True,
-        "msg": f"Würth SK cenník {name}: upravených {written_u}, nových konceptov {written_c}.",
-        "updated": written_u, "created": written_c, "rows": len(rows),
+        "ok": ok,
+        "status": "ok" if ok else "failed",
+        "updated": written_u,
+        "created": written_c,
+        "rows": len(rows),
     }, ensure_ascii=False))
-    return 0
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
