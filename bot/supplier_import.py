@@ -123,7 +123,12 @@ def _hq_max_id_once() -> int:
     tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
     if not tok:
         return 0
-    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    from hq_url import hq_url
+    try:
+        hq = hq_url()
+    except RuntimeError as exc:
+        print(f"status=failed {exc}", flush=True)
+        return 0
     try:
         r = requests.get(f"{hq}/api/sync/existing-skus", timeout=60,
                          headers={"Authorization": f"Bearer {tok}", "Accept-Encoding": "gzip", "User-Agent": "smartgaraz-bot"})

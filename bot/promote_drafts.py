@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Zverejni koncepty, ktoré spĺňajú Samuelove pravidlá kvality; ostatné ostávajú koncept.
+"""Zverejni koncepty, ktoré spĺňajú pravidlá kvality; ostatné ostávajú koncept.
 
 Pravidlá (všetky musia platiť):
   * konkrétna kategória (nie „Auto chémia“ dump / Nezaradené / len „Náhradné diely“ / [orphan])
@@ -99,7 +99,7 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
 
     if str(meta.get("_sg_manual_hold") or "").strip() not in ("", "0"):
         return ["manual_hold"], None
-    # TSS: zverejňuje sa priamo (nákup s DPH +30 %), rovnaké pravidlá ako ostatní (Samuel 2026-10-31).
+    # TSS publishes directly, with the same rules as the other suppliers.
 
     # cena
     price = _f(p.get("regular_price")) or _f(p.get("price")) or 0.0
@@ -184,7 +184,7 @@ def evaluate(p: dict) -> tuple[list[str], str | None]:
 
 
 def publish_checks(p: dict, meta: dict, src: str) -> tuple[list[str], dict]:
-    """Kontroly pri zverejnení (Samuel 2026-10-31): nákupná cena prítomná a rozumná,
+    """Publish checks: a purchase price is present and plausible,
     predaj ≥ nákup s DPH × 1,20 (Würth: najprv DPH; TSS/ideo: nákup s DPH + 30 %),
     sklad/dostupnosť (Skladom v SR / Sklad v EÚ / Nedostupné) konzistentné.
     Vráti (dôvody na držanie, opravy do payloadu). Opravy = cena na floor, dostupnosť."""

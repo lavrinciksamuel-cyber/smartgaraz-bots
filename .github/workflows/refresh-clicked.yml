@@ -76,6 +76,7 @@ jobs:
         working-directory: bot
         env:
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
         run: python -m suppliers.hq_credentials lkq protec metabond wurth szekop
 
       - name: Run refresh_clicked
@@ -83,6 +84,7 @@ jobs:
         env:
           WC_URL: ${{ secrets.WC_URL }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           SG_INSIGHTS_KEY: ${{ secrets.SG_INSIGHTS_KEY }}

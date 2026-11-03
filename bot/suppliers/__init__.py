@@ -43,7 +43,7 @@ def _creds(prefix: str) -> Dict[str, str]:
         val = os.getenv(env_key, "").strip()
         if val:
             out[key] = val
-    # Login z HQ (hq.smartgaraz.sk → Dodávatelia) má prednosť; env/secrets = fallback.
+    # HQ login overrides env values.
     slug = _HQ_SLUG.get(prefix)
     if slug:
         try:

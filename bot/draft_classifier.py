@@ -4,7 +4,7 @@
 
 * Pravidlá = regexy na názov bez diakritiky (CZ aj SK tvary TecDoc názvov), poradie = priorita
   (špecifické pred všeobecnými). Cieľ = len EXISTUJÚCA kategória obchodu (nové sa nevytvárajú —
-  nové kategórie schvaľuje Samuel v HQ).
+  nové kategórie sa schvaľujú v HQ).
 * CZ → SK názov: slovník fráz (CZ_SK). Premenuje sa len keď po náhrade nezostane české slovo
   (promote_drafts.is_czech); inak názov ostane a promote ho nechá ako koncept.
 * Stav (draft) sa nemení; zverejnenie robí promote_drafts.py podľa svojich pravidiel
@@ -40,7 +40,7 @@ B, F, M, CH, N, R, S, V, E, K = (
 
 # (regex na normalizovaný názov, cesta). Normalizácia: malé písmená, bez diakritiky.
 ENGINE_INT = "Motor – piesty, ložiská a kľuka"
-# Nové kategórie schválené Samuelom; vytvoria sa (len pri --apply), ak chýbajú. Iné sa nezakladajú.
+# Schválené nové kategórie; vytvoria sa (len pri --apply), ak chýbajú. Iné sa nezakladajú.
 APPROVED_NEW_CATS: List[Tuple[str, ...]] = [("Náhradné diely", "Motor & sanie", ENGINE_INT)]
 
 RULES: List[Tuple[str, Optional[List[str]]]] = [
@@ -184,7 +184,7 @@ RULES: List[Tuple[str, Optional[List[str]]]] = [
     (r"pruzinov\w* (misa|tanier)|miska pruzin|tanier pruzin", [ND, N, "Tlmiče & pružiny"]),
     (r"protimrazov\w* zatk|mrazov\w* zatk", [ND, M, "Tesnenia motora & sania"]),
     (r"regulator brzd\w* (sily|tlaku)", [ND, B, "Brzdové hadice & valčeky"]),
-    # 2026-10-31 Samuel schválil novú kategóriu pre vnútro motora
+    # Category for engine internals.
     (r"(pist|piest)\w*.{0,25}brzd|brzd\w*.{0,25}(pist|piest)", [ND, B, "Brzdové strmene"]),
     (r"\bpist(?!ol)\w*|\bpiest(?!ol)\w*|ojnic|klikov\w* hridel|kluk\w* hriadel|hlavn\w* lozisk|lozisk\w*,? (klikov|kluk)|vlozk\w* valc|pistn\w* (krouzk|kruzk)", [ND, M, ENGINE_INT]),
     # lišty / klipy (do existujúcich kategórií)

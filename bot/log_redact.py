@@ -65,6 +65,23 @@ def _url_repl(m: re.Match) -> str:
     return f"https://{host}/<redacted>" if host else "<url>"
 
 
+def _mask_configured_secrets(line: str) -> str:
+    out = line
+    for name in ("HQ_URL", "SEC_HQ_URL", "SG_GUARD_HQ_URL", "SEC_LOGIN_PATH"):
+        val = (os.environ.get(name) or "").strip().rstrip("/")
+        if len(val) < 4:
+            continue
+        out = out.replace(val, MASK)
+        host = ""
+        try:
+            host = (urlparse(val).hostname or "").strip()
+        except ValueError:
+            host = ""
+        if len(host) >= 4:
+            out = out.replace(host, MASK)
+    return out
+
+
 def redact(line: str) -> str:
     """Redact one line (no newline handling)."""
     if not line:
@@ -72,7 +89,8 @@ def redact(line: str) -> str:
     # GitHub workflow commands (::add-mask:: etc.) must stay byte-exact.
     if line.startswith("::"):
         return line
-    out = _URL.sub(_url_repl, line)
+    out = _mask_configured_secrets(line)
+    out = _URL.sub(_url_repl, out)
     out = _SEARCH.sub(lambda m: m.group(1) + MASK, out)
     out = _SENSITIVE_KV.sub(lambda m: m.group(1) + m.group(2) + MASK + m.group(3), out)
     if _SENSITIVE.search(out):

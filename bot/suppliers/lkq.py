@@ -64,7 +64,7 @@ DEFAULT_PARTS_CATEGORY_URLS: list[str] = [
 #
 # Cenotvorba (overené live 2026-08):
 # - ProductList Price/PriceVat = podľa UI prepínača (Maloobchod/VOC) — NESPOĽAHLIVÉ
-#   ako nákupná. Session môže byť na „Maloobchod“ → 16,77 namiesto Vaša cena 11,41.
+#   ako nákupná. Cena v zozname závisí od prepínača v session.
 # - Nákup (cost) = POST /UserPrice/Data → PriceVat („Vaša cena“ s DPH).
 # - Predaj hint (MOC) = POST /RetailPrice/Data → PriceVat / PriceVatValue.
 # - pricing.py zarovná predaj na retail_hint (ako PRO-TEC), cost ostáva B2B.
@@ -477,7 +477,7 @@ class LkqSupplier(LoginMixin, GenericSupplier):
                     it["_sg_user_discount"] = str(urow.get("Discount") or "").strip()
             rrow = retail_by.get(key)
             if rrow:
-                # Preferuj zobrazený string "16,77 €" (PriceVatValue=16.7649 → 16.76).
+                # Prefer the displayed price string. PriceVatValue is only a fallback.
                 retail = parse_price(rrow.get("PriceVat"))
                 if retail is None and rrow.get("PriceVatValue") is not None:
                     try:

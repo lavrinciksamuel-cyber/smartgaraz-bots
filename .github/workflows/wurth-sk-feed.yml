@@ -1,7 +1,6 @@
 name: Würth SK price list
 # Manual file import.
-# Poplatok 6,80 € pri objednávke do 99,99 €, od 100 € bez poplatku.
-# Cena a sklad len z tohto súboru. Bez čerstvého riadku sa nič nehádá.
+# Price and stock come only from the file. A missing row changes nothing.
 # Nové SKU = koncept. Default je náhľad.
 on:
   workflow_dispatch:
@@ -39,6 +38,7 @@ jobs:
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           PYTHONUNBUFFERED: "1"
           SG_ACCOUNT_INDEX: "0"
           SG_ACCOUNT_COUNT: "1"

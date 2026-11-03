@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from catalog_licensing import CatalogLicensingError, assert_allowed_catalog_url, is_wurth_sk_shop  # noqa: E402
+from hq_url import hq_url  # noqa: E402
+from log_redact import redact  # noqa: E402
 from catalog_shard import prepare_szekop_phase1  # noqa: E402
 from supplier_pace import (  # noqa: E402
     DailyCapReached,
@@ -23,6 +25,19 @@ from supplier_pace import (  # noqa: E402
 )
 from suppliers.lkq import lkq_html_logged_in  # noqa: E402
 from watchdog import evaluate_stuck_job  # noqa: E402
+
+
+class HqUrlTest(unittest.TestCase):
+    def test_missing_url_fails(self):
+        os.environ.pop("HQ_URL", None)
+        with self.assertRaises(RuntimeError):
+            hq_url()
+
+    def test_redact_hides_configured_host(self):
+        os.environ["HQ_URL"] = "https://hq.example.test"
+        self.addCleanup(os.environ.pop, "HQ_URL", None)
+        out = redact("see https://hq.example.test/api and hq.example.test")
+        self.assertNotIn("hq.example.test", out)
 
 
 class LkqLoginHtmlTest(unittest.TestCase):

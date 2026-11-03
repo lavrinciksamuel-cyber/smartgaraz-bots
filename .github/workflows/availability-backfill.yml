@@ -40,6 +40,7 @@ jobs:
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           PYTHONUNBUFFERED: "1"
           SG_ACCOUNT_INDEX: ${{ vars.SG_ACCOUNT_INDEX || '0' }}
           SG_ACCOUNT_COUNT: ${{ vars.SG_ACCOUNT_COUNT || '2' }}

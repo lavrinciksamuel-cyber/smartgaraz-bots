@@ -231,7 +231,7 @@ def qa_reasons(p: dict, max_price: float, require_in_stock: bool = True) -> list
         low,
     ) and not re.search(r"\b\d+w[-\s]?\d+\b|\b\d+\s*l\b", low):
         reasons.append("generic_name")
-    # Samuel: každý hlavný diel musí mať OE číslo. Výnimka: drobné komponenty
+    # A main part needs an OE number. Exception: small components
     # (sady na opravu, piesty, puzdrá, spony, tesnenia…), chémia, náradie.
     try:
         from oe_publish_rule import needs_oe, has_oe_numbers

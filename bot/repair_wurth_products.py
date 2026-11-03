@@ -63,9 +63,9 @@ try:
 except Exception:  # noqa: BLE001
     DESC_V3 = {}
 VERSION = "v3-2026-10-22"
-# Samuel 2026-10-22: tieto SKU ostávajú publikované, predaj po 1 ks (cena sa nemení).
+# These SKUs stay published and are sold per piece. Price is left unchanged.
 KEEP_PUBLISHED_SKUS = {"0500300002"}
-# Samuel 2026-10-22: 0500300002 predávame po 1 ks za 16,90 € — cenu nemeniť.
+# 0500300002 is sold per piece. Do not change its price.
 KEEP_PRICE_SKUS = {"0500300002"}
 # Ručne určené kategórie (OE BMW 1711/1712 = chladiaci systém).
 CATEGORY_OVERRIDES = {"0500300002": 882}
@@ -302,7 +302,7 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
     verified = bool(pack)
     origin = str(extra.get("origin") or "")
 
-    # 1) v1 omylom stiahol publikované kvôli baleniu → vráť (Samuel: kvôli baleniu nesťahovať)
+    # 1) v1 unpublished products because of pack size → restore them. Pack size alone does not unpublish.
     if (p.get("status") == "draft" and m.get("_sg_prev_status") == "publish"
             and "balenie" in str(m.get("_sg_hold_reason") or "")):
         upd["status"] = "publish"
@@ -415,7 +415,7 @@ def plan(p: Dict[str, Any], brand_id: Optional[int], ref: Refetcher, force: bool
                      {"key": "_sg_unit_cost", "value": f"{cost / pack:.4f}"}]
         except (TypeError, ValueError):
             pass
-    if False and raw and extra.get("pack_price"):  # predajný model čaká na Samuela
+    if False and raw and extra.get("pack_price"):  # pack pricing model is not enabled
         try:
             from pricing import calculate_retail
             cost = float(extra["pack_price"])

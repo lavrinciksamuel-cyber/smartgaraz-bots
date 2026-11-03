@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 """Würth file import (XLSX / CSV / BMEcat) → price and stock.
 
-Würth SK: všetky ceny v súbore sú bez DPH. Objednávka do 99,99 € netto má
-manipulačný poplatok 6,80 €, od 100 € je bez poplatku (viď calculate_retail /
-wurth_price_floor). Predaj = netto × 1,23, potom marža, fee floor a min. 20 %.
-Riadok bez ceny nenechá starú cenu. Riadok bez skladu nemení sklad.
-Nové SKU vzniknú ako koncept.
+A row without a price does not keep the old price. A row without stock does not change stock.
+New SKUs are created as drafts.
 
-Súbor: --file, inak bot/data/wurth_sk_inbox/, inak HQ GET /api/sync/wurth-pricelist.
+File: --file, else bot/data/wurth_sk_inbox/, else the HQ price-list endpoint.
 
   python bot/wurth_sk_feed.py --file cennik.xlsx          # náhľad
   python bot/wurth_sk_feed.py --file cennik.xlsx --apply
@@ -449,7 +446,12 @@ def load_feed_bytes(path: str = "") -> tuple[Optional[bytes], str]:
     if not token:
         return None, ""
     import requests
-    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    from hq_url import hq_url
+    try:
+        hq = hq_url()
+    except RuntimeError:
+        print("status=failed HQ_URL is not set", flush=True)
+        return None, ""
     resp = requests.get(
         f"{hq}/api/sync/wurth-pricelist",
         headers={"Authorization": f"Bearer {token}", "User-Agent": "smartgaraz-bot"},

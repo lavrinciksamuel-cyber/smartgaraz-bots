@@ -33,8 +33,8 @@ Env (.env):
   VAT_RATE=0.00              # nepoužíva sa, keď COST_HAS_VAT=1 (necháme 0 pre istotu)
 
 PRO-TEC (pro-tec-slovakia.sk):
-  - Predaj = **verejný maloobchod** (retail_hint, napr. Engine Clean 8,49 €),
-    nie B2B (5,94 €) a nie nafúknuté MOC cez min. objednávku.
+  - Sale price follows the public retail hint, not the signed-in price,
+    and not a minimum-order floor.
   - `PROTEC_MIN_ORDER_EUR=15` je **prevádzkové** pravidlo (objednávaj viac
     kusov / manip. poplatok) — **NE** floor do každej kusovej MOC.
   - `PROTEC_APPLY_MIN_ORDER_TO_MOC=1` zapne starý floor (default OFF).
@@ -329,13 +329,7 @@ def is_wurth_source(source: str = "", brand: str = "", name: str = "") -> bool:
 
 
 def wurth_price_floor(net_cost: float) -> float:
-    """Würth: cena v B2B e-shope je NETTO (bez DPH). Lavro s.r.o. nie je platca DPH.
-
-    Würth SK (newsletter): ceny sú bez DPH. Objednávka do 99,99 € netto má
-    manipulačný poplatok 6,80 €, od 100 € je bez poplatku (VOP čl. 2.6/5.12).
-    → minimálna predajná = (netto + 6,80) × 1,23 + MIN_MARGIN_EUR, zaokrúhlené na ,90.
-    (Košík Samuela: 11,90 + 6,80 + DPH 4,30 = 23,00 → floor 24,90.)
-    """
+    """Minimum sale price from net cost, fee floor, and rounding."""
     try:
         net = float(net_cost)
     except (TypeError, ValueError):
@@ -349,12 +343,7 @@ def wurth_price_floor(net_cost: float) -> float:
 
 
 def protec_effective_unit_cost(unit_cost: float) -> float:
-    """Ops helper: min. objednávka PRO-TEC (default 15 €).
-
-    Defaultne sa **nepoužíva** na katalógovú MOC (Engine Clean by skočil
-    na 21,90 € namiesto maloobchodu 8,49 €). Zapni len
-    `PROTEC_APPLY_MIN_ORDER_TO_MOC=1`.
-    """
+    """Minimum-order helper. Off unless PROTEC_APPLY_MIN_ORDER_TO_MOC=1."""
     min_order = _f("PROTEC_MIN_ORDER_EUR", 15.0)
     unit = float(unit_cost or 0)
     if min_order <= 0 or unit <= 0:
@@ -471,7 +460,7 @@ def calculate_retail(
     if not protec and not metabond and not lkq and not jlm and hint > retail and hint > cost_base:
         retail = round(hint, 2)
 
-    # Würth: netto cena + poplatok 6,80 € (objednávka < 100 €) + DPH 23 % — nikdy pod to.
+    # Würth sale price stays at or above the fee floor.
     if supplier and is_wurth_source(source=supplier, brand=brand, name=name):
         retail = max(retail, wurth_price_floor(float(cost)))
 

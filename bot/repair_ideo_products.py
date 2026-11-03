@@ -16,7 +16,8 @@ LOG = logging.getLogger("repair_ideo")
 def ideo_skus() -> list:
     import requests
     tok = os.environ["HQ_SYNC_TOKEN"]
-    r = requests.get("https://hq.smartgaraz.sk/api/sync/existing-skus", params={}, timeout=60,
+    from hq_url import hq_url
+    r = requests.get(hq_url() + "/api/sync/existing-skus", params={}, timeout=60,
                      headers={"Authorization": f"Bearer {tok}", "Accept-Encoding": "gzip", "User-Agent": "smartgaraz-bot"})
     r.raise_for_status()
     return sorted(s for s in r.json().get("skus", []) if s.startswith("IDEO-"))

@@ -12,7 +12,7 @@ Every ~3 h (.github/workflows/watchdog.yml):
   3. Self-heal: an unhealthy workflow is re-dispatched ONCE per window (heavy jobs only
      at night 23–07 Bratislava, so the daytime shop throttle stays intact).
   4. Alert: still unhealthy after that one automatic retry → POST HQ /api/sync/bot-alert
-     (push to Samuel's phone + HQ audit log). HQ dedupes 1 alert / bot / day.
+     one HQ alert. HQ dedupes 1 alert / bot / day.
      A supplier block (Würth 403) finishes as success/"skipped" → never alerts.
   5. Keepalive: once a day re-enables every scheduled workflow (resets GitHub's 60-day
      inactivity auto-disable for public repos) and re-enables any disabled_inactivity one.
@@ -40,13 +40,15 @@ API = "https://api.github.com"
 REPO = os.environ.get("GITHUB_REPOSITORY", "")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 DRY = os.environ.get("SG_WATCHDOG_DRY", "").strip() in {"1", "true", "yes"}
-HQ_URL = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+def _hq_base() -> str:
+    from hq_url import hq_url
+    return hq_url()
 NOW = datetime.now(timezone.utc)
 BOT_ACTOR = "github-actions[bot]"
 
 # file: window_h = max hours without success, streak = failed finished runs in a row that count,
 # redispatch = may re-run once, heavy = writes a lot to the shop (re-run only at night),
-# inputs = dispatch inputs (so a re-run does the real job, not a preview), name = for Samuel.
+# inputs = dispatch inputs (so a re-run does the real job, not a preview), name = short label.
 H = 1
 D = 24
 CFG = {
@@ -150,7 +152,12 @@ def alert(wf: str, title: str, body: str, url: str = "", level: str = "error") -
     payload = json.dumps({"workflow": wf, "repo": REPO, "title": title, "body": body, "url": url, "level": level}).encode()
     for i in range(3):
         try:
-            req = urllib.request.Request(HQ_URL + "/api/sync/bot-alert", data=payload, method="POST",
+            try:
+                base = _hq_base()
+            except RuntimeError as exc:
+                log(f"status=failed {exc}")
+                return
+            req = urllib.request.Request(base + "/api/sync/bot-alert", data=payload, method="POST",
                                          headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json",
                                                   "User-Agent": "sg-watchdog"})
             with urllib.request.urlopen(req, timeout=40) as f:
@@ -345,7 +352,12 @@ def tss_fresh() -> None:
         return
     import gzip
     try:
-        req = urllib.request.Request(HQ_URL + "/api/sync/tss-catalog", headers={
+        try:
+            base = _hq_base()
+        except RuntimeError as exc:
+            log(f"status=failed {exc}")
+            return
+        req = urllib.request.Request(base + "/api/sync/tss-catalog", headers={
             "Authorization": "Bearer " + os.environ["HQ_SYNC_TOKEN"], "Accept-Encoding": "gzip", "User-Agent": "sg-watchdog"})
         with urllib.request.urlopen(req, timeout=60) as f:
             raw = f.read()

@@ -5,13 +5,15 @@ Usage:
     user, pwd = supplier_login("lkq")            # HQ first, then LKQ_USER / LKQ_PASSWORD
     cfg = bot_settings("heijunka-parts-nightly.yml")  # {} when HQ unreachable
 
-Env: HQ_SYNC_TOKEN (GitHub secret), HQ_URL (default https://hq.smartgaraz.sk).
+Env: HQ_SYNC_TOKEN (GitHub secret), HQ_URL (required, no default host).
 Never logs secret values.
 """
 from __future__ import annotations
 import json, os, sys, urllib.error, urllib.parse, urllib.request
 
-HQ_URL = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+def _hq_url() -> str:
+    from hq_url import hq_url
+    return hq_url()
 _cache: dict[str, dict] = {}
 
 ENV_NAMES = {
@@ -27,7 +29,7 @@ def _get(path: str, params: dict) -> dict | None:
     tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
     if not tok:
         return None
-    url = f"{HQ_URL}{path}?{urllib.parse.urlencode(params)}"
+    url = f"{_hq_url()}{path}?{urllib.parse.urlencode(params)}"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}", "User-Agent": "smartgaraz-bot"})
     try:
         with urllib.request.urlopen(req, timeout=20) as r:

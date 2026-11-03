@@ -13,6 +13,12 @@ try:  # Woo batch odpovede majú pri publish 2× Set-Cookie na produkt (>100 hla
 except Exception:
     pass
 
+for _secret_name in ("HQ_URL", "SEC_HQ_URL", "SG_GUARD_HQ_URL", "SEC_LOGIN_PATH"):
+    _secret_val = (os.environ.get(_secret_name) or "").strip()
+    if len(_secret_val) >= 4:
+        sys.__stderr__.write(f"::add-mask::{_secret_val}\n")
+        sys.__stderr__.flush()
+
 _BOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 try:
     if _BOT not in sys.path:

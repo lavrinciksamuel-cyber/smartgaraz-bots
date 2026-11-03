@@ -86,7 +86,13 @@ def existing(max_age_s: float = 600) -> Tuple[Set[str], Set[str], str]:
         pass
     import requests
     tok = os.environ.get("HQ_SYNC_TOKEN", "").strip()
-    hq = os.environ.get("HQ_URL", "https://hq.smartgaraz.sk").rstrip("/")
+    from hq_url import hq_url
+    try:
+        hq = hq_url()
+    except RuntimeError as exc:
+        LOGGER.warning("status=failed %s", exc)
+        hq = ""
+        tok = ""
     skus: Set[str] = set(); urls: Set[str] = set(); src = "wc"
     # HQ je rýchle a šetrí WC REST → pri prechodnej chybe skús HQ ešte 2× (backoff), až potom WC.
     hq_waits = [int(x) for x in os.environ.get("SG_HQ_SKUS_WAITS", "0,20,60").split(",")] if tok else []

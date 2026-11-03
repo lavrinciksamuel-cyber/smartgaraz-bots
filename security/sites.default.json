@@ -1,5 +1,5 @@
 {
-    "_comment": "Záložný zoznam webov, keď HQ neodpovie. Hlavný zoznam sa spravuje v HQ → Bezpečnosť → Nastavenia → Weby.",
+    "_comment": "Fallback site list. HQ url and the extra login path come from the environment.",
     "sites": [
         {
             "slug": "smartgaraz",
@@ -13,23 +13,7 @@
                 "domain": "smartgaraz.sk",
                 "expect_text": "SmartGar",
                 "login_paths": [
-                    "/wp-login.php",
-                    "/oscar"
-                ]
-            }
-        },
-        {
-            "slug": "hq",
-            "url": "https://hq.smartgaraz.sk/",
-            "kind": "hq",
-            "cfg": {
-                "hosts": [
-                    "hq.smartgaraz.sk"
-                ],
-                "domain": "smartgaraz.sk",
-                "skip": [
-                    "wp",
-                    "blacklist"
+                    "/wp-login.php"
                 ]
             }
         },

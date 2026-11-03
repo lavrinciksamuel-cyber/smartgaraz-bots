@@ -496,7 +496,7 @@ def _fold_make(name: str) -> str:
 
 
 def full_fleet_queue() -> List[Dict[str, str]]:
-    """Plný LKQ katalóg (2026-10-23, Samuel): celý SK park z vlastnej taxonómie
+    """Full LKQ catalog: the whole park from the local taxonomy
     (data/vehicle_hierarchy_sk.json: značka × model+generácia × motor) × všetky
     LKQ kategórie, ktoré majú mapovanie v data/supplier_category_map.json
     (lkq_needles → žiadne fallback kategórie). Poradie: značky podľa SK parku."""

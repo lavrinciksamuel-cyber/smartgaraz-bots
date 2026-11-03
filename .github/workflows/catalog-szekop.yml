@@ -62,6 +62,7 @@ jobs:
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
           HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           PYTHONUNBUFFERED: "1"
           SG_GUARD_RESUME: ${{ github.event_name == 'workflow_dispatch' && inputs.resume && '1' || '0' }}
         run: python bot/catalog_shard.py --supplier szekop --shard 0/1 --budget-min 70
