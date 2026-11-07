@@ -168,19 +168,20 @@ def fetch_verified(
     return last_data, last
 
 
-def upload_jpeg(data: bytes, filename: str, *, timeout: float = 60) -> tuple[Optional[str], int]:
+def upload_media(data: bytes, filename: str, *, timeout: float = 60) -> tuple[Optional[int], Optional[str], int]:
     """Upload verified bytes through the existing media endpoint.
 
-    Returns ``(url, http_status)``. Status 0 means the request was not sent.
+    Returns ``(attachment id or None, url or None, http_status)``.
+    Status 0 means the request was not sent.
     """
     reason = inspect_bytes(data)
     if reason or not data:
-        return None, 0
+        return None, None, 0
     base = (os.environ.get("WC_URL") or "").rstrip("/")
     key = os.environ.get("WC_CONSUMER_KEY") or ""
     secret = os.environ.get("WC_CONSUMER_SECRET") or ""
     if not base or not key or not secret:
-        return None, 0
+        return None, None, 0
     import requests
     import urllib3
 
@@ -201,12 +202,24 @@ def upload_jpeg(data: bytes, filename: str, *, timeout: float = 60) -> tuple[Opt
             verify=False,
         )
     except Exception:
-        return None, 0
+        return None, None, 0
     status = int(resp.status_code or 0)
     if status >= 400:
-        return None, status
+        return None, None, status
     try:
-        url = (resp.json() or {}).get("url") or None
+        body = resp.json() or {}
     except Exception:
-        url = None
-    return (str(url) if url else None), status
+        body = {}
+    raw_id = body.get("id")
+    try:
+        media_id = int(raw_id) if raw_id else None
+    except (TypeError, ValueError):
+        media_id = None
+    url = body.get("url") or body.get("source_url") or None
+    return media_id, (str(url) if url else None), status
+
+
+def upload_jpeg(data: bytes, filename: str, *, timeout: float = 60) -> tuple[Optional[str], int]:
+    """Upload verified bytes. Returns ``(url, http_status)``."""
+    _media_id, url, status = upload_media(data, filename, timeout=timeout)
+    return url, status

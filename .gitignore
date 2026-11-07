@@ -10,6 +10,7 @@ bot/data/heijunka_szekop_queue_state.json
 bot/data/wurth_cheap_progress.json
 bot/data/wurth_catalog_sync_state.json
 bot/data/supplier_guard/
+bot/data/photo_fill/
 bot/data/wurth_sk_inbox/*
 !bot/data/wurth_sk_inbox/.gitkeep
 bot/reports/
