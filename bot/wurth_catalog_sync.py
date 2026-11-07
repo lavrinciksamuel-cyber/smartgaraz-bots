@@ -782,10 +782,11 @@ def host_allowed(http: PublicHttp, origin: str) -> bool:
     robots_url = origin.rstrip("/") + "/robots.txt"
     assert_allowed_catalog_url(robots_url, context="wurth_catalog_sync")
     status, data, _final = http.get_bytes(robots_url, timeout=30)
-    if status != 200:
+    text = data.decode("utf-8", "replace")
+    from public_pages import classify_http
+    if classify_http(status, text) != "ok":
         LOG.warning("robots %s HTTP %s", origin, status)
         return False
-    text = data.decode("utf-8", "replace")
     ok_sitemap = robots_allows(text, "/sitemap.xml")
     ok_product = robots_allows(text, "/08931066/produkt")
     ok_search = robots_allows(text, "/search?q=08931066")
@@ -965,7 +966,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             LOG.warning("robots %s: %s", origin, exc)
             allowed[origin] = False
     if not allowed.get(f"https://{BA_HOST}"):
-        print("SG_RESULT " + json.dumps({"ok": False, "error": "ba_robots_or_http"}, ensure_ascii=False))
+        print("stop=blocked", flush=True)
+        print("SG_RESULT " + json.dumps({"ok": False, "status": "blocked", "error": "ba_robots_or_http"}, ensure_ascii=False))
         return 2
 
     public = collect_public(http, kosovo=bool(allowed.get(f"https://{KOS_HOST}")))

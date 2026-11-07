@@ -240,6 +240,19 @@ def _write(updates: List[dict]) -> int:
     return written
 
 
+def _probe(slug: str):
+    """One public robots/sitemap read. A block is not retried."""
+    import requests
+    from public_pages import UA, discover_public
+    if slug == "lkq":
+        from suppliers.lkq import LkqSupplier as supplier_cls
+    else:
+        from suppliers.szekop import SzekopSupplier as supplier_cls
+    session = requests.Session()
+    session.headers["User-Agent"] = UA
+    return discover_public(session, supplier_cls.base_url, limit=1)
+
+
 def refresh(slug: str, limit: int, *, clear_markers: bool = True) -> dict:
     """Return counts."""
     out = {
@@ -259,10 +272,31 @@ def refresh(slug: str, limit: int, *, clear_markers: bool = True) -> dict:
     install_from_env()
     g = guard(os.environ["SG_GUARD_SLUG"])
     state = g.begin(resume=resume_requested())
-    if state.get("paused"):
-        out["paused"] = True
-        out["reason"] = "paused"
-        return out
+    probed_ok = False
+    if state.get("paused") and not resume_requested():
+        if slug == "lkq":
+            found = _probe(slug)
+            probed_ok = found.status == "ok"
+            if found.status == "blocked":
+                out["blocked"] = True
+                out["paused"] = True
+                out["reason"] = "blocked"
+                print("stop=blocked", flush=True)
+                return out
+            if probed_ok:
+                state = g.begin(resume=True)
+        if state.get("paused"):
+            out["paused"] = True
+            out["reason"] = "paused"
+            print("stop=paused", flush=True)
+            return out
+    if slug == "lkq" and not probed_ok:
+        found = _probe(slug)
+        if found.status == "blocked":
+            out["blocked"] = True
+            out["reason"] = "blocked"
+            print("stop=blocked", flush=True)
+            return out
     if int(state.get("cap_left") or 0) <= 0:
         out["cap"] = True
         out["reason"] = "cap"
@@ -287,6 +321,7 @@ def refresh(slug: str, limit: int, *, clear_markers: bool = True) -> dict:
     except LoginFailed:
         out["login_ok"] = False
         out["reason"] = "login"
+        print("stop=login", flush=True)
         return out
     except SupplierStop as exc:
         out["login_ok"] = False

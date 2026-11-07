@@ -2,6 +2,7 @@
 """Unit tests for pacing, run outcome, and host checks. No network."""
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -110,6 +111,18 @@ class GuardTest(unittest.TestCase):
         with self.assertRaises(DailyCapReached):
             g.before_request()
         self.assertEqual(g.snapshot()["requests"], 2)
+
+    def test_a_new_day_clears_a_pause(self):
+        g = Guard("lkq", Path(self.tmp.name))
+        g.note_failure("blocked")
+        g.note_failure("blocked")
+        self.assertTrue(g.snapshot()["paused"])
+        raw = json.loads(g.path.read_text(encoding="utf-8"))
+        raw["day"] = "2000-01-01"
+        g.path.write_text(json.dumps(raw), encoding="utf-8")
+        state = g.begin(resume=False)
+        self.assertFalse(state["paused"])
+        self.assertEqual(state["failures"], 0)
 
     def test_success_clears_the_streak(self):
         g = Guard("szekop-public", Path(self.tmp.name))

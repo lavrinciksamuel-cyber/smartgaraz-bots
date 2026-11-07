@@ -116,13 +116,15 @@ def main() -> int:
     merged["seen"] = seen
     merged["exhausted"] = exhausted and seen == 0 and int(out.get("checked") or 0) == 0
     code = finish_refresh("lkq", merged)
-    job_summary(
-        "LKQ",
-        status="ok" if ok else "failed",
-        new=seen,
-        checked=int(out.get("checked") or 0),
-        updated=int(out.get("updated") or 0),
-    )
+    counts = {
+        "new": seen,
+        "checked": int(out.get("checked") or 0),
+        "updated": int(out.get("updated") or 0),
+        "blocked": 1 if blocked else 0,
+    }
+    if login_ok is not None:
+        counts["login"] = 1 if login_ok else 0
+    job_summary("LKQ", status="ok" if ok else "failed", **counts)
     if not ok:
         return 1
     return code
