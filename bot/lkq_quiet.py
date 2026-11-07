@@ -91,7 +91,7 @@ def main() -> int:
     if discover.get("login_failed"):
         login_ok = False
     blocked = bool(out.get("blocked") or discover.get("blocked"))
-    seen = int(discover.get("seen") or 0)
+    seen = int(discover.get("seen") or 0) + int(out.get("public") or 0)
     exhausted = bool(out.get("exhausted")) and not discover.get("ran")
     if discover.get("exhausted") and seen == 0 and int(out.get("checked") or 0) == 0:
         exhausted = True

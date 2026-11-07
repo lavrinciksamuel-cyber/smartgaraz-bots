@@ -48,6 +48,8 @@ ALLOWED_SUPPLIER_HOST_SUFFIXES: tuple[str, ...] = (
     "nextis.cz",
     "lkq.sk",
     "lkq.cz",
+    "autokelly.sk",
+    "autokelly.cz",
     # Slovak shop host is denied above.
     "wurth.sk",
     "wurth.cz",

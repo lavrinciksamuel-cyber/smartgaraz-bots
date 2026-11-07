@@ -110,8 +110,8 @@ def _meta(html: str, prop: str) -> str:
     return match.group(1).strip() if match else ""
 
 
-def products_from_html(html: str) -> list[dict]:
-    """Product records from JSON-LD, then OpenGraph if that is all the page has."""
+def jsonld_products(html: str) -> list[dict]:
+    """Product records from JSON-LD only."""
     found: list[dict] = []
     for match in re.finditer(
         r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
@@ -147,6 +147,25 @@ def products_from_html(html: str) -> list[dict]:
                 "image": str(image or ""),
                 "url": str(item.get("url") or ""),
             })
+    return found
+
+
+def product_image(html: str) -> str:
+    """JSON-LD product photo. Site logos and OpenGraph chrome are ignored."""
+    for row in jsonld_products(html):
+        image = str(row.get("image") or "")
+        if image and "logo" not in image.lower():
+            return image
+    return ""
+
+
+def is_product_url(url: str) -> bool:
+    return "/product/" in (urlparse(url).path or "").lower()
+
+
+def products_from_html(html: str) -> list[dict]:
+    """Product records from JSON-LD, then OpenGraph if that is all the page has."""
+    found = jsonld_products(html)
     if found:
         return found
     title = _meta(html, "og:title")
