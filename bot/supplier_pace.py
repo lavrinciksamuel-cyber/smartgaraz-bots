@@ -255,8 +255,12 @@ class Guard:
         except (OSError, ValueError):
             pass
         if data.get("day") != today_key():
+            # A new day gets one attempt. A block during that attempt pauses again.
             data["day"] = today_key()
             data["requests"] = 0
+            data["paused"] = False
+            data["paused_reason"] = ""
+            data["failures"] = 0
         run_id = os.environ.get("GITHUB_RUN_ID") or f"pid-{os.getpid()}"
         if data.get("run_id") != run_id:
             data["run_id"] = run_id

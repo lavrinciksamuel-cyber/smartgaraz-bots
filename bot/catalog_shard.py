@@ -271,60 +271,32 @@ def szekop_leaf_products(sup, leaf: str) -> List[str]:
 def run_szekop(sh: Shard, deadline: float, skus: set) -> int:
     prepare_szekop_phase1()
     from suppliers import get_supplier
+    from supplier_pace import SupplierBlocked
+    from public_pages import UA, discover_public
     sup = get_supplier("szekop")
     if not getattr(sup, "_public_only", True):
         raise RuntimeError("status=failed")
-    engines = szekop_engines(sup, sh)
-    # Nový cyklus: všetky motory prejdené pred > SG_SZEKOP_RECYCLE_H h → znova (len nové SKU,
-    # existujúce sa preskočia bez fetchu). Predtým sa hotový shard už nikdy nevrátil
-    # (nové diely / znova naskladnené kusy sa nedostali do obchodu).
-    if engines and all(e["url"] in set(sh.state["done"]) for e in engines):
-        fin = sh.state.get("cycle_done_at")
-        if not fin:
-            sh.state["cycle_done_at"] = datetime.now(timezone.utc).isoformat()
-            sh.save()
-        else:
-            age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(fin)).total_seconds() / 3600
-            if age_h >= float(os.environ.get("SG_SZEKOP_RECYCLE_H", "48")):
-                LOGGER.info("Szekop shard %d/%d: nový cyklus (predošlý hotový pred %.0f h)", sh.i, sh.n, age_h)
-                sh.state["done"] = []
-                sh.state.pop("cycle_done_at", None)
-                sh.state["cycles"] = int(sh.state.get("cycles") or 0) + 1
-                if sh.state["cycles"] % 3 == 0:
-                    sh.state.pop("engines", None)  # občas obnov zoznam motorov (nové modely)
-                    engines = szekop_engines(sup, sh)
-                sh.save()
-    done = set(sh.state["done"])
-    made = 0
-    for eng in engines:
-        if time.time() > deadline:
-            break
-        if eng["url"] in done:
-            continue
-        leaves = szekop_leaves(sup, eng)
-        LOGGER.info("=== ENGINE %s %s %s: %d listov", eng["make"], eng["model"], eng["engine"], len(leaves))
-        leaf_done = set(sh.state.get("leaf_done_" + eng["url"], []))
-        for leaf in leaves:
-            if time.time() > deadline:
-                break
-            if leaf in leaf_done:
-                continue
-            try:
-                urls = szekop_leaf_products(sup, leaf)
-                got = import_urls(sup, urls, skus, sh, deadline) if urls else 0
-                made += got
-                LOGGER.info("leaf: url=%d nových=%d (spolu %d)", len(urls), got, made)
-            except Exception as exc:
-                _reraise_stop(exc)
-                LOGGER.warning("leaf fail: %s", type(exc).__name__)
-            leaf_done.add(leaf)
-            sh.state["leaf_done_" + eng["url"]] = sorted(leaf_done)
-            sh.save()
-        else:
-            sh.state.pop("leaf_done_" + eng["url"], None)
-            sh.state["done"].append(eng["url"])
-            done.add(eng["url"])
-            sh.save()
+    # Public pages only. Logged-in stock and price stay in the stock job.
+    sup.http.session.headers["User-Agent"] = UA
+    found = discover_public(
+        sup.http.session,
+        sup.base_url,
+        limit=max(1, int(os.environ.get("SG_RUN_CAP") or 8)),
+    )
+    if found.status == "blocked":
+        print("stop=blocked", flush=True)
+        raise SupplierBlocked(status=found.http_status or 403)
+    if not found.urls:
+        print("stop=empty", flush=True)
+        return 0
+    urls = [url for url in found.urls if url not in set(sh.state.get("done") or [])]
+    made = import_urls(sup, urls, skus, sh, deadline) if urls else 0
+    done = set(sh.state.get("done") or [])
+    for url in urls:
+        if url not in done:
+            sh.state["done"].append(url)
+            done.add(url)
+    sh.save()
     return made
 
 
@@ -369,6 +341,7 @@ def _finish_shard(sh: Shard, supplier: str, shard: str, made: int, t0: float, *,
         new=made,
         seen=seen,
         skipped=skipped,
+        blocked=1 if blocked else 0,
     )
     print("SG_RESULT " + json.dumps({
         "ok": success, "status": "ok" if success else "failed",
@@ -404,10 +377,25 @@ def main() -> int:
     from supplier_pace import DailyCapReached, LoginFailed, RunCapReached, SupplierBlocked, guard, job_summary
     from supplier_pace import resume_requested
     st = guard(os.environ.get("SG_GUARD_SLUG") or "szekop-public").begin(resume=resume_requested())
-    if st.get("paused"):
-        job_summary("Szekop", status="failed", new=0, seen=0)
-        print('SG_RESULT {"ok": false, "status": "failed", "new": 0, "seen": 0}', flush=True)
-        return 1
+    if st.get("paused") and not resume_requested():
+        from public_pages import UA, discover_public
+        from suppliers.szekop import SzekopSupplier
+        import requests
+        session = requests.Session()
+        session.headers["User-Agent"] = UA
+        found = discover_public(session, SzekopSupplier.base_url, limit=1)
+        if found.status == "blocked":
+            print("stop=blocked", flush=True)
+            job_summary("Szekop", status="failed", new=0, seen=0, blocked=1)
+            print('SG_RESULT {"ok": false, "status": "blocked", "new": 0, "seen": 0, "blocked": 1}', flush=True)
+            return 1
+        if found.status == "ok":
+            st = guard(os.environ.get("SG_GUARD_SLUG") or "szekop-public").begin(resume=True)
+        else:
+            print("stop=paused", flush=True)
+            job_summary("Szekop", status="failed", new=0, seen=0)
+            print('SG_RESULT {"ok": false, "status": "paused", "new": 0, "seen": 0}', flush=True)
+            return 1
     if int(st.get("cap_left") or 0) <= 0:
         job_summary("Szekop", status="ok", new=0, seen=int(st.get("requests") or 0))
         print("SG_RESULT " + json.dumps({
@@ -420,6 +408,7 @@ def main() -> int:
     except (DailyCapReached, RunCapReached):
         return _finish_shard(sh, "szekop", a.shard, int(sh.state["stats"].get("created") or 0), t0, ok=True, reason="cap")
     except SupplierBlocked:
+        print("stop=blocked", flush=True)
         return _finish_shard(sh, "szekop", a.shard, int(sh.state["stats"].get("created") or 0), t0, ok=False, reason="blocked")
     except LoginFailed:
         return _finish_shard(sh, "szekop", a.shard, 0, t0, ok=False, reason="login")
