@@ -49,6 +49,8 @@ jobs:
           WC_URL: ${{ secrets.WC_URL }}
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           PYTHONUNBUFFERED: "1"
           CLS: ${{ github.event.inputs.classify || 'apply' }}
           CMAX: ${{ github.event.inputs.classify_max || '1500' }}

@@ -57,6 +57,8 @@ jobs:
           WC_URL: ${{ secrets.WC_URL }}
           WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
           WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
           WURTH_MEDIA_OK: ${{ (github.event_name == 'schedule' || inputs.apply) && '1' || '0' }}
           PYTHONUNBUFFERED: "1"
         run: |
