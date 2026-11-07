@@ -51,16 +51,87 @@ def _log(msg: str) -> None:
         pass
 
 
+def _token(value: str, *, allow_slash: bool = False) -> str:
+    text = (value or "").split(";", 1)[0].strip()
+    if not text or len(text) > 64 or "http" in text.lower() or any(ch.isspace() for ch in text):
+        return "-"
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.+-_")
+    if allow_slash:
+        allowed.add("/")
+    if any(ch not in allowed for ch in text):
+        return "-"
+    return text
+
+
+def note_wc_forbidden(response) -> None:
+    """Log a shop 403 without the URL, host, or body text."""
+    if int(getattr(response, "status_code", 0) or 0) != 403:
+        return
+    url = str(getattr(response, "url", "") or "")
+    if "/wp-json/wc/" not in url:
+        return
+    headers = getattr(response, "headers", None) or {}
+    try:
+        body = response.text or ""
+    except Exception:
+        body = ""
+    ctype = _token(str(headers.get("content-type") or ""), allow_slash=True)
+    kind = "html-challenge"
+    stripped = body.lstrip()
+    looks_json = stripped.startswith("{") or stripped.startswith("[") or "json" in ctype
+    if looks_json:
+        code = ""
+        try:
+            data = response.json()
+        except Exception:
+            data = None
+        if isinstance(data, dict):
+            raw = data.get("code") or ""
+            if isinstance(raw, str) and re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", raw):
+                code = raw
+        kind = code or "json"
+    print(
+        "shop-403 status=403"
+        f" cf-mitigated={_token(str(headers.get('cf-mitigated') or ''))}"
+        f" server={_token(str(headers.get('server') or ''))}"
+        f" content-type={ctype}"
+        f" body={kind}",
+        flush=True,
+    )
+
+
+def _wrap_send(requests) -> None:
+    orig = requests.Session.send
+
+    def send(self, request, **kwargs):
+        response = orig(self, request, **kwargs)
+        try:
+            note_wc_forbidden(response)
+        except Exception:
+            pass
+        return response
+
+    requests.Session.send = send
+
+
 def install() -> bool:
     global _installed
-    if _installed or os.environ.get("SG_HTTP_RETRY", "1").strip() in {"0", "false", "no"}:
-        return _installed
+    if _installed:
+        return True
     try:
         import requests
+    except Exception:
+        return False
+    _wrap_send(requests)
+    if os.environ.get("SG_HTTP_RETRY", "1").strip() in {"0", "false", "no"}:
+        _installed = True
+        return True
+    try:
         from requests.adapters import HTTPAdapter
         from urllib3.util.retry import Retry
     except Exception:
-        return False
+        _installed = True
+        return True
 
     tries = max(0, int(os.environ.get("SG_HTTP_RETRIES", "4")))
     kw = dict(total=tries, connect=tries, read=tries, status=tries, other=tries,
