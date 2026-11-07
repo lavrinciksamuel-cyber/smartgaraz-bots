@@ -487,6 +487,7 @@ def run(supplier: str, *, batch: int = BATCH) -> int:
         os.environ["SG_SZEKOP_PHASE"] = "1"
     ctx = None
     placeholder_id = None
+    prog = None
     try:
         from photo_integrity import HttpStop, find_placeholder
         try:
@@ -503,12 +504,21 @@ def run(supplier: str, *, batch: int = BATCH) -> int:
         state = sync_candidates(state, [row["id"] for row in candidates])
         by_id = {int(row["id"]): row for row in candidates}
         chosen = next_ids(state, batch, _today())
-        for pid in chosen:
+        from progress_report import Progress
+        prog = Progress(f"photo-fill-{supplier}", total=len(chosen) or None)
+        for index, pid in enumerate(chosen, 1):
             item = by_id.get(int(pid))
             if not item:
                 mark(state, pid, "done", "", _now())
                 continue
             summary["checked"] += 1
+            prog.set(
+                done=index,
+                ok=summary["filled"],
+                changed=summary["filled"],
+                errors=summary["failed"] + summary["skipped"],
+                total=len(chosen) or None,
+            )
             if supplier == "wurth" and not wurth_allowed:
                 mark(state, pid, "failed", "no_public", _now())
                 summary["skipped"] += 1
@@ -536,6 +546,13 @@ def run(supplier: str, *, batch: int = BATCH) -> int:
                 continue
             mark(state, pid, "done", "", _now())
             summary["filled"] += 1
+            prog.set(
+                done=index,
+                ok=summary["filled"],
+                changed=summary["filled"],
+                errors=summary["failed"] + summary["skipped"],
+                total=len(chosen) or None,
+            )
     except StopFill as exc:
         summary["stopped"] = exc.status
         LOG.info("stop=%s", exc.status)
@@ -551,6 +568,9 @@ def run(supplier: str, *, batch: int = BATCH) -> int:
         job_summary("Photo fill", status="failed", **summary)
         _write_report(supplier, summary)
         return 1
+    finally:
+        if prog is not None:
+            prog.finish()
     summary["todo"] = len(state.get("todo") or [])
     save_state(state_path, state)
     job_summary("Photo fill", status="ok", **summary)

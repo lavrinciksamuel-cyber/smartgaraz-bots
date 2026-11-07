@@ -719,6 +719,9 @@ def collect_public(http: PublicHttp, *, kosovo: bool) -> dict:
     """Jeden prechod sitemapov: artikle aj listové URL relevantných kategórií."""
     ba_pages: Dict[str, str] = {}
     relevant: List[str] = []
+    from progress_report import Progress
+    prog = Progress("wurth")
+    seen_locs = 0
     index_xml = http.get_text(BA_SITEMAP)
     if "<sitemapindex" in (index_xml or "")[:800]:
         blobs = []
@@ -730,12 +733,15 @@ def collect_public(http: PublicHttp, *, kosovo: bool) -> dict:
         blobs = [index_xml]
     for blob in blobs:
         for loc in sitemap_locs(blob):
+            seen_locs += 1
             article = article_from_ba_product_url(loc)
             if article:
                 ba_pages.setdefault(article, loc)
             path = unquote(urlparse(loc).path)
             if bucket_for_path(path):
                 relevant.append(path.strip("/"))
+            prog.set(done=seen_locs, ok=len(ba_pages), changed=len(relevant), errors=0)
+    prog.finish()
     kos_pages: Dict[str, str] = {}
     if kosovo:
         kos_pages = load_article_index(http, KOS_SITEMAP, article_from_kosovo_url)
@@ -1085,10 +1091,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     from account_split import mine
 
     shop_categories = fetch_shop_categories()
+    from progress_report import Progress
+    prog = Progress("wurth", total=len(public["leaves"]))
     drafted = 0
-    for path in public["leaves"]:
+    for index, path in enumerate(public["leaves"], 1):
         if args.new_limit and drafted >= args.new_limit:
             break
+        prog.set(done=index, ok=drafted, changed=len(updates) + drafted, errors=0)
         page_url = f"https://{BA_HOST}/{path}"
         page = http.get_text(page_url, timeout=30)
         parsed = parse_public_product(page)
@@ -1112,6 +1121,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ))
         our_set.add(article)
         drafted += 1
+        prog.set(done=index, ok=drafted, changed=len(updates) + drafted, errors=0)
+    prog.finish()
 
     written = post_batches(creates, updates, max(1, args.batch))
     save_state(state_path, absent, seen_now)

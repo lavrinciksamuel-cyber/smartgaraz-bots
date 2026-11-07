@@ -339,7 +339,9 @@ def main() -> int:
     }
     from account_split import filter_products as _acct_filter
     drafts = _acct_filter(drafts)
-    for p in drafts:
+    from progress_report import Progress
+    prog = Progress("cheap-ops", total=len(drafts) or None)
+    for index, p in enumerate(drafts, 1):
         if args.min_id and int(p.get("id") or 0) < args.min_id:
             continue
         if name_filter and name_filter not in (p.get("name") or "").lower():
@@ -387,8 +389,10 @@ def main() -> int:
                     )
                 except Exception:
                     pass
+            prog.set(done=index, ok=len(ready), changed=0, errors=sum(reject.values()), total=len(drafts))
             continue
         ready.append(p)
+        prog.set(done=index, ok=len(ready), changed=0, errors=sum(reject.values()), total=len(drafts))
         if args.limit > 0 and len(ready) >= args.limit:
             break
 
@@ -447,6 +451,7 @@ def main() -> int:
                 ok += 1
 
     LOG.info("Hotovo: published=%d failed=%d dry=%s", ok, fail, args.dry_run)
+    prog.set(done=len(drafts), ok=ok, changed=ok, errors=fail, total=len(drafts), final=True)
     return 0 if fail == 0 else 1
 
 

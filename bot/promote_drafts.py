@@ -351,12 +351,15 @@ def main() -> int:
 
     pending: list[dict] = []
     total = 0
+    from progress_report import Progress
+    prog = Progress("promote")
     for p in src_iter:
         pid = int(p.get("id") or 0)
         if pid in seen or (p.get("status") or "draft") != "draft":
             continue
         seen.add(pid)
         total += 1
+        prog.set(done=total, ok=published, changed=published, errors=failed)
         if total % 2000 == 0:
             LOG.info("prejdených %d konceptov, zatiaľ ready %d", total, len(pending))
         rs, new_name = evaluate(p)
@@ -399,6 +402,7 @@ def main() -> int:
             break
     flush(pending)
     tag_flush()
+    prog.set(done=total, ok=published, changed=published, errors=failed, final=True)
     LOG.info("prejdených %d konceptov, ready %d, zverejnených %d", total, len(ready), published)
 
     summary = {

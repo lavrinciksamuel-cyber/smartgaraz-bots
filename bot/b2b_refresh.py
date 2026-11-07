@@ -334,41 +334,51 @@ def refresh(slug: str, limit: int, *, clear_markers: bool = True) -> dict:
         out["reason"] = exc.kind
         return out
     out["login_ok"] = True
+    from progress_report import Progress
+    prog = Progress(slug, total=len(batch))
     updates: List[dict] = []
-    for product in batch:
+    for index, product in enumerate(batch, 1):
         url = str(_meta(product).get("supplier_url") or "")
         try:
             parsed = sup.parse_product(url)
         except (DailyCapReached, RunCapReached):
             out["cap"] = True
             out["reason"] = "cap"
+            prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
             break
         except SupplierStop as exc:
             out["blocked"] = exc.kind != "login"
             out["login_ok"] = False if exc.kind == "login" else out["login_ok"]
             out["reason"] = exc.kind
+            prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
             break
         except Exception:
             out["failed"] += 1
+            prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
             continue
         out["checked"] += 1
         if not parsed:
             out["failed"] += 1
+            prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
             continue
         try:
             payload = _payload_for(slug, parsed, product)
         except Exception:
             out["failed"] += 1
+            prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
             continue
         if not _differs(product, payload):
             out["unchanged"] += 1
+            prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
             continue
         updates.append(payload)
+        prog.set(done=index, ok=out["checked"], changed=len(updates) + out["unchanged"], errors=out["failed"])
     if updates and not out["blocked"] and out["login_ok"] is not False:
         out["updated"] = _write(updates)
     elif updates and (out["blocked"] or out["login_ok"] is False):
         # Čo sa stihlo načítať, ešte zapíš — ďalšie fetch už nešli.
         out["updated"] = _write(updates)
+    prog.set(done=prog.done, ok=out["checked"], changed=out["updated"], errors=out["failed"], final=True)
     return out
 
 
