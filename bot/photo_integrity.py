@@ -583,6 +583,8 @@ def main() -> int:
     cache: dict[str, Optional[str]] = {}
     auth = _auth()
     placeholder_id: Optional[int] = None
+    from progress_report import Progress
+    prog = Progress("photo-integrity")
     try:
         if auth:
             placeholder_id, _missing = find_placeholder(session, shop, auth)
@@ -590,6 +592,12 @@ def main() -> int:
             summary["pages"] = page
             summary["products"] += len(rows)
             _check_page(paced, shop, rows, summary, items, cache, placeholder_id)
+            prog.set(
+                done=summary["checked"],
+                ok=max(0, summary["checked"] - len(items)),
+                changed=summary["deleted"],
+                errors=len(items),
+            )
             LOG.info(
                 "page=%s products=%s checked=%s broken=%s",
                 page, summary["products"], summary["checked"], len(items),
@@ -600,6 +608,7 @@ def main() -> int:
         if ratio_exceeded(int(summary["checked"]), len(items)):
             LOG.info("stop=ratio")
             _mark_skipped(items, summary)
+            prog.finish()
             return _finish(summary, items, status="failed", extra=extra)
         repair(session, shop, auth, items, summary, placeholder_id)
         _mark_skipped(items, summary)
@@ -609,14 +618,17 @@ def main() -> int:
         extra = {"placeholder_missing": 0 if placeholder_id else 1}
         if placeholder_id:
             extra["placeholder_id"] = int(placeholder_id)
+        prog.finish()
         return _finish(summary, items, status="failed", extra=extra)
     except Exception as exc:
         LOG.info("status=failed %s", type(exc).__name__)
         _mark_skipped(items, summary)
+        prog.finish()
         return _finish(summary, items, status="failed")
     extra = {"placeholder_missing": 0 if placeholder_id else 1}
     if placeholder_id:
         extra["placeholder_id"] = int(placeholder_id)
+    prog.finish()
     return _finish(summary, items, status="ok", extra=extra)
 
 

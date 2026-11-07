@@ -105,11 +105,14 @@ def import_urls(supplier, urls: List[str], skus: set, sh: Shard, deadline: float
     from import_pipeline import import_products
     from ai_engine import is_supplier_in_stock
     fresh = []
-    for u in urls:
+    from progress_report import Progress
+    prog = Progress("szekop", total=len(urls))
+    for index, u in enumerate(urls, 1):
         if time.time() > deadline:
             break
         if u in EXISTING_URLS or u.split("?")[0] in EXISTING_URLS:
             sh.state["stats"]["skipped_existing"] += 1  # už importované → bez fetchu detailu
+            prog.set(done=index, ok=sh.state["stats"]["parsed"], changed=sh.state["stats"]["created"], errors=0)
             continue
         try:
             p = supplier.parse_product(u)
@@ -118,6 +121,7 @@ def import_urls(supplier, urls: List[str], skus: set, sh: Shard, deadline: float
             LOGGER.debug("parse fail: %s", type(exc).__name__)
             p = None
         sh.state["stats"]["parsed"] += 1
+        prog.set(done=index, ok=sh.state["stats"]["parsed"], changed=sh.state["stats"]["created"], errors=0)
         if not p or not getattr(p, "name", ""):
             continue
         raw = p.to_ai_dict() if hasattr(p, "to_ai_dict") else {}
@@ -131,11 +135,13 @@ def import_urls(supplier, urls: List[str], skus: set, sh: Shard, deadline: float
             skus.add(sku)
         fresh.append(p)
     if not fresh:
+        prog.finish()
         return 0
     res = import_products(fresh, sleep=float(os.environ.get("SG_IMPORT_SLEEP", "0.2")), cheap=True,
                           fast=True, in_stock_only=True)
     made = sum(1 for r in res if r.get("wc_product_id"))
     sh.state["stats"]["created"] += made
+    prog.set(done=len(urls), ok=sh.state["stats"]["parsed"], changed=sh.state["stats"]["created"], errors=0, final=True)
     return made
 
 
