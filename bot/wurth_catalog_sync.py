@@ -1056,6 +1056,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     }
 
     if not args.apply:
+        try:
+            from progress_report import post_coverage
+            post_coverage("wurth", report.get("our_products", 0), report.get("relevant_leaf_pages", 0), report.get("relevant_by_bucket") or {})
+        except Exception:
+            pass
         print("SG_RESULT " + json.dumps(report, ensure_ascii=False), flush=True)
         return 0
 
@@ -1129,6 +1134,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     report.update(written)
     report["drafts_planned"] = drafted
     report["unavailable_planned"] = len(mark)
+    try:
+        from progress_report import post_coverage
+        post_coverage("wurth", int(report.get("our_products", 0) or 0) + drafted, report.get("relevant_leaf_pages", 0), report.get("relevant_by_bucket") or {})
+    except Exception:
+        pass
     print("SG_RESULT " + json.dumps(report, ensure_ascii=False), flush=True)
     return 0
 

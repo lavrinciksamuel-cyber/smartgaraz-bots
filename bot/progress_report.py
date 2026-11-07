@@ -144,3 +144,15 @@ class Progress:
         self._last_at = self._clock()
         self._last_done = self.done
         self.events.append(kind)
+
+
+def post_coverage(bot: str, have: int, available: int, groups: dict | None = None) -> None:
+    """Send how much of the supplier's public catalogue the shop already has."""
+    try:
+        have = int(have or 0); available = int(available or 0)
+        pct = round(100 * have / available) if available > 0 else None
+        cov = {"have": have, "available": available, "percent": min(100, pct) if pct is not None else None,
+               "groups": {str(k): int(v) for k, v in (groups or {}).items()}}
+        post_hq("coverage", {"bot": bot, "coverage": cov})
+    except Exception:
+        pass
