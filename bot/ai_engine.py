@@ -1685,29 +1685,46 @@ class HDImageFinder:
         return any(self._looks_like_black_studio(url) for url in images)
 
     def prepare_image(self, url: str, name_hint: str = "product") -> Optional[str]:
-        """Stiahne kandidátsku fotku, orežе ju na stred do štvorca a zmenší na
-        `product_image_size` (default 800x800), presne podľa vzoru, ktorý si
-        zákazník ručne pripravil pre Metabond fotky, a nahrá ju do WP Media
-        Library cez smartgaraz-bridge (autentifikácia existujúcimi WC
-        kľúčmi — žiadne ďalšie nastavovanie netreba). Ak orez/upload z
-        akéhokoľvek dôvodu zlyhá, vráti pôvodnú (nespracovanú) URL ako
-        bezpečný fallback — obrázok sa vždy priradí, nanajvýš neorezaný."""
+        """Stiahne fotku, overí že je kompletná, oreže ju na štvorec a nahrá ju.
+
+        Kontrola: zhoda content-length, JPEG EOI / PNG IEND, decode
+        (LOAD_TRUNCATED_IMAGES vypnuté) a súvislý sivý pás dole.
+        Pri neúspechu jeden opätovný pokus, inak sa fotka preskočí.
+        """
         if not url:
+            return None
+        from image_integrity import fetch_verified, inspect_bytes
+
+        data, reason = fetch_verified(
+            self._http,
+            url,
+            timeout=self.config.request_timeout,
+            pause=1.0,
+            verify=False,
+            retries=1,
+        )
+        if reason or not data:
+            LOGGER.warning("Fotka nekompletná (%s), preskakujem.", reason or "empty")
             return None
         if Image is None:
             LOGGER.warning("Pillow nie je nainštalovaný, preskakujem orez fotky na štvorec.")
-            return url
+            return None
         try:
-            resp = self._http.get(url, headers=self.HEADERS, timeout=self.config.request_timeout, verify=False)
-            resp.raise_for_status()
-            processed = _crop_to_square_bytes(resp.content, self.config.product_image_size)
+            processed = _crop_to_square_bytes(data, self.config.product_image_size)
         except Exception as exc:
-            LOGGER.warning("Spracovanie fotky zlyhalo (%s), používam pôvodnú URL.", exc)
-            return url
+            LOGGER.warning("Spracovanie fotky zlyhalo (%s), preskakujem.", type(exc).__name__)
+            return None
+        bad = inspect_bytes(processed)
+        if bad:
+            LOGGER.warning("Fotka nekompletná (%s), preskakujem.", bad)
+            return None
 
         safe_name = re.sub(r"[^a-z0-9]+", "-", name_hint.lower()).strip("-")[:60] or "product"
         uploaded_url = _upload_image_via_bridge(processed, f"{safe_name}.jpg", self.config)
-        return uploaded_url or url
+        if not uploaded_url:
+            LOGGER.warning("Upload fotky zlyhal, preskakujem.")
+            return None
+        return uploaded_url
 
     def find_best_image(self, raw_data: Dict[str, Any]) -> Optional[str]:
         if DDGS is None:

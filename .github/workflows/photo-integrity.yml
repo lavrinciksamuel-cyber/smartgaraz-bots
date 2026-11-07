@@ -1,0 +1,42 @@
+name: Photo integrity
+
+# Weekly check of product images already stored on the shop.
+# Counts only in the log. The row list goes to HQ when HQ_SYNC_TOKEN is set.
+
+on:
+  schedule:
+    - cron: "25 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: photo-integrity
+  cancel-in-progress: false
+
+env:
+  SG_PUBLIC_LOGS: "1"
+  PYTHONPATH: ${{ github.workspace }}/bot/public_ci
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests Pillow
+      - name: Check product photos
+        env:
+          WC_URL: ${{ secrets.WC_URL }}
+          WC_CONSUMER_KEY: ${{ secrets.WC_CONSUMER_KEY }}
+          WC_CONSUMER_SECRET: ${{ secrets.WC_CONSUMER_SECRET }}
+          HQ_SYNC_TOKEN: ${{ secrets.HQ_SYNC_TOKEN }}
+          HQ_URL: ${{ secrets.HQ_URL }}
+        run: python bot/photo_integrity.py
+      - if: always()
+        run: python bot/public_report_summary.py bot/reports/photo-integrity.json || true

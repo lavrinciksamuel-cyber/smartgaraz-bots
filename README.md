@@ -19,6 +19,7 @@ Public GitHub Actions runners for SmartGaráž supplier imports (LKQ, Szekop, W�
 - `cheap-ops.yml` — 2×/day customer smoke → publish ready drafts → cost guard (shares concurrency with promote-drafts) — moved from smartgaraz-web
 - `daily-site-eval.yml` — 04:00 UTC site eval + product QA fix (≤40) — moved from smartgaraz-web
 - `security-monitor.yml` — every 15 min external security checks of all sites (uptime, SSL, DNS, headers, defacement; hourly exposed files, WordPress, blacklists) → HQ Bezpečnosť. Stdlib only, counts-only logs. Secret `SEC_SCANNER_SECRET` (optional `SEC_HQ_URL`); without it the job skips in seconds. Test: `cd security && python -m unittest test_monitor`
+- `photo-integrity.yml` — Sunday 03:25 UTC, product image integrity. Counts only in the log. The row list goes to HQ when `HQ_SYNC_TOKEN` is set. Test: `cd bot && python -m unittest test_image_integrity`
 
 ## Secrets (repo Settings → Secrets)
 `WC_URL`, `WC_CONSUMER_KEY`, `WC_CONSUMER_SECRET`, `HQ_SYNC_TOKEN`, `SG_INSIGHTS_KEY` (refresh-clicked + daily-site-eval; without it refresh-clicked skips in ~10 s)
