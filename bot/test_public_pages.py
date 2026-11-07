@@ -8,9 +8,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from lkq_public import collect, image_for, is_public_host
 from public_pages import (
     classify_http,
     discover_public,
+    product_image,
     product_links,
     products_from_html,
     robots_allows,
@@ -81,6 +83,38 @@ class _Session:
         self.calls.append(url)
         status, text = self.pages.get(url, (404, ""))
         return _Resp(status, text)
+
+
+class PublicSourceTests(unittest.TestCase):
+    def test_jsonld_photo_is_used_and_logo_is_not(self):
+        self.assertEqual(product_image(PAGE), "https://shop.example/a.jpg")
+        logo = '<html><meta property="og:image" content="https://shop.example/logo.png"></html>'
+        self.assertEqual(product_image(logo), "")
+
+    def test_collect_keeps_product_urls_and_stops_on_block(self):
+        self.assertTrue(is_public_host("https://www.autokelly.sk/Product/1"))
+        session = _Session({
+            "https://www.autokelly.sk/robots.txt": (200, ROBOTS.replace("https://shop.example/sitemap.xml", "")),
+            "https://www.autokelly.sk/": (200, '<a href="/Product/pad">pad</a><a href="/Search/secret">x</a>'),
+            "https://www.autokelly.cz/robots.txt": (403, "no"),
+        })
+        found = collect(session, limit=5)
+        self.assertEqual(found.status, "blocked")
+        self.assertNotIn("https://www.autokelly.cz/robots.txt", session.calls[:1])
+
+    def test_image_for_reads_public_product_page_without_login(self):
+        page = PAGE.replace("https://shop.example/product/bp1", "https://www.autokelly.sk/Product/BP1")
+        session = _Session({
+            "https://www.autokelly.sk/robots.txt": (200, "User-agent: *\nAllow: /Product/\nDisallow: /Search/\n"),
+            "https://www.autokelly.sk/Product/BP1": (200, page),
+        })
+        image, reason = image_for(session, "https://www.autokelly.sk/Product/BP1", "BP1")
+        self.assertEqual(reason, "")
+        self.assertEqual(image, "https://shop.example/a.jpg")
+        blocked = _Session({"https://www.autokelly.sk/robots.txt": (429, "")})
+        image, reason = image_for(blocked, "https://www.autokelly.sk/Product/BP1", "BP1")
+        self.assertEqual(reason, "http_429")
+        self.assertEqual(blocked.calls, ["https://www.autokelly.sk/robots.txt"])
 
 
 class DiscoverTests(unittest.TestCase):

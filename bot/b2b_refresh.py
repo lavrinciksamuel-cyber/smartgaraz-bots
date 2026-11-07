@@ -244,12 +244,16 @@ def _probe(slug: str):
     """One public robots/sitemap read. A block is not retried."""
     import requests
     from public_pages import UA, discover_public
+    session = requests.Session()
+    session.headers["User-Agent"] = UA
     if slug == "lkq":
+        from lkq_public import collect
+        found = collect(session, limit=1)
+        if found.status == "blocked":
+            return found
         from suppliers.lkq import LkqSupplier as supplier_cls
     else:
         from suppliers.szekop import SzekopSupplier as supplier_cls
-    session = requests.Session()
-    session.headers["User-Agent"] = UA
     return discover_public(session, supplier_cls.base_url, limit=1)
 
 
@@ -292,6 +296,7 @@ def refresh(slug: str, limit: int, *, clear_markers: bool = True) -> dict:
             return out
     if slug == "lkq" and not probed_ok:
         found = _probe(slug)
+        out["public"] = len(found.urls)
         if found.status == "blocked":
             out["blocked"] = True
             out["reason"] = "blocked"

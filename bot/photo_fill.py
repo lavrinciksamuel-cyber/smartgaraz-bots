@@ -326,9 +326,21 @@ def szekop_image_url(supplier_url: str) -> tuple[str, str]:
     return (images[0], "") if images else ("", "no_image")
 
 
-def lkq_image_url(supplier_url: str) -> tuple[str, str]:
-    if not supplier_url:
+def lkq_image_url(supplier_url: str, sku: str = "") -> tuple[str, str]:
+    if not supplier_url and not sku:
         return "", "no_ref"
+    import requests
+    from lkq_public import image_for, is_public_host
+    from public_pages import UA
+    session = requests.Session()
+    session.headers["User-Agent"] = UA
+    image, reason = image_for(session, supplier_url, sku)
+    if reason in {"http_403", "http_429"}:
+        raise StopFill(int(reason.rsplit("_", 1)[-1]))
+    if image:
+        return image, ""
+    if not supplier_url or is_public_host(supplier_url):
+        return "", reason or "no_image"
     from suppliers.hq_credentials import export_logins
     export_logins("lkq")
     from suppliers import get_supplier
@@ -440,7 +452,7 @@ def _source_url(supplier: str, item: dict, ctx: Optional[dict]) -> tuple[str, st
     if supplier == "szekop":
         return szekop_image_url(item.get("supplier_url") or "")
     if supplier == "lkq":
-        return lkq_image_url(item.get("supplier_url") or "")
+        return lkq_image_url(item.get("supplier_url") or "", item.get("sku") or "")
     if supplier == "wurth":
         return wurth_image_url(item.get("sku") or "", ctx or {})
     return "", "no_ref"

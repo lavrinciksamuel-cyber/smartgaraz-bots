@@ -18,7 +18,7 @@ env:
   PYTHONPATH: ${{ github.workspace }}/bot/public_ci
   PYTHONUNBUFFERED: "1"
   SG_GUARD_SLUG: lkq
-  SG_POLITE_HOSTS: lkq.sk
+  SG_POLITE_HOSTS: lkq.sk,autokelly.sk,autokelly.cz
   SG_POLITE_MIN: "12"
   SG_POLITE_MAX: "28"
   SG_DAILY_CAP: "24"
