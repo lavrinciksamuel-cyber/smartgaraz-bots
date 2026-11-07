@@ -20,6 +20,9 @@ Public GitHub Actions runners for SmartGaráž supplier imports (LKQ, Szekop, W�
 - `daily-site-eval.yml` — 04:00 UTC site eval + product QA fix (≤40) — moved from smartgaraz-web
 - `security-monitor.yml` — every 15 min external security checks of all sites (uptime, SSL, DNS, headers, defacement; hourly exposed files, WordPress, blacklists) → HQ Bezpečnosť. Stdlib only, counts-only logs. Secret `SEC_SCANNER_SECRET` (optional `SEC_HQ_URL`); without it the job skips in seconds. Test: `cd security && python -m unittest test_monitor`
 - `photo-integrity.yml` — Sunday 03:25 UTC, product image integrity. High-confidence broken images are removed (cap per run). Counts only in the log. The row list goes to HQ when `HQ_SYNC_TOKEN` is set. Test: `cd bot && python -m unittest test_image_integrity test_photo_repair`
+- `photo-fill-lkq.yml` — Sun/Wed 06:10 UTC, shares `catalog-lkq`. Batch of 6, pace 12–28 s.
+- `photo-fill-szekop.yml` — Tue/Fri 08:20 UTC, public phase only, shares `szekop-supplier`.
+- `photo-fill-wurth.yml` — Thu 09:30 UTC, existing public article match only, shares `wurth-catalog-sync`. Test: `cd bot && python -m unittest test_photo_fill`
 
 ## Secrets (repo Settings → Secrets)
 `WC_URL`, `WC_CONSUMER_KEY`, `WC_CONSUMER_SECRET`, `HQ_SYNC_TOKEN`, `SG_INSIGHTS_KEY` (refresh-clicked + daily-site-eval; without it refresh-clicked skips in ~10 s)
